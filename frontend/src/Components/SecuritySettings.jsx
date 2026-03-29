@@ -3,12 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import EditButton from "./editbutton";
-import { auth } from "../Components/firebase";
-import {
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  updatePassword,
-} from "firebase/auth";
+
 import { toast } from "react-hot-toast";
 import { X } from "lucide-react";
 

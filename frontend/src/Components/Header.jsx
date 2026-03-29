@@ -14,7 +14,7 @@ import { IoIosHeartEmpty } from "react-icons/io";
 import { CiMail } from "react-icons/ci";
 import { MdOutlineLogout } from "react-icons/md";
 import { motion, AnimatePresence } from "framer-motion";
-import { auth } from "./firebase";
+
 import { IoChevronBackOutline } from "react-icons/io5";
 
 const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
@@ -70,12 +70,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
     };
   }, [showmenu]);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser || null);
-    });
-    return () => unsubscribe();
-  }, []);
+ 
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");

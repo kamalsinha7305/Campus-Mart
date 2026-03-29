@@ -1,58 +1,11 @@
-
-import { GoogleAuthProvider } from 'firebase/auth'
-import { auth, db } from "./firebase";
 import { toast } from "react-hot-toast";
-import { signInWithPopup } from "firebase/auth";
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 function SignInwithGoogle() {
- const navigate = useNavigate(); 
-
-    async function googleLogin() {
-    // const navigate = useNavigate(); // <-- ERROR: Hooks can't be called inside a function
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // --- THIS IS THE NEW PART ---
-      const idToken = await user.getIdToken();
-
-      const response = await fetch(
-        `${process.env.VITE_API_URL}/api/auth/google-signin`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Backend sign-in failed');
-      }
-      // --- END OF NEW PART ---
-
-      // REMOVE all this Firestore logic:
-      // const userDocRef = doc(db, 'Users', user.uid);
-      // const userDoc = await getDoc(userDocRef);
-      // if (!userDoc.exists()) { ... }
-
-      toast.success("Signed in successfully");
-      navigate('/profile');
-    } catch (error) {
-      console.error("Error signing in:", error);
-      toast.error(error.message || "Failed to sign in!");
-    }
-  }
-
+   
     return (
       <>
         <div className="">
           <button
-            onClick={googleLogin}
             className="text-[#1e1e1e] dark:text-[#D6D6D6] text-[14px] lg:text-[15px] font-normal font-Poppins mb-[2vh] rounded-md lg:rounded-md border border-[#BBC2C9]  flex justify-center items-center lg:w-[24.5vw] lg:h-[5.8vh] w-[78vw] h-[5vh] transition-all duration-300 cursor-pointer hover:border-[black] dark:outline dark:outline-1 dark:outline-offset-[-0.92px]  dark:hover:border-black dark:outline-[#848484]"
           >
             <svg

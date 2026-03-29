@@ -2,48 +2,10 @@ import * as React from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import "./deletestyle.css";
 import { toast } from "react-hot-toast";
-import { auth } from "../Components/firebase";
+
 
 function AlertDialogDemo() {
-  async function handleDeleteAccount() {
-    try {
-      const user = auth.currentUser;
-
-      if (!user) {
-        toast.error("No user is logged in.");
-        window.location.href = "/login";
-        return;
-      }
-
-      const idToken = await user.getIdToken();
-
-      const response = await fetch(
-        `${process.env.VITE_API_URL}/api/auth/google-signin`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete account.");
-      }
-
-      toast.success("Account deleted successfully.");
-      await auth.signOut();
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Error deleting account:", error.message);
-      toast.error(
-        error.message || "Failed to delete account. Please try again"
-      );
-    }
-  }
-
+ 
   return (
     <>
       <AlertDialog.Root>
@@ -93,7 +55,7 @@ function AlertDialogDemo() {
                     fontSize: 15,
                     fontWeight: 500,
                   }}
-                  onClick={handleDeleteAccount}
+             /*      onClick={handleDeleteAccount} */
                   className="Button red"
                 >
                   Yes, delete account

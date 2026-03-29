@@ -3,13 +3,7 @@ import Loader from "../Components/Loder.jsx";
 import Profile_left_part from "../Components/Profile_left_part";
 import AlertDialogDemo from "../Components/Deletebutton";
 import Image11 from "../assets/profilepho.png";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { auth, db } from "../Components/firebase";
+
 import { toast } from "react-hot-toast";
 import EditButton from "../Components/editbutton";
 import SecuritySettings from "../Components/SecuritySettings";
@@ -23,7 +17,7 @@ import StatsPanel from "../Components/StatsPanel";
 
 function Profile() {
   const [uploading, setUploading] = useState(false);
-  const [photoURL, setPhotoURL] = useState("");
+
   const [otp, setOtp] = useState("");
   const [confirmResult, setConfirmResult] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
@@ -43,7 +37,7 @@ function Profile() {
     pincode: "",
   });
 
-  useEffect(() => {
+  /* useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setUserDetails(null);
@@ -207,7 +201,7 @@ function Profile() {
       </div>
     );
   }
-
+ */
   return (
     <>
       <div className="w-full h-screen overflow-hidden dark:bg-[#131313]">
@@ -228,7 +222,7 @@ function Profile() {
                   <div className="bg-[#292929] rounded-full p-1 border-white border shadow">
                     <span></span>
                     <img
-                      src={userDetails.photoURL || Image11}
+                      src={ Image11}
                       alt="Profile"
                       className="w-[70px] h-[70px] rounded-full"
                     />
@@ -237,7 +231,7 @@ function Profile() {
 
                 <div className="flex flex-col ml-[2vw] xl:ml-[1vw] font-poppins">
                   <div className="text-white text-[22px] font-medium xl:text-[20px]">
-                    {userDetails.firstName || "User"} {userDetails.lastName}
+                    { "User"} 
                   </div>
                   <div className="text-white text-sm opacity-80 font-light">
                     Member since October 2022
@@ -260,7 +254,7 @@ function Profile() {
                     Name
                   </div>
                   <div className="text-lg xl:mt-1 dark:text-[#BBC2C9]">
-                    {userDetails.firstName || "User"} {userDetails.lastName}
+                    { "User"}
                   </div>
                 </div>
 
@@ -269,7 +263,7 @@ function Profile() {
                     Email
                   </div>
                   <div className="text-lg xl:mt-1 dark:text-[#BBC2C9]">
-                    {userDetails.email}
+                    kamalsinha7305@gmail.com{/* {userDetails.email} */}
                   </div>
                 </div>
 
@@ -284,7 +278,7 @@ function Profile() {
                     placeholder="+91XXXXXXXXXX"
                     className="bg-transparent border p-1 rounded xl:mt-1 outline-none dark:border-[#848484]"
                   />
-                  <button onClick={sendOtp} className="ml-2 text-blue-500">
+                  <button /* onClick={sendOtp} */ className="ml-2 text-blue-500">
                     Send OTP
                   </button>
 
@@ -297,7 +291,7 @@ function Profile() {
                         onChange={(e) => setOtp(e.target.value)}
                         className="border p-1 rounded"
                       />
-                      <button onClick={verifyOtp} className="text-green-500">
+                      <button /* onClick={verifyOtp} */ className="text-green-500">
                         Verify
                       </button>
                     </div>
@@ -347,14 +341,14 @@ function Profile() {
                     </div>
 
                     <div className="flex gap-2 absolute bottom-3 right-3">
-                      <button onClick={() => handleDeleteAddress(index)}>
+                      <button /* onClick={() => handleDeleteAddress(index)} */ > 
                         <Trash2 size={18} className="text-red-500" />
                       </button>
                       <button
-                        onClick={() => {
+                       /*  onClick={() => {
                           setEditingIndex(index);
                           setIsModalOpen(true);
-                        }}
+                        }} */
                         className="dark:text-[white]"
                       >
                         <Pencil size={18} />
@@ -365,10 +359,10 @@ function Profile() {
 
                 {addresses.length < 3 && (
                   <button
-                    onClick={() => {
+                    /* onClick={() => {
                       setEditingIndex(null);
                       setIsModalOpen(true);
-                    }}
+                    }} */
                     className="border-2 border-dashed rounded-lg p-4 text-blue-500 xl:px-6 hover:bg-blue-100 transition-all duration-150 ease-linear"
                   >
                     + Add New Address
@@ -380,7 +374,7 @@ function Profile() {
             <AddressModal
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
-              onSave={handleSaveAddress}
+             /*  onSave={handleSaveAddress} */
               initialData={
                 editingIndex !== null
                   ? addresses[editingIndex]
@@ -410,7 +404,7 @@ function Profile() {
                   </div>
                 </div>
                 <button
-                  onClick={handleLogout}
+                 /*  onClick={handleLogout} */
                   className="bg-[#E5E8FF] px-4 py-2 rounded-lg hover:bg-[#d6dbfd] flex items-center justify-center gap-2 xl:px-[1.4vw] xl:py-[1vh] text-[15px] transition-all duration-300"
                 >
                   <FiLogOut className="text-[#364EF2]" />

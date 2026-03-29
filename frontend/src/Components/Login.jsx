@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { IoIosSunny, IoMdMoon } from "react-icons/io";
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from "react-hot-toast";
+import axios from "axios";
+
+import SummaryApi, { baseURL } from "../Common/SummaryApi"; 
+
 import Image4 from "../assets/upper_circle_1.png";
 import Image5 from "../assets/rectangle_1.png";
 import Image6 from "../assets/rectangle_2.png";
 import Image7 from "../assets/Homepage.png";
 import Image9 from "../assets/circle_up.png";
 import ImageShade from "../assets/login_shade.png";
-// import { signInWithEmailAndPassword } from "firebase/auth";
 import SignInwithGoogle from "./signinWithGoogle";
-import { toast } from "react-hot-toast";
-// import { auth } from "./firebase";
-import { Eye, EyeOff } from "lucide-react";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -21,69 +23,6 @@ function Login() {
   const [darkMode, setDarkMode] = useState(false);
 
   const navigate = useNavigate();
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const cleanedEmail = email.trim();
-      if (!cleanedEmail || !password) {
-        toast.error("Please enter email and password");
-        setIsSubmitting(false);
-        return;
-      }
-
-      await signInWithEmailAndPassword(auth, cleanedEmail, password);
-      const user = auth.currentUser;
-      if (!user) throw new Error("Authentication succeeded but no user found.");
-
-      const idToken = await user.getIdToken();
-
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ uid: user.uid }),
-      });
-
-      if (!res.ok) {
-        let errText = `HTTP ${res.status}`;
-        try {
-          const json = await res.json();
-          errText = json.message || JSON.stringify(json);
-        } catch {
-          const text = await res.text().catch(() => null);
-          if (text) errText = text;
-        }
-        throw new Error(errText);
-      }
-
-      toast.success("User logged in successfully", {
-        position: "top-center",
-      });
-      navigate("/");
-    } catch (error) {
-      console.error("Login error:", error);
-
-      let errorMessage = "An error occurred. Please try again.";
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        errorMessage = "Invalid email or password.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast.error(errorMessage, { position: "bottom-center" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
@@ -97,41 +36,51 @@ function Login() {
     }
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios({
+        method: SummaryApi.login.method,
+        url: `${baseURL}${SummaryApi.login.url}`,
+        data: {
+          email: email,
+          password: password,
+        },
+        withCredentials: true, 
+      });
+
+      if (response.data.success) {
+        toast.success(response.data.message || "Logged in successfully!");
+        navigate("/"); 
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "An error occurred connecting to the server.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex overflow-hidden select-none relative">
       {/* Top left image */}
       <div className="absolute -top-36 -left-52 z-10">
-        <img src={ImageShade} className="w-[35vw] h-[52vh]" alt="image" />
+        <img src={ImageShade} className="w-[35vw] h-[52vh]" alt="shade" />
       </div>
 
       {/* LEFT SECTION */}
       <div className="relative h-screen w-[100%] lg:w-[38%] xl:w-[42%] bg-white shadow dark:bg-[#131313]">
-        {/* Logo */}
         <Link
           to={"/"}
           className="flex items-center justify-center mt-[6vh] xl:mt-[8vh]"
         >
-          <svg
-            className="mb-[0.4vh]"
-            width="20"
-            height="20"
-            viewBox="0 0 27 26"
-            fill="none"
-          >
-            <path
-              d="M18.05 8.79119C18.05 11.3414 15.5629 13.4088 13.0126 13.4088C10.4624 13.4088 7.9752 11.3414 7.9752 8.79119C7.9752 6.24094 5.42505 3.33398 7.9753 3.33398C10.5256 3.33398 18.05 6.24094 18.05 8.79119Z"
-              stroke="#4D4EF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M19.1842 9.63082C19.1842 12.1811 16.6971 14.2485 14.1468 14.2485C11.5965 14.2485 9.10938 12.1811 9.10938 9.63082C9.10938 7.08056 15.0807 1.23511 17.6309 1.23511C20.1812 1.23511 19.1842 7.08056 19.1842 9.63082Z"
-              stroke="#534FF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M4.12511 10.2522C4.41527 9.14425 5.41637 8.37158 6.56164 8.37158H19.7557C20.8938 8.37158 21.8905 9.13479 22.1872 10.2335L25.5888 22.8271C26.0212 24.4279 24.8154 26.0026 23.1572 26.0026H3.26333C1.6131 26.0026 0.408693 24.4421 0.826795 22.8457L4.12511 10.2522Z"
-              fill="#394FF1"
-            />
+          {/* SVG Logo kept intact */}
+          <svg className="mb-[0.4vh]" width="20" height="20" viewBox="0 0 27 26" fill="none">
+            <path d="M18.05 8.79119C18.05 11.3414 15.5629 13.4088 13.0126 13.4088C10.4624 13.4088 7.9752 11.3414 7.9752 8.79119C7.9752 6.24094 5.42505 3.33398 7.9753 3.33398C10.5256 3.33398 18.05 6.24094 18.05 8.79119Z" stroke="#4D4EF2" strokeWidth="1.67914" />
+            <path d="M19.1842 9.63082C19.1842 12.1811 16.6971 14.2485 14.1468 14.2485C11.5965 14.2485 9.10938 12.1811 9.10938 9.63082C9.10938 7.08056 15.0807 1.23511 17.6309 1.23511C20.1812 1.23511 19.1842 7.08056 19.1842 9.63082Z" stroke="#534FF2" strokeWidth="1.67914" />
+            <path d="M4.12511 10.2522C4.41527 9.14425 5.41637 8.37158 6.56164 8.37158H19.7557C20.8938 8.37158 21.8905 9.13479 22.1872 10.2335L25.5888 22.8271C26.0212 24.4279 24.8154 26.0026 23.1572 26.0026H3.26333C1.6131 26.0026 0.408693 24.4421 0.826795 22.8457L4.12511 10.2522Z" fill="#394FF1" />
           </svg>
           <span className="text-[#012436] dark:text-[#FFFFFF] text-[18px] lg:text-[1.5rem] xl:text-[1.45rem] font-poppins font-semibold ml-[0.3vw]">
             Campus Mart
@@ -152,11 +101,11 @@ function Login() {
             Enter your details to access Campus Mart.
           </div>
 
-          {/* FORM */}
+          {/* FORM: Added onSubmit here */}
           <div className="w-3/4 mx-auto">
             <form
-              onSubmit={handleSubmit}
               className="flex flex-col items-center justify-center"
+              onSubmit={handleLogin}
             >
               {/* EMAIL */}
               <div className="mt-[3vh]">
@@ -190,7 +139,7 @@ function Login() {
 
                 <button
                   type="button"
-                  className="absolute top-[53%] right-3 flex items-center"
+                  className="absolute top-[38%] right-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -212,7 +161,7 @@ function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="text-white bg-[#1a1d20] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] mt-[3vh] hover:bg-[#0b0c0d] disabled:opacity-60"
+                className="text-white bg-[#1a1d20] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] mt-[3vh] hover:bg-[#0b0c0d] disabled:opacity-60 transition-opacity"
               >
                 {isSubmitting ? "Signing in..." : "Sign in"}
               </button>
@@ -242,7 +191,7 @@ function Login() {
               {/* Footer */}
               <div className="hidden lg:block w-[35vw] xl:mt-[9vh] border dark:border-[#D7D7D7]"></div>
               <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm pt-1">
-                <span>@2025 Copyright Reserved</span>
+                <span>@2026 Copyright Reserved</span>
                 <span>login issues? Contact us.</span>
               </div>
             </form>
@@ -250,7 +199,7 @@ function Login() {
         </div>
 
         <div className="lg:hidden flex justify-center">
-          <img src={Image9} className="w-[89vw] h-[24vh]" alt="" />
+          <img src={Image9} className="w-[89vw] h-[24vh]" alt="graphic" />
         </div>
       </div>
 
@@ -258,7 +207,7 @@ function Login() {
         <button
           onClick={() => toggleDarkMode()}
           aria-label="Toggle dark mode"
-          className="transition duration-500 ease-in-out absolute right-14 top-[36vh] z-20"
+          className="transition duration-500 ease-in-out absolute right-[8%] top-[34.4%] z-20"
         >
           {darkMode ? (
             <IoIosSunny className="text-[#FFD119] sm:size-4 md:size-5 lg:size-6 xl:size-5 transition-all duration-500 ease-in-out rotate-0 scale-100" />
@@ -272,10 +221,10 @@ function Login() {
           Sell What You Don't!
         </div>
 
-        <img src={Image6} className="absolute top-[-4%] left-[-10%] w-[55vw]" />
-        <img src={Image5} className="absolute top-[18%] left-[-13%] w-[55vw]" />
-        <img src={Image4} className="absolute top-0 right-0 w-[10vw]" />
-        <img src={Image7} className="absolute bottom-0 right-0 w-[46vw]" />
+        <img src={Image6} className="absolute top-[-4%] left-[-10%] w-[55vw]" alt="graphic" />
+        <img src={Image5} className="absolute top-[18%] left-[-13%] w-[55vw]" alt="graphic" />
+        <img src={Image4} className="absolute top-0 right-0 w-[10vw]" alt="graphic" />
+        <img src={Image7} className="absolute bottom-0 right-0 w-[46vw]" alt="graphic" />
       </div>
     </div>
   );

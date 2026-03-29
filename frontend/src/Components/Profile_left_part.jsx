@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import Image1 from "../assets/imageprofile.png";
 import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+
+
 import { MdShoppingBag } from "react-icons/md";
 import { BsFillBoxSeamFill } from "react-icons/bs";
 import { MdChat } from "react-icons/md";
@@ -48,28 +48,7 @@ function Profile_left_part() {
   `;
   const [userDetails, setUserDetails] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const docRef = doc(db, "Users", user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setUserDetails(data);
-            setPhone(data.phone || "");
-          } else {
-            console.log("No such document!");
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    };
 
-    fetchData();
-  }, []);
 
   return (
     <>

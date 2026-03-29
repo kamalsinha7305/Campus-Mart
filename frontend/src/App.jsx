@@ -22,78 +22,33 @@ import ProductListing from "./Pages/ProductListing";
 import PricingModel from "./Pages/PricingModel";
 import Chat from "./Pages/Chat";
 import { Toaster } from "react-hot-toast";
-import { auth } from "./Components/firebase";
 import Loader from "./Components/Loder";
 import ProductCategory from "./Pages/ProductCategory.jsx"
 
 
 function App() {
-  const [user, setUser] = useState(undefined);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser || null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (
-      user &&
-      (location.pathname === "/login" || location.pathname === "/signup")
-    ) {
-      navigate("/");
-    }
-  }, [user, location.pathname, navigate]);
-
-  if (user === undefined) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-        <Loader />
-      </div>
-    );
-  }
 
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route
-          path="/signup"
-          element={user ? <Navigate to="/" /> : <Signup />}
-        />
-        <Route
-          path="/profile"
-          element={user ? <Profile /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/notification"
-          element={user ? <Notification /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/myorders"
-          element={user ? <Myorders /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/wishlist"
-          element={user ? <Wishlist /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/productlisted"
-          element={user ? <ProductListed /> : <Navigate to="/login" />}
-        />
+       <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+         <Route path="/profile" element={<Profile />} />
+        <Route path="/notification" element={<Notification />} />
+        <Route path="/myorders" element={<Myorders />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/productlisted" element={<ProductListed />} />
         <Route path="/termscondition" element={<Termscondition />} />
         <Route path="/contact" element={<ContactUs />} />
-
         <Route path="/product" element={<ProductDescription />} />
         <Route path="/upload" element={<ProductListing />} />
         <Route path="/price" element={<PricingModel />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/category/:categoryName" element={<ProductCategory />} />
-        <Route path="*" element={<Navigate to="/" />} />
+
+        <Route path="*" element={<Navigate to="/" />} /> 
       </Routes>
 
       <Toaster position="top-center" />
