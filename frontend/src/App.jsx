@@ -24,6 +24,7 @@ import Chat from "./Pages/Chat";
 import { Toaster } from "react-hot-toast";
 import Loader from "./Components/Loder";
 import ProductCategory from "./Pages/ProductCategory.jsx"
+import ProtectedRoute from "./Components/ProtectedRoute.jsx";
 
 
 function App() {
@@ -31,26 +32,75 @@ function App() {
   return (
     <div className="App">
       <Routes>
-       <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-         <Route path="/profile" element={<Profile />} />
-        <Route path="/notification" element={<Notification />} />
-        <Route path="/myorders" element={<Myorders />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/productlisted" element={<ProductListed />} />
-        <Route path="/termscondition" element={<Termscondition />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/product" element={<ProductDescription />} />
-        <Route path="/upload" element={<ProductListing />} />
-        <Route path="/price" element={<PricingModel />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/category/:categoryName" element={<ProductCategory />} />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/notification" element={
+          <ProtectedRoute>
+            <Notification />
+          </ProtectedRoute>
 
-        <Route path="*" element={<Navigate to="/" />} /> 
+        } />
+        <Route path="/myorders" element={
+          <ProtectedRoute>
+            <Myorders />
+          </ProtectedRoute>
+        } />
+        <Route path="/wishlist" element={
+          <ProtectedRoute>
+            <Wishlist />
+          </ProtectedRoute>
+        } />
+        <Route path="/productlisted" element={
+          <ProtectedRoute>
+            <ProductListed />
+          </ProtectedRoute>
+
+        } />
+        <Route path="/termscondition" element={
+          <ProtectedRoute>
+            <Termscondition />
+          </ProtectedRoute>
+
+        } />
+        <Route path="/contact" element={
+          <ProtectedRoute>
+            <ContactUs />
+          </ProtectedRoute>
+        } />
+        <Route path="/product" element={
+          <ProtectedRoute>
+            <ProductDescription />
+          </ProtectedRoute>
+        } />
+        <Route path="/upload" element={
+          <ProtectedRoute>
+            <ProductListing />
+          </ProtectedRoute>
+        } />
+        <Route path="/price" element={
+          <ProtectedRoute>
+            <PricingModel />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        } />
+        <Route path="/category/:categoryName" element={
+          <ProtectedRoute>
+            <ProductCategory />
+          </ProtectedRoute>} />
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-
       <Toaster position="top-center" />
     </div>
   );

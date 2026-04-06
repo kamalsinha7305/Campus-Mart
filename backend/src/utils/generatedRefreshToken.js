@@ -16,5 +16,5 @@ const generatedRefreshToken = async (userId)=>{
    
    return token;
 }
-//const otp = generateOtp(); 
+const otp = generateOtp(); 
 export default generatedRefreshToken

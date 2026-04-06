@@ -189,10 +189,12 @@ function Login() {
               </div>
 
               {/* Footer */}
-              <div className="hidden lg:block w-[35vw] xl:mt-[9vh] border dark:border-[#D7D7D7]"></div>
-              <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm pt-1">
+              <div className="absolute bottom-[2vh] left-0 w-full flex flex-col items-center justify-center">
+              <div className="hidden lg:block w-[35vw] border dark:border-[#D7D7D7]"></div>
+              <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm mt-[0.5vh]">
                 <span>@2026 Copyright Reserved</span>
-                <span>login issues? Contact us.</span>
+                <span>Login issues ? Contact us.</span>
+              </div>
               </div>
             </form>
           </div>

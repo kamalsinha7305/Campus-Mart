@@ -134,11 +134,11 @@ export const loginController = async (req, res) => {
 
         const accesstoken = await generatedAccessToken(user._id);
         const refreshtoken = await generatedRefreshToken(user._id);
-    
+        const isProduction = process.env.NODE_ENV === "production";
         const cookieoption = {
-            httpOnly: true,
-            secure: true, 
-            sameSite: "None",
+             httpOnly: true, 
+            secure: isProduction, 
+            sameSite: isProduction?"None":"Lax",
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days 
         };
 
