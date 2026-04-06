@@ -82,6 +82,7 @@ const Home = () => {
     }, 2500);
     return () => clearInterval(interval);
   }, []);
+  
   return (
     <motion.div className="w-full bg-white dark:bg-[#131313] relative">
       <Header bagUrl={"/bag.webp"} darkUrl={"/bluebag.png"} />

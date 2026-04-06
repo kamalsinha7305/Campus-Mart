@@ -6,8 +6,6 @@ import userModel from "../models/User.model.js";
 import sendEmail from "../config/sendEmail.js";
 import generatedAccessToken from "../utils/generatedAccessToken.js";
 import generatedRefreshToken from "../utils/generatedRefreshToken.js";
-//import auth from "../middleware/auth.js";
-//import forgotPaswordTemplate from "../utils/forgotPasswordTemplate.js";
 import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -205,3 +203,31 @@ export const verifyEmailController =async (req,res) =>{
          })
     }
 } 
+
+export const logoutUser = async (req, res) => {
+    try {
+        const isProduction = process.env.NODE_ENV === "production";
+        
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "None" : "Lax",
+        };
+
+        res.clearCookie("accessToken", cookieOptions)
+           .status(200)
+           .json({
+               success: true,
+               message: "Logged out successfully",
+               error: false
+           });
+
+    } catch (error) {
+        console.error("Error in logoutUser:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error during logout",
+            error: true
+        });
+    }
+};

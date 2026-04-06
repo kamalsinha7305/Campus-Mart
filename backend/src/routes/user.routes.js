@@ -1,10 +1,11 @@
 import {Router} from "express";
-import {registerUserController, loginController} from "../controllers/auth.controller.js";
+import {auth} from "../middleware/auth.middleware.js";
+import { getUserProfile ,deleteAccount} from "../controllers/user.controller.js";
 
 const userRouter = Router();
 
-userRouter.post("/request-verification",registerUserController);
-userRouter.post("",loginController);
+userRouter.get("/userProfile",auth,getUserProfile);
+userRouter.delete("/deleteAccount",auth,deleteAccount);
 
 export default userRouter;
 
