@@ -8,6 +8,4 @@ authRouter.post("/login",loginController);
 authRouter.post("/verify-email",verifyEmailController);
 authRouter.get("/logoutUser",logoutUser);
 
-export default authRouter;
-
-
+export default authRouter;                  
