@@ -1,30 +1,56 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser";   
-import morgan from 'morgan';
+import cookieParser from "cookie-parser";
+import morgan from "morgan";
 import helmet from "helmet";
+
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 
+import errorMiddleware from "./middlewares/error.middleware.js";
+
 const app = express();
 
-app.use(cors({
-    credentials:true ,
-    origin:process.env.FRONTEND_URL,
-    methods:["GET","POST","PUT","DELETE"]
-    }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
-app.use(express.json());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
+
+app.use(express.json({ limit: "10kb" })); // To prevent payload attacks
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(morgan("dev"));
-app.use(helmet({
-    crossOriginResourcePolicy:false
-}));
+
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
 
 app.get("/health", (req, res) => {
-  res.json({ status: "OK" });
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: new Date(),
+  });
 });
-app.use('/api/auth',authRouter);
-app.use('/api/user',userRouter);
+
+app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+app.use(errorMiddleware);
 
 export default app;

@@ -31,7 +31,7 @@ mongoose.connection.on("disconnected", () => {
   console.warn("❌ MongoDB disconnected");
 });
 
-// Graceful Shutdown
+// Avoiding any Data leaks after disconnecting the DB
 process.on("SIGINT", async () => {
   await mongoose.connection.close();
   console.log("✅ MongoDB connection closed");

@@ -19,6 +19,7 @@ A full-stack marketplace platform for campus communities, enabling students to b
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **React 18** + **Vite 6** - Modern UI framework
 - **Tailwind CSS** - Utility-first styling
 - **React Router DOM 7** - Client-side routing
@@ -29,6 +30,7 @@ A full-stack marketplace platform for campus communities, enabling students to b
 - **Radix UI** - Accessible components
 
 ### Backend
+
 - **Node.js** + **Express 5** - RESTful API
 - **MongoDB** + **Mongoose 9** - Database
 - **Socket.io** - WebSocket server
@@ -40,6 +42,7 @@ A full-stack marketplace platform for campus communities, enabling students to b
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - MongoDB (local or Atlas)
 - Firebase project with Auth, Firestore, and Storage enabled
@@ -47,18 +50,21 @@ A full-stack marketplace platform for campus communities, enabling students to b
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd Campus-Mart
    ```
 
 2. **Backend Setup**
+
    ```bash
    cd backend
    npm install
    ```
-   
+
    Create `.env`:
+
    ```env
    PORT=5000
    MONGODB_URI=your_mongodb_connection_string
@@ -70,12 +76,14 @@ A full-stack marketplace platform for campus communities, enabling students to b
    ```
 
 3. **Frontend Setup**
+
    ```bash
    cd ../frontend
    npm install
    ```
-   
+
    Create `.env`:
+
    ```env
    VITE_API_URL=http://localhost:5000
    VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -87,11 +95,12 @@ A full-stack marketplace platform for campus communities, enabling students to b
    ```
 
 4. **Run the application**
+
    ```bash
    # Terminal 1 - Backend
    cd backend
    npm run dev
-   
+
    # Terminal 2 - Frontend
    cd frontend
    npm run dev
@@ -135,6 +144,7 @@ Campus-Mart/
 ## 📡 API Overview
 
 ### Core Endpoints
+
 - **Auth**: `/api/auth/*` - Signup, login, Google OAuth
 - **Products**: `/api/products/*` - CRUD operations, search, filters
 - **Chat**: `/api/chat/*` - Rooms, messages (Socket.io)
@@ -152,6 +162,7 @@ All protected routes require JWT authentication via `Authorization: Bearer <toke
 ## 🎯 Available Scripts
 
 ### Frontend
+
 ```bash
 npm run dev      # Development server
 npm run build    # Production build
@@ -160,6 +171,7 @@ npm run lint     # Run ESLint
 ```
 
 ### Backend
+
 ```bash
 npm run dev      # Development with nodemon
 npm start        # Production server
@@ -184,6 +196,7 @@ npm start        # Production server
 5. Open a Pull Request
 
 ### Commit Convention
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation
