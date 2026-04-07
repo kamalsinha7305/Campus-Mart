@@ -35,7 +35,7 @@ export const getUserProfile = async (req, res) => {
 export const deleteAccount = async (req, res) => {
     try {
         
-        const userId = req.user.Id;
+        const userId = req.userId;
         const deletedUser = await userModel.findByIdAndDelete(userId);
 
         if (!deletedUser) {
