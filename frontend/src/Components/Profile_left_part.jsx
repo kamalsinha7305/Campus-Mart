@@ -15,9 +15,17 @@ import { RiNotification4Fill } from "react-icons/ri";
 import { FaHeart } from "react-icons/fa6";
 import { MdMail } from "react-icons/md";
 import { BsFillFileTextFill } from "react-icons/bs";
+import {baseURL} from "../Common/SummaryApi";
+import SummaryApi from "../Common/SummaryApi";
+import axios from "axios";
+import Loader from "../Components/Loder.jsx";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 function Profile_left_part() {
   const { darkMode, toggleDarkMode } = useTheme();
+    const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   /* 
         const [activeItem, setActiveItem] = useState(null); */
   const menu = [
@@ -48,7 +56,41 @@ function Profile_left_part() {
   `;
   const [userDetails, setUserDetails] = useState(null);
 
+    useEffect(() => {
+    const fetchUserProfile = async () => {
+      try{
 
+        const response =await axios({
+          method : SummaryApi.userProfile.method,
+          url : `${baseURL}${SummaryApi.userProfile.url}`,
+          withCredentials : true
+        });
+        if(response.data.success){
+          setUserDetails(response.data.user);
+          
+        }
+      }
+      catch(error){
+       if (error.response?.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          localStorage.removeItem("isAuthenticated"); 
+          navigate("/login"); 
+        } else {
+          toast.error("Failed to load profile data");
+        }
+      }
+      finally {
+        setLoading(false); 
+      }
+
+    }
+    fetchUserProfile();
+  },[navigate])
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center bg-[#FBFBFB] dark:bg-[#131313]"><Loader /></div>;
+  }
+  
 
   return (
     <>
@@ -67,10 +109,10 @@ function Profile_left_part() {
                   />
                   <div className="flex flex-col ">
                     <div className=" text-black dark:text-white  text-[13px] md:text-[14px] lg:text-[16px] font-normal font-['Poppins']">
-                      {userDetails?.firstname || "User"}
+                      {userDetails?.name || "User"}
                     </div>
-                    <div className=" text-[#727272] dark:text-white  text-[13px] md:text-[14px] lg:text-[13px] xl:text-[13px] font-normal font-['Poppins']">
-                      {userDetails?.firstname || "User@example.com"}
+                    <div className=" text-[#727272] dark:text-white  text-[13px] md:text-[14px] lg:text-[11px] xl:text-[11px] font-normal font-['Poppins']">
+                      {userDetails?.email || "User@example.com"}
                     </div>
                     <div className=" text-[#979797] text-[10px] md:text-[9px] lg:text-[0.8rem] font-normal font-['Poppins']">
                       {" "}

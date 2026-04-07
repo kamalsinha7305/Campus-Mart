@@ -2,10 +2,33 @@ import * as React from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import "./deletestyle.css";
 import { toast } from "react-hot-toast";
-
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { baseURL } from "../Common/SummaryApi";
+import SummaryApi from "../Common/SummaryApi";
 
 function AlertDialogDemo() {
- 
+  const navigate = useNavigate();
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await axios({
+        method: SummaryApi.deleteAccount.method,
+        url: `${baseURL}${SummaryApi.deleteAccount.url}`,
+        withCredentials: true
+      });
+      if (response.data.success) {
+
+        localStorage.removeItem("isAuthenticated");
+
+        toast.success("Your account has been permanently deleted.");
+
+        navigate("/signup");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete account");
+    }
+  };
+
   return (
     <>
       <AlertDialog.Root>
@@ -55,7 +78,7 @@ function AlertDialogDemo() {
                     fontSize: 15,
                     fontWeight: 500,
                   }}
-             /*      onClick={handleDeleteAccount} */
+                  onClick={handleDeleteAccount}
                   className="Button red"
                 >
                   Yes, delete account

@@ -1,3 +1,5 @@
+import { LogOut } from "lucide-react";
+
 export const baseURL = "http://localhost:5000"; 
 
 const SummaryApi = { 
@@ -16,6 +18,18 @@ const SummaryApi = {
     otpVerification: {
         url: '/api/auth/verify-forgot-password-otp', 
         method: 'put'
+    },
+    userProfile:{
+        url: '/api/user/userProfile',
+        method: 'get'
+    },
+    deleteAccount: {
+        url: '/api/user/deleteAccount',
+        method: 'delete'
+    },
+    logoutUser:{
+        url: '/api/auth/logoutUser',
+        method: 'get'
     }
 };
 

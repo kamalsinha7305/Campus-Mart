@@ -14,8 +14,13 @@ import bag from "../assets/bag.png";
 import bluebag from "../assets/bluebag.png";
 import { FiLogOut } from "react-icons/fi";
 import StatsPanel from "../Components/StatsPanel";
+import { baseURL } from "../Common/SummaryApi.js";
+import axios from "axios";
+import SummaryApi from "../Common/SummaryApi.js";
+import { useNavigate } from "react-router-dom";
 
 function Profile() {
+  const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
 
   const [otp, setOtp] = useState("");
@@ -36,172 +41,63 @@ function Profile() {
     city: "",
     pincode: "",
   });
-
-  /* useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setUserDetails(null);
-        setAddresses([]);
-        setPhone("");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const docRef = doc(db, "Users", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setUserDetails(data);
-          setPhone(data.phone || "");
-
-          if (Array.isArray(data.savedAddresses)) {
-            setAddresses(data.savedAddresses);
-          } else if (data.addressDetails) {
-            setAddresses([data.addressDetails]);
-          }
-        } else {
-          setUserDetails({
-            firstName: "",
-            lastName: "",
-            email: user.email || "",
-            photoURL: "",
-          });
-        }
-      } catch (err) {
-        console.error("Profile load error:", err);
-        toast.error(err.message || "Failed to load profile data");
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleSaveAddress = async (newAddressData) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      let updated = [...addresses];
-
-      if (editingIndex !== null) {
-        updated[editingIndex] = newAddressData;
-      } else {
-        updated.push(newAddressData);
-      }
-
-      setAddresses(updated);
-
-      const docRef = doc(db, "Users", user.uid);
-      await updateDoc(docRef, {
-        savedAddresses: updated,
-        addressDetails: updated[0] || {},
-      });
-
-      toast.success(
-        editingIndex !== null ? "Address updated!" : "New address added!"
-      );
-      setIsModalOpen(false);
-    } catch (err) {
-      toast.error("Failed to update address");
-    }
-  };
-
-  const handleDeleteAddress = async (indexToDelete) => {
-    if (!window.confirm("Are you sure you want to delete this address?"))
-      return;
-
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const updated = addresses.filter((_, i) => i !== indexToDelete);
-      setAddresses(updated);
-
-      await updateDoc(doc(db, "Users", user.uid), {
-        savedAddresses: updated,
-        addressDetails: updated[0] || {},
-      });
-
-      toast.success("Address deleted successfully");
-    } catch (err) {
-      toast.error("Failed to delete address");
-    }
-  };
-
-  const sendOtp = async () => {
-    if (!phone.startsWith("+")) {
-      return toast.error("Use +91XXXXXXXXXX format");
-    }
-
-    try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(
-          "recaptcha-container",
-          { size: "invisible" },
-          auth
-        );
-      }
-
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phone,
-        window.recaptchaVerifier
-      );
-      setConfirmResult(confirmation);
-      setOtpSent(true);
-      toast.success("OTP sent!");
-    } catch (err) {
-      toast.error("Failed to send OTP");
-    }
-  };
-
-  const verifyOtp = async () => {
-    if (!otp || !confirmResult) return toast.error("Enter OTP");
-
-    try {
-      await confirmResult.confirm(otp);
-      const user = auth.currentUser;
-      await updateDoc(doc(db, "Users", user.uid), { phone });
-
-      toast.success("Phone verified!");
-      setOtp("");
-      setOtpSent(false);
-    } catch {
-      toast.error("OTP verification failed");
-    }
-  };
-
+            
   const handleLogout = async () => {
-    await auth.signOut();
-    window.location.href = "/login";
+    try {
+     
+      const response =await axios({
+          method : SummaryApi.logoutUser.method,
+          url : `${baseURL}${SummaryApi.logoutUser.url}`,
+          withCredentials : true
+        });
+
+      if (response.data.success) {
+        localStorage.removeItem("isAuthenticated");
+      
+        toast.success("Logged out successfully");
+      
+        navigate("/login"); 
+      }
+    } catch (error) {
+      toast.error("Failed to log out. Please try again.");
+    }
   };
 
   useEffect(() => {
-    document.body.style.overflow = loading ? "hidden" : "auto";
-  }, [loading]);
+    const fetchUserProfile = async () => {
+      try{
 
-  if (loading) return <Loader />;
+        const response =await axios({
+          method : SummaryApi.userProfile.method,
+          url : `${baseURL}${SummaryApi.userProfile.url}`,
+          withCredentials : true
+        });
+        if(response.data.success){
+          setUserDetails(response.data.user);
+          
+        }
+      }
+      catch(error){
+       if (error.response?.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          localStorage.removeItem("isAuthenticated"); 
+          navigate("/login"); 
+        } else {
+          toast.error("Failed to load profile data");
+        }
+      }
+      finally {
+        setLoading(false); 
+      }
 
-  if (!userDetails) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div>
-          <p className="text-lg text-center">No profile data found.</p>
-          <button
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-            onClick={() => (window.location.href = "/login")}
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
+    }
+    fetchUserProfile();
+  },[navigate])
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center bg-[#FBFBFB] dark:bg-[#131313]"><Loader /></div>;
   }
- */
+
   return (
     <>
       <div className="w-full h-screen overflow-hidden dark:bg-[#131313]">
@@ -231,7 +127,7 @@ function Profile() {
 
                 <div className="flex flex-col ml-[2vw] xl:ml-[1vw] font-poppins">
                   <div className="text-white text-[22px] font-medium xl:text-[20px]">
-                    { "User"} 
+                    {userDetails?.name || "User"} 
                   </div>
                   <div className="text-white text-sm opacity-80 font-light">
                     Member since October 2022
@@ -254,7 +150,7 @@ function Profile() {
                     Name
                   </div>
                   <div className="text-lg xl:mt-1 dark:text-[#BBC2C9]">
-                    { "User"}
+                    {userDetails?.name || "User"}
                   </div>
                 </div>
 
@@ -263,7 +159,7 @@ function Profile() {
                     Email
                   </div>
                   <div className="text-lg xl:mt-1 dark:text-[#BBC2C9]">
-                    kamalsinha7305@gmail.com{/* {userDetails.email} */}
+                   {userDetails?.email} 
                   </div>
                 </div>
 
@@ -404,7 +300,7 @@ function Profile() {
                   </div>
                 </div>
                 <button
-                 /*  onClick={handleLogout} */
+                  onClick={handleLogout}
                   className="bg-[#E5E8FF] px-4 py-2 rounded-lg hover:bg-[#d6dbfd] flex items-center justify-center gap-2 xl:px-[1.4vw] xl:py-[1vh] text-[15px] transition-all duration-300"
                 >
                   <FiLogOut className="text-[#364EF2]" />
