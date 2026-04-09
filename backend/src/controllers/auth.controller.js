@@ -8,6 +8,7 @@ import generatedAccessToken from "../utils/generatedAccessToken.js";
 import generatedRefreshToken from "../utils/generatedRefreshToken.js";
 import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
 import {generateOtp} from "../utils/generateOtp.js";
+import forgotPaswordTemplate from "../utils/templates/forgotPaswordTemplate.js";
 
 export const registerUserController = async (req, res) => {
     try {
@@ -232,51 +233,55 @@ export const logoutUser = async (req, res) => {
 };
 
 export const forgotPasswordController = async (req, res) => {
-    try{
+    try {
         const { email } = req.body;
         
-        const user =await userModel.findOne({ email });
-        if(!user){
+        const user = await userModel.findOne({ email });
+        
+        if (!user) {
             return res.status(404).json({
-                message : "User with this email does'nt exists",
+                message: "User with this email doesn't exist",
                 success: false,
                 error: true
-            })
+            });
         }
-        const otp = await generateOtp();
-        const expireTime = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+    
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        
+        const expireTime = Date.now() + 15 * 60 * 1000; 
+        await userModel.findByIdAndUpdate(user._id, {
+            reset_password_token: resetToken,
+            reset_password_expiry: expireTime 
+        });
 
-        const update = await userModel.findByIdAndUpdate(user._id,{
-            forgot_password_otp : otp,
-            forgot_password_expiry : expireTime 
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-        })
-
+        // 5. Send the email
         await sendEmail({
-            sendTo : email,
-            subject : "Forgot password from Campus Mart",
-            html : forgotPaswordTemplate({
-                user : user.name ,
-                otp : otp
+            sendTo: email,
+            subject: "Reset your Campus Mart password",
+            html: forgotPaswordTemplate({
+                user: user.name,
+                resetUrl: resetUrl // Pass the URL instead of the OTP
             }) 
-        })
+        });
 
         return res.status(200).json({
-            message: "Otp sent to your email address, please check your inbox",
-            success : true ,
-            error :false 
-        })
-    }
-    catch(error){
+            message: "Password reset link sent to your email. Please check your inbox.",
+            success: true,
+            error: false 
+        });
+        
+    } catch (error) {
         return res.status(500).json({
-            message : error.message || error,
-            success : false,
-            error : true
-        })
+            message: error.message || "An error occurred while sending the reset email",
+            success: false,
+            error: true
+        });
     }
-}
+};
 
-export const verifyforgotPasswordOtpController = async (req, res) => {
+/* export const verifyforgotPasswordOtpController = async (req, res) => {
     try{
         const { email,otp } = req.body ;
         if(!email || !otp ){
@@ -328,4 +333,88 @@ export const verifyforgotPasswordOtpController = async (req, res) => {
         })
     }
      
-}
+} */
+
+export const resetPasswordController = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({
+                message: "Please provide a new password",
+                success: false,
+                error: true
+            });
+        }
+
+
+        const user = await userModel.findOne({
+            reset_password_token: token,
+            reset_password_expiry: { $gt: Date.now() } // $gt means "greater than" right now
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "This password reset link is invalid or has expired.",
+                success: false,
+                error: true
+            });
+        }
+  
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        await userModel.findByIdAndUpdate(user._id, {
+            password: hashedPassword,
+            reset_password_token: "",
+            reset_password_expiry: null
+        });
+
+        return res.status(200).json({
+            message: "Password updated successfully!",
+            success: true,
+            error: false
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "An error occurred while resetting the password",
+            success: false,
+            error: true
+        });
+    }
+};
+export const verifyResetTokenPreCheck = async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        // Check if the token exists and hasn't expired yet
+        const user = await userModel.findOne({
+            reset_password_token: token,
+            reset_password_expiry: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "This password reset link is invalid or has expired.",
+                success: false,
+                error: true
+            });
+        }
+
+        // If user is found, the token is perfectly valid!
+        return res.status(200).json({
+            message: "Token is valid",
+            success: true,
+            error: false
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Server error while verifying link",
+            success: false,
+            error: true
+        });
+    }
+};

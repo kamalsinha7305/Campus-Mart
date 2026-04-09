@@ -11,10 +11,6 @@ const SummaryApi = {
         url: '/api/auth/login', 
         method: 'post'
     },
-    forgot_password: {
-        url: '/api/auth/forgot-password', 
-        method: 'put'
-    },
     otpVerification: {
         url: '/api/auth/verify-forgot-password-otp', 
         method: 'put'
@@ -29,6 +25,14 @@ const SummaryApi = {
     },
     logoutUser:{
         url: '/api/auth/logoutUser',
+        method: 'get'
+    },
+    forgot_password:{
+        url: '/api/auth/forgot-password',
+        method: 'post'
+    },
+    reset_password: {
+        url: '/api/auth/reset-password/',
         method: 'get'
     }
 };

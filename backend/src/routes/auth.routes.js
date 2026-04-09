@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {registerUserController, loginController,verifyEmailController,logoutUser,forgotPasswordController} from "../controllers/auth.controller.js";
+import {registerUserController, loginController,verifyEmailController,logoutUser,forgotPasswordController,resetPasswordController,verifyResetTokenPreCheck} from "../controllers/auth.controller.js";
 
 const authRouter = Router();
 
@@ -7,6 +7,8 @@ authRouter.post("/register",registerUserController);
 authRouter.post("/login",loginController);
 authRouter.post("/verify-email",verifyEmailController);
 authRouter.get("/logoutUser",logoutUser);
-authRouter.get("/forgot-password",forgotPasswordController);
+authRouter.post("/forgot-password",forgotPasswordController);
+authRouter.get("/reset-password/:token", verifyResetTokenPreCheck);
+authRouter.post("/reset-password/:token", resetPasswordController);
 
-export default authRouter;                  
+export default authRouter; 

@@ -74,14 +74,13 @@ const UserSchema = new mongoose.Schema({
           type : String ,
           select: false,
     },
-    forgot_password_otp: {
+    reset_password_token: {
         type: String,
-        select: false,
+        default: "" 
 
     },
-    forgot_password_expiry: {
+    reset_password_expiry: {
         type: Date,
-        default: null
     },
     current_lat: {
         type: Number,

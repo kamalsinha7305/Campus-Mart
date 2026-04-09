@@ -1,40 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { IoIosSunny, IoMdMoon } from "react-icons/io";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
-
 import SummaryApi, { baseURL } from "../Common/SummaryApi"; 
-
-import Image4 from "../assets/upper_circle_1.png";
-import Image5 from "../assets/rectangle_1.png";
-import Image6 from "../assets/rectangle_2.png";
-import Image7 from "../assets/Homepage.png";
 import Image9 from "../assets/circle_up.png";
 import ImageShade from "../assets/login_shade.png";
 import SignInwithGoogle from "./signinWithGoogle";
+import AuthPageRightPart from "../Components/AuthPageRightPart";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
   const navigate = useNavigate();
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    if (newMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -153,9 +133,9 @@ function Login() {
                     <input type="checkbox" id="rememberMe" />
                     <span>Remember me</span>
                   </label>
-
-                  <div className="text-[#2d3339] dark:text-[#BBC2C9] text-[12px] lg:text-sm font-medium cursor-pointer">
-                    Forgot Password
+    
+                  <div  className="text-[#2d3339] dark:text-[#BBC2C9] text-[12px] lg:text-sm font-medium cursor-pointer">
+                     <Link to={"/forgot-password"}>Forgot Password</Link>
                   </div>
                 </div>
               </div>
@@ -207,30 +187,9 @@ function Login() {
           <img src={Image9} className="w-[89vw] h-[24vh]" alt="graphic" />
         </div>
       </div>
+      {/* RIGHT SECTION */}
+      <AuthPageRightPart />
 
-      <div className="h-screen w-[0%] lg:w-[62%] relative overflow-hidden bg-gradient-to-l from-[#364EF2] to-[#534ff2]">
-        <button
-          onClick={() => toggleDarkMode()}
-          aria-label="Toggle dark mode"
-          className="transition duration-500 ease-in-out absolute right-[8%] top-[34.4%] z-20"
-        >
-          {darkMode ? (
-            <IoIosSunny className="text-[#FFD119] sm:size-4 md:size-5 lg:size-6 xl:size-5 transition-all duration-500 ease-in-out rotate-0 scale-100" />
-          ) : (
-            <IoMdMoon className="text-[#323232] sm:size-4 md:size-5 lg:size-6 xl:size-5 transition-all duration-500 ease-in-out rotate-0 scale-100" />
-          )}
-        </button>
-
-        <div className="absolute font-figtree top-[12%] left-[27%] text-[#ffffd5] text-[40px] font-black tracking-tight leading-tight">
-          Find What You Need, <br />
-          Sell What You Don't!
-        </div>
-
-        <img src={Image6} className="absolute top-[-4%] left-[-10%] w-[55vw]" alt="graphic" />
-        <img src={Image5} className="absolute top-[18%] left-[-13%] w-[55vw]" alt="graphic" />
-        <img src={Image4} className="absolute top-0 right-0 w-[10vw]" alt="graphic" />
-        <img src={Image7} className="absolute bottom-0 right-0 w-[46vw]" alt="graphic" />
-      </div>
     </div>
   );
 }

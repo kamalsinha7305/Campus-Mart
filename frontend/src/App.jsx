@@ -26,7 +26,8 @@ import Loader from "./Components/Loder";
 import ProductCategory from "./Pages/ProductCategory.jsx"
 import ProtectedRoute from "./Components/ProtectedRoute.jsx";
 import CheckEmail from "./Pages/CheckEmail";
-
+import ForgotPassword from "./Pages/ForgotPassword";
+import ResetPassword from "./Pages/ResetPassword.jsx";
 
 function App() {
 
@@ -37,6 +38,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/checkEmail" element={<CheckEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={
+            <ResetPassword/>
+  
+          } />
 
         <Route path="/profile" element={
           <ProtectedRoute>
