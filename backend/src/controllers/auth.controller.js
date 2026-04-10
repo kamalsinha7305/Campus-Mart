@@ -21,8 +21,9 @@ export const registerUserController = async (req, res) => {
                 success: false
             });
         }
-       
-    
+
+        
+        
         email = email.trim().toLowerCase();
 
         const existingUser = await userModel.findOne({ email });
@@ -92,7 +93,8 @@ export const registerUserController = async (req, res) => {
 
 export const loginController = async (req, res) => {
     try {
-        const { email, password } = req.body;
+    
+        const { email, password, rememberMe } = req.body;
         
         if (!email || !password) {
             return res.status(400).json({
@@ -132,12 +134,19 @@ export const loginController = async (req, res) => {
 
         const accesstoken = await generatedAccessToken(user._id);
         const refreshtoken = await generatedRefreshToken(user._id);
+        
         const isProduction = process.env.NODE_ENV === "production";
+
+       
+        const cookieDuration = rememberMe 
+            ? 30 * 24 * 60 * 60 * 1000  // 30 days
+            : 1 * 24 * 60 * 60 * 1000;  // 1 day
+
         const cookieoption = {
-             httpOnly: true, 
+            httpOnly: true, 
             secure: isProduction, 
-            sameSite: isProduction?"None":"Lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days 
+            sameSite: isProduction ? "None" : "Lax",
+            maxAge: cookieDuration // 3. Apply the dynamic duration here
         };
 
         res.cookie('accessToken', accesstoken, cookieoption);

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
-import SummaryApi, { baseURL } from "../Common/SummaryApi"; 
+import SummaryApi, { baseURL } from "../Common/SummaryApi";
 import Image9 from "../assets/circle_up.png";
 import ImageShade from "../assets/login_shade.png";
 import SignInwithGoogle from "./signinWithGoogle";
@@ -14,6 +14,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -21,12 +22,14 @@ function Login() {
     setIsSubmitting(true);
 
     try {
+
       const response = await axios({
         method: SummaryApi.login.method,
         url: `${baseURL}${SummaryApi.login.url}`,
         data: {
           email: email,
           password: password,
+          rememberMe: rememberMe,
         },
         withCredentials: true,
       });
@@ -34,9 +37,9 @@ function Login() {
       if (response.data.success) {
         toast.success(response.data.message || "Logged in successfully!");
 
-        localStorage.setItem("isAuthenticated", "true"); 
-        
-        navigate("/"); 
+        localStorage.setItem("isAuthenticated", "true");
+
+        navigate("/");
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || "An error occurred connecting to the server.";
@@ -130,12 +133,17 @@ function Login() {
 
                 <div className="flex justify-between items-center mt-[2vh]">
                   <label className="flex items-center gap-1 text-[#848484] text-[12px] lg:text-sm cursor-pointer">
-                    <input type="checkbox" id="rememberMe" />
+                    <input
+                      type="checkbox"
+                      id="rememberMe"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)} 
+                    />
                     <span>Remember me</span>
                   </label>
-    
-                  <div  className="text-[#2d3339] dark:text-[#BBC2C9] text-[12px] lg:text-sm font-medium cursor-pointer">
-                     <Link to={"/forgot-password"}>Forgot Password</Link>
+
+                  <div className="text-[#2d3339] dark:text-[#BBC2C9] text-[12px] lg:text-sm font-medium cursor-pointer">
+                    <Link to={"/forgot-password"}>Forgot Password</Link>
                   </div>
                 </div>
               </div>
@@ -173,11 +181,11 @@ function Login() {
 
               {/* Footer */}
               <div className="absolute bottom-[2vh] left-0 w-full flex flex-col items-center justify-center">
-              <div className="hidden lg:block w-[35vw] border dark:border-[#D7D7D7]"></div>
-              <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm mt-[0.5vh]">
-                <span>@2026 Copyright Reserved</span>
-                <span>Login issues ? Contact us.</span>
-              </div>
+                <div className="hidden lg:block w-[35vw] border dark:border-[#D7D7D7]"></div>
+                <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm mt-[0.5vh]">
+                  <span>@2026 Copyright Reserved</span>
+                  <span>Login issues ? Contact us.</span>
+                </div>
               </div>
             </form>
           </div>
