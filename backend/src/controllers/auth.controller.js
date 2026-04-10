@@ -10,6 +10,8 @@ import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
 import {generateOtp} from "../utils/generateOtp.js";
 import forgotPaswordTemplate from "../utils/templates/forgotPaswordTemplate.js";
 
+
+
 export const registerUserController = async (req, res) => {
     try {
         let { name, email, password } = req.body;
@@ -21,70 +23,65 @@ export const registerUserController = async (req, res) => {
                 success: false
             });
         }
-
-        
         
         email = email.trim().toLowerCase();
 
         const existingUser = await userModel.findOne({ email });
-        
-        if (existingUser) {
-            if (existingUser.is_email_verified) {
-                return res.status(400).json({
-                    message: "User already registered. Please log in.",
-                    error: true,
-                    success: false
-                });
-            } else {
-                const verifyToken = crypto.randomBytes(32).toString("hex");
-            
-                existingUser.verifyTokenEmail = verifyToken;
-                await existingUser.save();
-
-                const verifyEmailUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verifyToken}`;
-                
-                await sendEmail({
-                    sendTo: email,
-                    subject: "Verify your email for Campus Mart",
-                    html: verifyEmailTempplate({ name: existingUser.name, url: verifyEmailUrl })
-                });
-
-                return res.status(200).json({
-                    message: "Account exists but is unverified. We just resent your verification email!",
-                    error: false,
-                    success: true
-                });
-            }
+    
+        if (existingUser && existingUser.is_email_verified) {
+            return res.status(400).json({
+                message: "User already registered. Please log in.",
+                error: true,
+                success: false
+            });
         }
-
-        const hashpassword = await bcrypt.hash(password, 10);
         const verifyToken = crypto.randomBytes(32).toString("hex");
-
-        const newUser = await userModel.create({
-            name,
-            email,
-            password: hashpassword,
-            verifyTokenEmail: verifyToken,
-            is_email_verified: false 
-        });
-
         const verifyEmailUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verifyToken}`;
         
+        let responseMessage = "";
+        let statusCode = 201;
+
+        if (existingUser) {  
+            await userModel.findByIdAndUpdate(existingUser._id, {
+                verifyTokenEmail: verifyToken,
+                password: newHashedPassword 
+            });
+            
+            responseMessage = "Account exists but is unverified. We just resent your verification email!";
+            statusCode = 200;
+        } else {
+            const hashpassword = await bcrypt.hash(password, 10);
+            
+            await userModel.create({
+                name,
+                email,
+                password: hashpassword,
+                verifyTokenEmail: verifyToken,
+                is_email_verified: false 
+            });
+            
+            responseMessage = "User registered successfully. Please check your email.";
+            statusCode = 201;
+        }
+
         await sendEmail({
             sendTo: email,
             subject: "Verify your email for Campus Mart",
-            html: verifyEmailTempplate({ name, url: verifyEmailUrl })
+            html: verifyEmailTempplate({ 
+                name: existingUser ? existingUser.name : name, 
+                url: verifyEmailUrl 
+            })
         });
 
-        return res.status(201).json({
-            message: "User registered successfully. Please check your email.",
+        return res.status(statusCode).json({
+            message: responseMessage,
             error: false,
-            success: true,
+            success: true
         });
 
     } catch (err) {
         return res.status(500).json({
-            message: err.message || err,
+            message: err.message || "Internal server error",
             error: true,
             success: false
         });
@@ -93,83 +90,80 @@ export const registerUserController = async (req, res) => {
 
 export const loginController = async (req, res) => {
     try {
-    
         const { email, password, rememberMe } = req.body;
         
         if (!email || !password) {
-            return res.status(400).json({
-                message: "Please provide email and password",
-                success: false,
-                error: true
-            });
+            return res.status(400).json({ 
+                message: "Please provide email and password", 
+                success: false, 
+                error: true });
         }
 
         const user = await userModel.findOne({ email }).select("+password");
-        
         if (!user) {
-            return res.status(400).json({
-                message: "User with this email does not exist. Please register first.", 
-                success: false,
-                error: true
-            });
+            return res.status(400).json({ 
+                message: "User with this email does not exist.", 
+                success: false, 
+                error: true });
         }
 
-        if (!user.is_email_verified && user.status !== "Active") {
-            return res.status(403).json({
-                message: "Please verify your email address to activate your account.",
-                success: false,
-                error: true
-            });
+        if (!user.is_email_verified) {
+            return res.status(403).json({ 
+                message: "Please verify your email address before logging in.", 
+                success: false, error: 
+                true });
+        }
+        if (user.status && user.status !== "Active") {
+            return res.status(403).json({ 
+                message: "Account is inactive or suspended.", 
+                success: false, 
+                error: true });
         }
 
         const checkpassword = await bcrypt.compare(password, user.password);
-
         if (!checkpassword) {
-            return res.status(400).json({
-                message: "Invalid email or password",
-                success: false,
-                error: true
-            });
+            return res.status(400).json({ 
+                message: "Invalid email or password", 
+                success: false, 
+                error: true });
         }
 
         const accesstoken = await generatedAccessToken(user._id);
         const refreshtoken = await generatedRefreshToken(user._id);
-        
         const isProduction = process.env.NODE_ENV === "production";
 
-       
-        const cookieDuration = rememberMe 
-            ? 30 * 24 * 60 * 60 * 1000  // 30 days
-            : 1 * 24 * 60 * 60 * 1000;  // 1 day
-
-        const cookieoption = {
+        const baseCookieOptions = { 
             httpOnly: true, 
             secure: isProduction, 
-            sameSite: isProduction ? "None" : "Lax",
-            maxAge: cookieDuration // 3. Apply the dynamic duration here
-        };
-
-        res.cookie('accessToken', accesstoken, cookieoption);
-        res.cookie('refreshToken', refreshtoken, cookieoption);
+            sameSite: isProduction ? "None" : "Lax" };
         
-        return res.status(200).json({
-            message: "Login successfully",
-            success: true,
-            error: false,
-            data: {
-                refreshtoken,
-                accesstoken
-            }
-        });
+   
+        const accessTokenOptions = { 
+            ...baseCookieOptions, 
+            maxAge: 15 * 60 * 1000 };
+        
+      
+        const refreshMaxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 1 * 24 * 60 * 60 * 1000;
+        const refreshTokenOptions = { 
+            ...baseCookieOptions, 
+            maxAge: refreshMaxAge };
 
+        res.cookie('accessToken', accesstoken, accessTokenOptions);
+        res.cookie('refreshToken', refreshtoken, refreshTokenOptions);
+        
+        return res.status(200).json({ 
+            message: "Login successfully", 
+            success: true, 
+            error: false, 
+            data: { refreshtoken, accesstoken } });
+            
     } catch (err) {
-        return res.status(500).json({
-            message: err.message || err,
-            success: false,
-            error: true
-        });
+        return res.status(500).json({ 
+            message: err.message || err, 
+            success: false, 
+            error: true });
     }
-}
+};
 
 export const verifyEmailController =async (req,res) =>{
     try{
