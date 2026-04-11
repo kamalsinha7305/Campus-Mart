@@ -14,6 +14,12 @@ export const USER_ROLES = Object.freeze({
   SUPPORT: "support",
 });
 
+export const USER_STATUS = Object.freeze({
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  SUSPENDED: "suspended",
+});
+
 export const PRODUCT_STATUS = Object.freeze({
   LISTED: "listed",
   SOLD: "sold",
@@ -22,34 +28,34 @@ export const PRODUCT_STATUS = Object.freeze({
 });
 
 export const PRODUCT_CATEGORIES = Object.freeze({
-  ELECTRONICS: "Electronics",
-  CLOTHING: "Clothing",
-  DAILY_USE: "Daily Use",
-  CYCLE: "Cycle",
-  OTHERS: "Others",
+  ELECTRONICS: "electronics",
+  CLOTHING: "clothing",
+  DAILY_USE: "daily_use",
+  CYCLE: "cycle",
+  OTHERS: "others",
 });
 
 export const PRODUCT_CONDITION = Object.freeze({
-  EXCELLENT: "Excellent",
-  GOOD: "Good",
-  POOR: "Poor",
+  EXCELLENT: "excellent",
+  GOOD: "good",
+  POOR: "poor",
 });
 
 export const PRODUCT_PAYMENT = Object.freeze({
-  CASH: "Cash",
-  UPI: "UPI",
-  BOTH: "Both",
+  CASH: "cash",
+  UPI: "upi",
+  BOTH: "both",
 });
 
 export const PRODUCT_USAGE_DURATION = Object.freeze({
-  NEW: "New",
-  USED: "Used",
-  REFURBISHED: "Refurbished",
+  NEW: "new",
+  USED: "used",
+  REFURBISHED: "refurbished",
 });
 
 export const PRODUCT_NEGOTIABLE = Object.freeze({
-  YES: "Yes",
-  NO: "No",
+  YES: "yes",
+  NO: "no",
 });
 
 export const DEAL_STATUS = Object.freeze({

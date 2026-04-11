@@ -1,4 +1,6 @@
 import mongoose, { Schema } from "mongoose";
+import bcrypt from "bcrypt";
+import { USER_ROLES, USER_STATUS } from "../config/constants.js";
 
 const userSchema = new Schema(
   {
@@ -25,30 +27,32 @@ const userSchema = new Schema(
     password: {
       type: String,
       required: [true, "Please provide your password"],
-      select: false,
+      select: false, // never return password
+      minlength: [6, "Password must be at least 6 characters"],
     },
 
     avatar: {
       type: String,
-      default: "",
+      default: "https://ik.imagekit.io/mspoxwn8v/avatar-default.svg",
     },
 
     mobile: {
       type: String,
       default: null,
+      trim: true,
     },
 
     role: {
       type: String,
-      enum: ["ADMIN", "USER", "SUPPORT"],
-      default: "USER",
+      enum: Object.values(USER_ROLES),
+      default: USER_ROLES.USER,
       index: true,
     },
 
     status: {
       type: String,
-      enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
-      default: "ACTIVE",
+      enum: Object.values(USER_STATUS),
+      default: USER_STATUS.ACTIVE,
       index: true,
     },
 
@@ -113,8 +117,26 @@ const userSchema = new Schema(
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
+
+// Hash password before saving
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) return next();
+
+//   try {
+//     const salt = await bcrypt.genSalt(10);
+//     this.password = await bcrypt.hash(this.password, salt);
+//     next();
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+// Compare entered password with hashed password
+// userSchema.methods.comparePassword = async function (candidatePassword) {
+//   return bcrypt.compare(candidatePassword, this.password);
+// };
 
 const User = mongoose.model("User", userSchema);
 

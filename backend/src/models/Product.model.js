@@ -1,5 +1,11 @@
 import mongoose, { Schema } from "mongoose";
 import slugify from "slugify";
+import {
+  PRODUCT_STATUS,
+  PRODUCT_CATEGORIES,
+  PRODUCT_CONDITION,
+  PRODUCT_PAYMENT,
+} from "../config/constants.js";
 
 const productSchema = new Schema(
   {
@@ -16,7 +22,7 @@ const productSchema = new Schema(
       trim: true,
       maxlength: 120,
     },
-
+    // SEO-friendly URL
     slug: {
       type: String,
       unique: true,
@@ -27,19 +33,20 @@ const productSchema = new Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
       maxlength: 2000,
     },
 
     category: {
       type: String,
-      enum: ["electronics", "books", "furniture", "stationery", "others"],
+      enum: Object.values(PRODUCT_CATEGORIES),
       required: true,
       index: true,
     },
 
     condition: {
       type: String,
-      enum: ["new", "like_new", "used"],
+      enum: Object.values(PRODUCT_CONDITION),
       required: true,
     },
 
@@ -100,22 +107,22 @@ const productSchema = new Schema(
 
     is_negotiable: {
       type: Boolean,
-      default: false,
+      default: true,
     },
 
     payment_preference: {
       type: String,
-      enum: ["cash", "upi", "both"],
+      enum: Object.values(PRODUCT_PAYMENT),
       required: true,
     },
 
     pickup_address_snapshot: {
-      address_line: String,
-      city: String,
-      state: String,
-      pincode: String,
-      mobile: String,
-      additional_info: String,
+      address_line: { type: String, trim: true },
+      city: { type: String, trim: true },
+      state: { type: String, trim: true },
+      pincode: { type: String, trim: true },
+      mobile: { type: String, trim: true },
+      additional_info: { type: String, trim: true },
     },
 
     location: {
@@ -135,8 +142,8 @@ const productSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["LISTED", "SOLD", "UNLISTED", "BLOCKED"],
-      default: "LISTED",
+      enum: Object.values(PRODUCT_STATUS),
+      default: PRODUCT_STATUS.LISTED,
       index: true,
     },
 
@@ -163,15 +170,20 @@ const productSchema = new Schema(
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
 productSchema.index({ title: "text", description: "text" });
 productSchema.index({ category: 1, selling_price: 1 });
 productSchema.index({ createdAt: -1 });
-productSchema.index({ location: "2dsphere" });
+/*
+For Nearby products and Nearby products
+$near can be accessed
+*/
+productSchema.index({ location: "2dsphere" }); 
 
 productSchema.pre("save", function (next) {
+  // Generate slug
   if (!this.slug) {
     const baseSlug = slugify(this.title, {
       lower: true,
@@ -181,25 +193,31 @@ productSchema.pre("save", function (next) {
     this.slug = `${baseSlug}-${Date.now().toString().slice(-6)}`;
   }
 
+  // Validate price
   if (this.original_price && this.selling_price > this.original_price) {
     return next(
-      new Error("Selling price cannot be greater than original price")
+      new Error("Selling price cannot be greater than original price"),
     );
   }
 
   next();
 });
 
-productSchema.methods.incrementViews = async function () {
-  this.views_count += 1;
-  return this.save();
+// Increment views
+productSchema.statics.getProductAndIncrementViews = function (productId) {
+  return this.findByIdAndUpdate(
+    productId,
+    { $inc: { views_count: 1 } },
+    { new: true },
+  );
 };
 
+// Get active products
 productSchema.statics.findActiveProducts = function (filter = {}) {
   return this.find({
     ...filter,
     is_deleted: false,
-    status: "LISTED",
+    status: PRODUCT_STATUS.LISTED,
   });
 };
 
