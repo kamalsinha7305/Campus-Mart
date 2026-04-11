@@ -67,6 +67,17 @@ const userSchema = new Schema(
       default: "",
     },
 
+    reset_password_token: {
+      type: String,
+      select: false,
+      default: "",
+    },
+
+    reset_password_expiry: {
+      type: Date,
+      default: null,
+    },
+
     last_login_date: {
       type: Date,
       default: null,
