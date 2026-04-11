@@ -11,4 +11,5 @@ authRouter.post("/forgot-password",forgotPasswordController);
 authRouter.get("/reset-password/:token", verifyResetTokenPreCheck);
 authRouter.post("/reset-password/:token", resetPasswordController);
 authRouter.post('/resend-verification', resendVerificationController);
+
 export default authRouter; 
