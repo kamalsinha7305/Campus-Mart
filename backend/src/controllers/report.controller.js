@@ -1,15 +1,18 @@
 import * as reportService from "../services/report.service.js";
-import { successResponse } from "../utils/response.js";
 
 export const reportProduct = async (req, res, next) => {
   try {
-    const report = await reportService.reportProduct(
-      req.params.productId,
-      req.body,
-      req.user,
-    );
+    const user = req.user;
+    const { productId } = req.params;
+    const data = req.body;
 
-    return successResponse(res, "Product reported successfully", report, 201);
+    const report = await reportService.reportProduct(productId, data, user);
+
+    return res.status(201).json({
+      success: true,
+      message: "Product reported successfully",
+      data: report,
+    });
   } catch (error) {
     next(error);
   }

@@ -1,11 +1,17 @@
 import * as productService from "../services/product.service.js";
-import { successResponse } from "../utils/response.js";
 
 export const createProduct = async (req, res, next) => {
   try {
-    const product = await productService.createProduct(req.body, req.user);
+    const user = req.user; // from auth middleware
+    const data = req.body;
 
-    return successResponse(res, "Product created successfully", product, 201);
+    const product = await productService.createProduct(data, user);
+
+    return res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: product,
+    });
   } catch (error) {
     next(error);
   }
@@ -15,13 +21,11 @@ export const getAllProducts = async (req, res, next) => {
   try {
     const result = await productService.getAllProducts(req.query);
 
-    return successResponse(
-      res,
-      "Products fetched successfully",
-      result.data,
-      200,
-      result.pagination,
-    );
+    return res.status(200).json({
+      success: true,
+      message: "Products fetched successfully",
+      ...result,
+    });
   } catch (error) {
     next(error);
   }
@@ -31,7 +35,11 @@ export const getSingleProduct = async (req, res, next) => {
   try {
     const product = await productService.getSingleProduct(req.params.id);
 
-    return successResponse(res, "Product fetched successfully", product);
+    return res.status(200).json({
+      success: true,
+      message: "Product fetched successfully",
+      data: product,
+    });
   } catch (error) {
     next(error);
   }

@@ -1,11 +1,50 @@
-import { errorResponse } from "../utils/response.js";
+// This is global error handling middleware
 
-export const errorHandler = (err, req, res, next) => {
-  console.error(err);
+const errorMiddleware = (err, req, res, next) => {
+  console.error("Error:", err);
 
-  return errorResponse(
-    res,
-    err.message || "Internal Server Error",
-    err.statusCode || 500,
-  );
+  // Default values
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+
+  // Mongoose Bad ObjectId Error
+  if (err.name === "CastError") {
+    statusCode = 400;
+    message = `Invalid ${err.path}: ${err.value}`;
+  }
+
+  // Mongoose Duplicate Key Error
+  if (err.code === 11000) {
+    statusCode = 400;
+    const field = Object.keys(err.keyValue).join(", ");
+    message = `Duplicate value for field(s): ${field}`;
+  }
+
+  // Mongoose Validation Error
+  if (err.name === "ValidationError") {
+    statusCode = 400;
+    message = Object.values(err.errors)
+      .map((val) => val.message)
+      .join(", ");
+  }
+
+  // JWT Errors (if using JWT)
+  if (err.name === "JsonWebTokenError") {
+    statusCode = 401;
+    message = "Invalid token";
+  }
+
+  if (err.name === "TokenExpiredError") {
+    statusCode = 401;
+    message = "Token expired";
+  }
+
+  // Final response
+  res.status(statusCode).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+  });
 };
+
+export default errorMiddleware;
