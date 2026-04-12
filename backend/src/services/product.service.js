@@ -2,7 +2,7 @@ import Product from "../models/Product.model.js";
 import { PRODUCT_STATUS } from "../config/constants.js";
 
 export const createProduct = async (data, user) => {
-  // Duplicate check, prevent accidental double posting
+  // Duplicate check
   const FIVE_MINUTES_AGO = new Date(Date.now() - 5 * 60 * 1000);
 
   const existingProduct = await Product.findOne({
@@ -13,15 +13,13 @@ export const createProduct = async (data, user) => {
   });
 
   if (existingProduct) {
-    throw new Error(
-      "You already listed a similar product recently. Please wait before posting again.",
-    );
+    throw new Error("You already listed a similar product recently");
   }
 
-  // Attaching seller
+  // Attach seller
   data.seller_id = user._id;
 
-  // Only set location if both values exist
+  // Location handling
   if (user.current_lat !== null && user.current_long !== null) {
     data.location = {
       type: "Point",
@@ -31,19 +29,16 @@ export const createProduct = async (data, user) => {
     delete data.location;
   }
 
-  // Handle attributes safely
-  if (data.attributes) {
-    if (data.attributes.purchase_date) {
-      data.attributes.purchase_date = new Date(data.attributes.purchase_date);
-    }
+  // Convert purchase_date
+  if (data.attributes?.purchase_date) {
+    data.attributes.purchase_date = new Date(data.attributes.purchase_date);
   }
 
-  // Business validation (extra safety)
+  // Price validation
   if (data.original_price && data.selling_price > data.original_price) {
     throw new Error("Selling price cannot be greater than original price");
   }
 
-  // Creating product
   const product = await Product.create(data);
 
   return product;
@@ -84,7 +79,6 @@ export const getAllProducts = async (query) => {
   else if (sort === "price_high") sortOption = { selling_price: -1 };
   else sortOption = { createdAt: -1 };
 
-  // Pagination feature
   const skip = (page - 1) * limit;
 
   const [products, total] = await Promise.all([
@@ -117,7 +111,6 @@ export const getSingleProduct = async (id) => {
     throw new Error("Product not found");
   }
 
-  // 🔥 Increment views
   product.views_count += 1;
   await product.save();
 
