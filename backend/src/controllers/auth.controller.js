@@ -2,6 +2,7 @@ import cookie from "cookie-parser";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import userModel from "../models/User.model.js";
 import sendEmail from "../config/sendEmail.js";
 import generatedAccessToken from "../utils/generatedAccessToken.js";
@@ -10,6 +11,35 @@ import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import forgotPaswordTemplate from "../utils/templates/forgotPaswordTemplate.js";
 import { USER_STATUS } from "../config/constants.js";
+
+const oauth2Client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI,
+);
+
+const setAuthCookies = (res, accessToken, refreshToken, rememberMe = false) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const baseCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
+  };
+
+  const accessTokenOptions = {
+    ...baseCookieOptions,
+    maxAge: 15 * 60 * 1000,
+  };
+
+  const refreshTokenOptions = {
+    ...baseCookieOptions,
+    maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 1 * 24 * 60 * 60 * 1000,
+  };
+
+  res.cookie("accessToken", accessToken, accessTokenOptions);
+  res.cookie("refreshToken", refreshToken, refreshTokenOptions);
+};
 
 export const registerUserController = async (req, res) => {
   try {
@@ -129,29 +159,8 @@ export const loginController = async (req, res) => {
 
     const accesstoken = await generatedAccessToken(user._id);
     const refreshtoken = await generatedRefreshToken(user._id);
-    const isProduction = process.env.NODE_ENV === "production";
 
-    const baseCookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
-    };
-
-    const accessTokenOptions = {
-      ...baseCookieOptions,
-      maxAge: 15 * 60 * 1000,
-    };
-
-    const refreshMaxAge = rememberMe
-      ? 30 * 24 * 60 * 60 * 1000
-      : 1 * 24 * 60 * 60 * 1000;
-    const refreshTokenOptions = {
-      ...baseCookieOptions,
-      maxAge: refreshMaxAge,
-    };
-
-    res.cookie("accessToken", accesstoken, accessTokenOptions);
-    res.cookie("refreshToken", refreshtoken, refreshTokenOptions);
+    setAuthCookies(res, accesstoken, refreshtoken, rememberMe);
 
     return res.status(200).json({
       message: "Login successfully",
@@ -162,6 +171,102 @@ export const loginController = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       message: err.message || err,
+      success: false,
+      error: true,
+    });
+  }
+};
+
+export const googleAuthRedirectController = async (req, res) => {
+  try {
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: ["openid", "email", "profile"],
+      prompt: "select_account",
+    });
+
+    return res.redirect(authorizeUrl);
+  } catch (error) {
+    console.error("Google auth redirect error:", error);
+    return res.status(500).json({
+      message: "Unable to start Google authentication",
+      success: false,
+      error: true,
+    });
+  }
+};
+
+export const googleAuthCallbackController = async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).json({
+        message: "Google authorization code is missing.",
+        success: false,
+        error: true,
+      });
+    }
+
+    const { tokens } = await oauth2Client.getToken(code);
+    if (!tokens?.id_token) {
+      return res.status(400).json({
+        message: "Unable to verify Google identity.",
+        success: false,
+        error: true,
+      });
+    }
+
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email?.toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Google did not return a valid email.",
+        success: false,
+        error: true,
+      });
+    }
+
+    const name = payload.name || email.split("@")[0];
+    const picture = payload.picture;
+
+    let user = await userModel.findOne({ email }).select("+password");
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await userModel.create({
+        name,
+        email,
+        password: hashedPassword,
+        avatar: picture || undefined,
+        is_email_verified: true,
+        verifyTokenEmail: "",
+      });
+    } else if (picture && user.avatar !== picture) {
+      user.avatar = picture;
+      await user.save();
+    }
+
+    if (!user.is_email_verified) {
+      user.is_email_verified = true;
+      await user.save();
+    }
+
+    const accesstoken = await generatedAccessToken(user._id);
+    const refreshtoken = await generatedRefreshToken(user._id);
+
+    setAuthCookies(res, accesstoken, refreshtoken, true);
+    return res.redirect(`${process.env.FRONTEND_URL}/login?oauth=success`);
+  } catch (error) {
+    console.error("Google auth callback error:", error);
+    return res.status(500).json({
+      message: "Google authentication failed.",
       success: false,
       error: true,
     });

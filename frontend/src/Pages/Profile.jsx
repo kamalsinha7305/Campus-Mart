@@ -118,9 +118,12 @@ function Profile() {
                   <div className="bg-[#292929] rounded-full p-1 border-white border shadow">
                     <span></span>
                     <img
-                      src={ Image11}
+                      src={userDetails?.avatar || Image11}
                       alt="Profile"
-                      className="w-[70px] h-[70px] rounded-full"
+                      className="w-[70px] h-[70px] rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = Image11;
+                      }}
                     />
                   </div>
                 </div>

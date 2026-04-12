@@ -171,7 +171,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
     }
   };
 
-  const profileSrc = DefaultAvatar;
+  const profileSrc = userDetails?.avatar || DefaultAvatar;
 
   return (
     <>

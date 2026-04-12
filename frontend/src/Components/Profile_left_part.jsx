@@ -104,8 +104,12 @@ function Profile_left_part() {
                     <IoIosArrowForward size={18} />
                   </div>
                   <img
-                    className=" rounded-full w-[47px] h-[47px] lg:w-[55px] lg:h-[55px] md:mr-[1vw] mr-[2.5vw] "
-                    src={Image1}
+                    className="rounded-full w-[47px] h-[47px] lg:w-[55px] lg:h-[55px] md:mr-[1vw] mr-[2.5vw] object-cover"
+                    src={userDetails?.avatar || Image1}
+                    alt="Profile"
+                    onError={(e) => {
+                      e.target.src = Image1;
+                    }}
                   />
                   <div className="flex flex-col ">
                     <div className=" text-black dark:text-white  text-[13px] md:text-[14px] lg:text-[16px] font-normal font-['Poppins']">

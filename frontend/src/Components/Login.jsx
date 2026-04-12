@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
@@ -16,6 +16,15 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("oauth") === "success") {
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/");
+    }
+  }, [location.search, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -207,5 +216,4 @@ function Login() {
     </div>
   );
 }
-
 export default Login;
