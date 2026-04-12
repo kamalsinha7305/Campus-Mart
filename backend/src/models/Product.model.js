@@ -130,12 +130,16 @@ const productSchema = new Schema(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
       },
       coordinates: {
-        type: [Number], // [lng, lat]
+        type: [Number],
         validate: {
-          validator: (val) => val.length === 2,
+          validator: function (val) {
+            // Allow undefined OR valid array of 2 numbers
+            return (
+              val === undefined || (Array.isArray(val) && val.length === 2)
+            );
+          },
           message: "Coordinates must be [lng, lat]",
         },
       },
@@ -181,27 +185,27 @@ productSchema.index({ createdAt: -1 });
 For Nearby products and Nearby products
 $near can be accessed
 */
-productSchema.index({ location: "2dsphere" }); 
+productSchema.index({ location: "2dsphere" });
 
-productSchema.pre("save", function (next) {
-  // Generate slug
-  if (!this.slug) {
-    const baseSlug = slugify(this.title, {
-      lower: true,
-      strict: true,
-    });
+productSchema.pre("save", async function () {
+  try {
+    // Generate slug
+    if (!this.slug) {
+      const baseSlug = slugify(this.title, {
+        lower: true,
+        strict: true,
+      });
 
-    this.slug = `${baseSlug}-${Date.now().toString().slice(-6)}`;
+      this.slug = `${baseSlug}-${Date.now().toString().slice(-6)}`;
+    }
+
+    // Price validation
+    if (this.original_price && this.selling_price > this.original_price) {
+      throw new Error("Selling price cannot be greater than original price");
+    }
+  } catch (error) {
+    throw new Error(error);
   }
-
-  // Validate price
-  if (this.original_price && this.selling_price > this.original_price) {
-    return next(
-      new Error("Selling price cannot be greater than original price"),
-    );
-  }
-
-  next();
 });
 
 // Increment views

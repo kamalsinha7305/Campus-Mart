@@ -42,7 +42,7 @@ export const registerUserController = async (req, res) => {
 
     if (existingUser) {
       const newHashedPassword = await bcrypt.hash(password, 10);
-      
+
       await userModel.findByIdAndUpdate(existingUser._id, {
         verifyTokenEmail: verifyToken,
         password: newHashedPassword,
@@ -111,15 +111,15 @@ export const loginController = async (req, res) => {
       });
     }
 
-       if (!user.is_email_verified) {
-            return res.status(403).json({ 
-                message: "Please verify your email address before logging in.", 
-                success: false, 
-                error: true,
-                requiresVerification: true 
-            });
-        }
-        if (user.status && user.status !== USER_STATUS.ACTIVE) {
+    if (!user.is_email_verified) {
+      return res.status(403).json({
+        message: "Please verify your email address before logging in.",
+        success: false,
+        error: true,
+        requiresVerification: true,
+      });
+    }
+    if (user.status && user.status !== USER_STATUS.ACTIVE) {
       return res.status(400).json({
         message: "Invalid email or password",
         success: false,
@@ -366,35 +366,51 @@ export const verifyResetTokenPreCheck = async (req, res) => {
 };
 
 export const resendVerificationController = async (req, res) => {
-    try {
-        const { email } = req.body;
-        
-        const user = await userModel.findOne({ email });
-        
-        if (!user) {
-            return res.status(404).json({ message: "User not found.", success: false, error: true });
-        }
-        
-        if (user.is_email_verified) {
-            return res.status(400).json({ message: "Email is already verified. Please log in.", success: false, error: true });
-        }
+  try {
+    const { email } = req.body;
 
-        // Generate a new token and update the user
-        const verifyToken = crypto.randomBytes(32).toString("hex");
-        await userModel.findByIdAndUpdate(user._id, { verifyTokenEmail: verifyToken });
+    const user = await userModel.findOne({ email });
 
-        // Send the email
-        const verifyEmailUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verifyToken}`;
-        await sendEmail({
-            sendTo: email,
-            subject: "Verify your email for Campus Mart",
-            html: verifyEmailTempplate({ name: user.name, url: verifyEmailUrl })
-        });
-
-        return res.status(200).json({ message: "Verification email resent!", success: true, error: false });
-
-    } catch (error) {
-        return res.status(500).json({ message: error.message || error, success: false, error: true });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found.", success: false, error: true });
     }
-};
 
+    if (user.is_email_verified) {
+      return res
+        .status(400)
+        .json({
+          message: "Email is already verified. Please log in.",
+          success: false,
+          error: true,
+        });
+    }
+
+    // Generate a new token and update the user
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    await userModel.findByIdAndUpdate(user._id, {
+      verifyTokenEmail: verifyToken,
+    });
+
+    // Send the email
+    const verifyEmailUrl = `${process.env.FRONTEND_URL}/verify-email?code=${verifyToken}`;
+    await sendEmail({
+      sendTo: email,
+      subject: "Verify your email for Campus Mart",
+      html: verifyEmailTempplate({ name: user.name, url: verifyEmailUrl }),
+    });
+
+    return res
+      .status(200)
+      .json({
+        message: "Verification email resent!",
+        success: true,
+        error: false,
+      });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: error.message || error, success: false, error: true });
+  }
+};
