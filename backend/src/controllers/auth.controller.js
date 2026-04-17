@@ -8,7 +8,6 @@ import sendEmail from "../config/sendEmail.js";
 import generatedAccessToken from "../utils/generatedAccessToken.js";
 import generatedRefreshToken from "../utils/generatedRefreshToken.js";
 import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
-import { generateOtp } from "../utils/generateOtp.js";
 import forgotPaswordTemplate from "../utils/templates/forgotPaswordTemplate.js";
 import { USER_STATUS } from "../config/constants.js";
 

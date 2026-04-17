@@ -27,7 +27,6 @@ const forgotPasswordTemplate = ({ name, resetUrl }) => {
         </div>
 
 
-
         <div style="display: inline-block; background-color: #F8FAFC; border-radius: 50px; padding: 8px 16px;">
           <span style="color: #94A3B8; font-size: 14px; font-weight: 500;">⏱️ This code is valid for 10 minutes</span>
         </div>
