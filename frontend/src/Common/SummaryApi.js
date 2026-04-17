@@ -46,6 +46,10 @@ const SummaryApi = {
         url: '/api/auth/verify-email',
         method: 'post'
     },
+    checkEmailVerification: {
+        url: '/api/auth/check-verification',
+        method: 'get'
+    },
    
     createAddress: {
         url: '/api/address',

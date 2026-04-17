@@ -20,17 +20,13 @@ const forgotPasswordTemplate = ({ name, resetUrl }) => {
           Thank you <strong>${name}</strong> for signing up for our platform! We're excited to have you on board.
         </p>
 
-        <div style="background-color: #F8FAFC; border: 1px solid #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <div style="background-color: #394FF1; color: #ffffff; border: 1px solid #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <a href="${resetUrl}" target="_blank" style="color: #1E293B; font-size: 24px; font-family: 'Liberation Mono', Courier, monospace; font-weight: 700; letter-spacing: 4px; text-decoration: none; display: block; word-wrap: break-word;">
             RESET PASSWORD
           </a>
         </div>
 
-        <div style="margin-bottom: 24px;">
-          <a href="#" style="display: inline-block; padding: 14px 32px; background-color: #394FF1; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0px 2px 4px rgba(57, 79, 241, 0.3);">
-            Copy Code
-          </a>
-        </div>
+
 
         <div style="display: inline-block; background-color: #F8FAFC; border-radius: 50px; padding: 8px 16px;">
           <span style="color: #94A3B8; font-size: 14px; font-weight: 500;">⏱️ This code is valid for 10 minutes</span>

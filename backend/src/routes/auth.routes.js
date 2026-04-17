@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {registerUserController, loginController, verifyEmailController, logoutUser, forgotPasswordController, resetPasswordController, verifyResetTokenPreCheck, resendVerificationController, googleAuthRedirectController, googleAuthCallbackController, refreshAccessTokenController} from "../controllers/auth.controller.js";
+import {registerUserController, loginController, verifyEmailController, logoutUser, forgotPasswordController, resetPasswordController, verifyResetTokenPreCheck, resendVerificationController, googleAuthRedirectController, googleAuthCallbackController, refreshAccessTokenController, checkEmailVerificationController} from "../controllers/auth.controller.js";
 
 const authRouter = Router();
 
@@ -8,6 +8,7 @@ authRouter.post("/login", loginController);
 authRouter.get("/google", googleAuthRedirectController);
 authRouter.get("/google/callback", googleAuthCallbackController);
 authRouter.post("/verify-email", verifyEmailController);
+authRouter.get("/check-verification", checkEmailVerificationController);
 authRouter.get("/logoutUser", logoutUser);
 authRouter.post("/forgot-password", forgotPasswordController);
 authRouter.get("/reset-password/:token", verifyResetTokenPreCheck);

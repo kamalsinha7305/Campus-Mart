@@ -392,11 +392,11 @@ function Profile() {
                 Addresses
               </div>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
                 {addresses.map((addr, index) => (
                   <div
                     key={addr._id || index}
-                    className={`rounded-xl p-4 xl:px-8 xl:py-5 w-[90%] md:w-[45%] xl:w-[38%] relative transition-all duration-200 ${
+                    className={`rounded-xl p-6 xl:px-8 xl:py-6 min-w-[290px] sm:min-w-[320px] lg:min-w-[360px] flex-shrink-0 relative overflow-visible transition-all duration-200 ${
                       addr.isDefault
                         ? "bg-gradient-to-br from-[#E5E8FF] to-[#F0F2FF] dark:from-[#2D3339] dark:to-[#383D44] border-2 border-[#364EF2] dark:border-[#364EF2] shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30"
                         : "bg-[#F2F4FF] dark:bg-[#2D3339]"
@@ -404,7 +404,7 @@ function Profile() {
                   >
                     {/* Default Address Ring Indicator */}
                     {addr.isDefault && (
-                      <div className="absolute -top-3 -left-3 bg-[#364EF2] text-white rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold shadow-md">
+                      <div className="absolute top-4 left-4 z-10 bg-[#364EF2] text-white rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold shadow-md">
                         ✓
                       </div>
                     )}
@@ -449,7 +449,7 @@ function Profile() {
                 {addresses.length < 3 && (
                   <button
                     onClick={handleAddAddress}
-                    className="border-2 border-dashed rounded-lg p-4 text-blue-500 xl:px-6 hover:bg-blue-100 transition-all duration-150 ease-linear"
+                    className="border-2 border-dashed rounded-xl p-4 min-w-[290px] sm:min-w-[320px] flex-shrink-0 text-blue-500 xl:px-6 hover:bg-blue-100 transition-all duration-150 ease-linear"
                   >
                     + Add New Address
                   </button>

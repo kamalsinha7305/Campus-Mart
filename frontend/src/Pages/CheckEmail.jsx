@@ -18,6 +18,7 @@ function CheckEmail() {
     const email = location.state?.email || ""; 
     
     const [isResending, setIsResending] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
 
     const handleResend = async () => {
         if (!email) {
@@ -40,6 +41,35 @@ function CheckEmail() {
             toast.error(error.response?.data?.message || "Failed to resend verification email.");
         } finally {
             setIsResending(false);
+        }
+    };
+
+    const handleVerifyStatus = async () => {
+        if (!email) {
+            toast.error("No email found. Please try registering again.");
+            return navigate("/signup");
+        }
+
+        setIsChecking(true);
+        try {
+            const response = await axios({
+                method: SummaryApi.checkEmailVerification.method,
+                url: `${baseURL}${SummaryApi.checkEmailVerification.url}`,
+                params: { email },
+            });
+
+            if (response.data.success) {
+                if (response.data.verified) {
+                    toast.success("Email verified! Redirecting to login...");
+                    navigate("/login");
+                } else {
+                    toast("Email is not verified yet. Please click the link sent to your inbox.");
+                }
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Unable to verify email status.");
+        } finally {
+            setIsChecking(false);
         }
     };
 
@@ -77,10 +107,11 @@ function CheckEmail() {
                         {/* Action Section */}
                         <div className="space-y-5">
                             <button 
-                                onClick={() => window.location.reload()}
-                                className="w-full py-3 text-sm font-bold text-white transition-colors bg-indigo-600 rounded-xl hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 shadow-sm"
+                                onClick={handleVerifyStatus}
+                                disabled={isChecking}
+                                className="w-full py-3 text-sm font-bold text-white transition-colors bg-indigo-600 rounded-xl hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 shadow-sm disabled:opacity-50"
                             >
-                                Reload / I’ve Verified
+                                {isChecking ? "Checking..." : "Reload / I’ve Verified"}
                             </button>
 
                             <div className="flex items-center justify-center gap-1 text-[0.80rem] font-['Inter']">

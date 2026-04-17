@@ -312,6 +312,41 @@ export const verifyEmailController = async (req, res) => {
   }
 };
 
+export const checkEmailVerificationController = async (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required to check verification status",
+        success: false,
+        error: true,
+      });
+    }
+
+    const user = await userModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+        error: true,
+      });
+    }
+
+    return res.status(200).json({
+      message: user.is_email_verified ? "Email is verified" : "Email is not verified yet",
+      success: true,
+      error: false,
+      verified: user.is_email_verified,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message || err,
+      success: false,
+      error: true,
+    });
+  }
+};
+
 export const logoutUser = async (req, res) => {
   try {
     const isProduction = process.env.NODE_ENV === "production";
