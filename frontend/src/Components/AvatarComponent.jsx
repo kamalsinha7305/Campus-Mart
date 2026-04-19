@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 
-const AvatarComponent = ({ name, imageUrl, size = "large", className = "" }) => {
+const AvatarComponent = ({ name, imageUrl, size = "large", className = "", isLoading = false }) => {
   const [imageLoadError, setImageLoadError] = useState(false);
 
   useEffect(() => {
@@ -37,17 +37,23 @@ const AvatarComponent = ({ name, imageUrl, size = "large", className = "" }) => 
     if (!url || typeof url !== "string") return false;
     const normalized = url.toLowerCase();
 
-    if (normalized.includes("googleusercontent.com") || normalized.includes("gravatar.com") || normalized.includes("facebook.com")) {
+    // These are social provider images - treat as valid, not defaults
+    if (normalized.includes("googleusercontent.com") || 
+        normalized.includes("gravatar.com") || 
+        normalized.includes("facebook.com")) {
       return false;
     }
 
-    return (
-      normalized === "https://ik.imagekit.io/mspoxwn8v/avatar-default.svg" ||
-      normalized.endsWith("avatar-default.svg") ||
-      normalized.endsWith("default-avatar.svg") ||
-      normalized.includes("/default-avatar") ||
-      normalized.includes("/avatar-default")
-    );
+    // Explicitly check for our default avatar URLs
+    const defaultAvatarPatterns = [
+      "avatar-default.svg",
+      "default-avatar.svg",
+      "/avatar-default",
+      "/default-avatar",
+      "ik.imagekit.io/mspoxwn8v/avatar-default",
+    ];
+
+    return defaultAvatarPatterns.some(pattern => normalized.includes(pattern));
   };
 
   const initials = useMemo(() => generateInitials(name), [name]);
@@ -63,7 +69,16 @@ const AvatarComponent = ({ name, imageUrl, size = "large", className = "" }) => 
 
   const currentSize = sizeStyles[size] || sizeStyles.large;
 
- const hasValidImage =
+  // Show skeleton while loading
+  if (isLoading) {
+    return (
+      <div
+        className={`${currentSize.container} rounded-full animate-pulse bg-gray-300 dark:bg-gray-600 ${className}`}
+      />
+    );
+  }
+
+  const hasValidImage =
     imageUrl &&
     typeof imageUrl === "string" &&
     imageUrl.trim().length > 0 &&
@@ -81,6 +96,7 @@ const AvatarComponent = ({ name, imageUrl, size = "large", className = "" }) => 
     );
   }
 
+  // If image failed to load, show default initials avatar
   return (
     <div
       className={`${currentSize.container} rounded-full flex items-center justify-center font-semibold text-white ${className}`}

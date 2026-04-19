@@ -243,17 +243,21 @@ export const googleAuthCallbackController = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        avatar: picture || undefined,
+        avatar: picture || "https://ik.imagekit.io/mspoxwn8v/avatar-default.svg",
         is_email_verified: true,
         verifyTokenEmail: "",
       });
-    } else if (picture && user.avatar !== picture) {
-      user.avatar = picture;
-      await user.save();
-    }
-
-    if (!user.is_email_verified) {
-      user.is_email_verified = true;
+    } else {
+      // Always update avatar from Google if provided, even for existing users
+      if (picture) {
+        user.avatar = picture;
+      }
+      
+      // Ensure email is verified for Google sign-in
+      if (!user.is_email_verified) {
+        user.is_email_verified = true;
+      }
+      
       await user.save();
     }
 

@@ -107,6 +107,7 @@ function Profile_left_part() {
                     name={userDetails?.name}
                     imageUrl={userDetails?.avatar}
                     size="medium"
+                    isLoading={loading}
                     className="md:mr-[1vw] mr-[2.5vw]"
                   />
                   <div className="flex flex-col ">

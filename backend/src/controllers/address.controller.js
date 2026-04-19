@@ -15,6 +15,34 @@ export const createAddress = async (req, res) => {
       });
     }
 
+    // Check address count limit (maximum 3 addresses)
+    const addressCount = await Address.countDocuments({ user: userId });
+    if (addressCount >= 3) {
+      return res.status(400).json({
+        message: "Maximum 3 addresses allowed per user",
+        success: false,
+        error: true,
+      });
+    }
+
+    // Check for duplicate address
+    const duplicateAddress = await Address.findOne({
+      user: userId,
+      line1: line1.trim(),
+      line2: (line2 || "").trim(),
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
+    });
+
+    if (duplicateAddress) {
+      return res.status(400).json({
+        message: "This address already exists",
+        success: false,
+        error: true,
+      });
+    }
+
     // Create address
     const address = new Address({
       user: userId,
@@ -123,6 +151,40 @@ export const updateAddress = async (req, res) => {
         success: false,
         error: true,
       });
+    }
+
+    // Prepare updated fields
+    const updatedLine1 = line1 !== undefined ? line1 : address.line1;
+    const updatedLine2 = line2 !== undefined ? line2 : address.line2;
+    const updatedCity = city !== undefined ? city : address.city;
+    const updatedState = state !== undefined ? state : address.state;
+    const updatedPincode = pincode !== undefined ? pincode : address.pincode;
+
+    // Check for duplicate address (excluding current address)
+    if (
+      line1 !== undefined ||
+      line2 !== undefined ||
+      city !== undefined ||
+      state !== undefined ||
+      pincode !== undefined
+    ) {
+      const duplicateAddress = await Address.findOne({
+        user: userId,
+        _id: { $ne: addressId }, // Exclude current address
+        line1: updatedLine1.trim(),
+        line2: updatedLine2.trim(),
+        city: updatedCity.trim(),
+        state: updatedState.trim(),
+        pincode: updatedPincode.trim(),
+      });
+
+      if (duplicateAddress) {
+        return res.status(400).json({
+          message: "This address already exists",
+          success: false,
+          error: true,
+        });
+      }
     }
 
     // Update fields
