@@ -18,9 +18,11 @@ import { baseURL } from "../Common/SummaryApi.js";
 import axios from "axios";
 import SummaryApi from "../Common/SummaryApi.js";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../Hooks/useUserContext.jsx";
 
 function Profile() {
   const navigate = useNavigate();
+  const { userDetails: contextUserDetails, updateUserDetails } = useUser();
 
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -109,6 +111,8 @@ function Profile() {
       if (response.data.success) {
         toast.success(response.data.message || "Profile updated successfully");
         setUserDetails(response.data.user);
+        // Also update context so Header stays in sync
+        updateUserDetails(response.data.user);
         setProfileChanged(false);
         return true;
       }
@@ -289,6 +293,7 @@ function Profile() {
                       name={userDetails?.name}
                       imageUrl={userDetails?.avatar}
                       size="large"
+                      isLoading={loading}
                       className="w-[70px] h-[70px]"
                     />
                   </div>

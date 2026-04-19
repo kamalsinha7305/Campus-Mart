@@ -19,18 +19,17 @@ import { IoChevronBackOutline } from "react-icons/io5";
 import { toast } from "react-hot-toast";
 import  SummaryApi  from "../Common/SummaryApi";
 import { baseURL } from "../Common/SummaryApi";
+import { useUser } from "../Hooks/useUserContext.jsx";
 
 const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
+  const { userDetails, isLoggedIn, loading, fetchUserProfile, clearUserData } = useUser();
   
   const [search, setSearch] = useState("");
   const [darkMode, setDarkMode] = useState(false);
   const [notification, setNotification] = useState(1);
   const [showmenu, setShowmenu] = useState(false);
-  const [userDetails, setUserDetails] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fade, setFade] = useState(true);
-  const [loading, setLoading] = useState(true);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   
@@ -113,49 +112,11 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
   const goToSignup = () => navigate("/signup");
 
   useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated");
-    if (authStatus === "true") {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
+    // Fetch user profile on mount or when context changes
+    if (isLoggedIn) {
+      fetchUserProfile();
     }
-  }, []);
-
- useEffect(() => {
-    setLoading(true);
-    const fetchUserProfile = async () => {
-      try{
-        // Only fetch if user is logged in
-        const authStatus = localStorage.getItem("isAuthenticated");
-        if (!authStatus || authStatus !== "true") {
-          setLoading(false);
-          return;
-        }
-
-        const response =await axios({
-          method : SummaryApi.userProfile.method,
-          url : `${baseURL}${SummaryApi.userProfile.url}`,
-          withCredentials : true
-        });
-        if(response.data.success){
-          setUserDetails(response.data.user);
-          setIsLoggedIn(true);
-        }
-      }
-      catch(error){
-       if (error.response?.status === 401) {
-          toast.error("Session expired. Please log in again.");
-          localStorage.removeItem("isAuthenticated"); 
-          setIsLoggedIn(false);
-          setUserDetails(null);
-        }
-      }
-      finally {
-        setLoading(false); 
-      }
-    }
-    fetchUserProfile();
-  },[navigate])
+  }, [isLoggedIn, fetchUserProfile]);
 
 
   const handleLogoutClick = async () => {
@@ -167,14 +128,14 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
       })
      
       if(response.data.success){
-        localStorage.removeItem("isAuthenticated");
-
-        setIsLoggedIn(false);
+        clearUserData();
         setShowmenu(false);
+        toast.success("Logged out successfully");
         navigate("/login");
       }
     } catch (err) {
       console.error("Logout error:", err);
+      toast.error("Logout failed");
     }
   };
 
@@ -222,6 +183,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
               name={userDetails?.name}
               imageUrl={userDetails?.avatar}
               size="small"
+              isLoading={loading}
               className="border border-gray-300"
             />
           </button>
@@ -244,6 +206,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
                 name={userDetails?.name}
                 imageUrl={userDetails?.avatar}
                 size="medium"
+                isLoading={loading}
                 className="border border-white shadow-sm"
               />
               <div className="overflow-hidden">
@@ -344,6 +307,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
                     name={userDetails?.name}
                     imageUrl={userDetails?.avatar}
                     size="medium"
+                    isLoading={loading}
                   />
                   <div>
                     <h1 className="text-black font-medium text-sm sm:text-base">
@@ -494,6 +458,7 @@ const Header = ({ color, textColor, bagUrl, isHome, darkUrl, isChat }) => {
                 name={userDetails?.name}
                 imageUrl={userDetails?.avatar}
                 size="medium"
+                isLoading={loading}
               />
             </button>
           </div>
