@@ -8,6 +8,7 @@ import Image9 from "../assets/circle_up.png";
 import ImageShade from "../assets/login_shade.png";
 import SignInwithGoogle from "./signinWithGoogle";
 import AuthPageRightPart from "../Components/AuthPageRightPart";
+import { useUser } from "../Hooks/useUserContext";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -16,14 +17,17 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { setIsLoggedIn, fetchUserProfile } = useUser();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("oauth") === "success") {
+    if (params.get("oauth") === "success" || params.get("auth") === "success") {
       localStorage.setItem("isAuthenticated", "true");
+      setIsLoggedIn(true);
+      fetchUserProfile();
       navigate("/");
     }
-  }, [location.search, navigate]);
+  }, [location.search, navigate, setIsLoggedIn, fetchUserProfile]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -42,7 +46,9 @@ function Login() {
 
       if (response.data.success) {
         toast.success(response.data.message || "Logged in successfully!");
-        localStorage.setItem("isAuthenticated", "true"); 
+        localStorage.setItem("isAuthenticated", "true");
+        setIsLoggedIn(true);
+        fetchUserProfile();
         navigate("/"); 
       }
     } catch (error) {

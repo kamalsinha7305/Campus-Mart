@@ -156,6 +156,15 @@ export const loginController = async (req, res) => {
       });
     }
 
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        message: "Invalid email or password",
+        success: false,
+        error: true,
+      });
+    }
+
     const accesstoken = await generatedAccessToken(user._id);
     const refreshtoken = await generatedRefreshToken(user._id);
 
@@ -265,6 +274,7 @@ export const googleAuthCallbackController = async (req, res) => {
     const refreshtoken = await generatedRefreshToken(user._id);
 
     setAuthCookies(res, accesstoken, refreshtoken, true);
+    // Let the frontend login page finish client-side auth state setup.
     return res.redirect(`${process.env.FRONTEND_URL}/login?oauth=success`);
   } catch (error) {
     console.error("Google auth callback error:", error);
