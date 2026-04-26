@@ -1,12 +1,12 @@
+import mongoose from "mongoose";
 import Address from "../models/Address.model.js";
 
-// Create a new address
+// CREATE ADDRESS
 export const createAddress = async (req, res) => {
   try {
     const userId = req.userId;
-    const { line1, line2, city, state, pincode, isDefault } = req.body;
+    let { line1, line2, city, state, pincode, isDefault } = req.body;
 
-    // Validate required fields
     if (!line1 || !city || !state || !pincode) {
       return res.status(400).json({
         message: "Required fields: line1, city, state, pincode",
@@ -15,27 +15,34 @@ export const createAddress = async (req, res) => {
       });
     }
 
-    // Check address count limit (maximum 3 addresses)
-    const addressCount = await Address.countDocuments({ user: userId });
-    if (addressCount >= 3) {
+    // Normalize
+    line1 = line1.trim();
+    line2 = (line2 || "").trim();
+    city = city.trim();
+    state = state.trim();
+    pincode = pincode.trim();
+
+    // Limit check
+    const count = await Address.countDocuments({ user: userId });
+    if (count >= 3) {
       return res.status(400).json({
-        message: "Maximum 3 addresses allowed per user",
+        message: "Maximum 3 addresses allowed",
         success: false,
         error: true,
       });
     }
 
-    // Check for duplicate address
-    const duplicateAddress = await Address.findOne({
+    // Duplicate check
+    const exists = await Address.findOne({
       user: userId,
-      line1: line1.trim(),
-      line2: (line2 || "").trim(),
-      city: city.trim(),
-      state: state.trim(),
-      pincode: pincode.trim(),
-    });
+      line1,
+      line2,
+      city,
+      state,
+      pincode,
+    }).lean();
 
-    if (duplicateAddress) {
+    if (exists) {
       return res.status(400).json({
         message: "This address already exists",
         success: false,
@@ -43,18 +50,15 @@ export const createAddress = async (req, res) => {
       });
     }
 
-    // Create address
-    const address = new Address({
+    const address = await Address.create({
       user: userId,
       line1,
-      line2: line2 || "",
+      line2,
       city,
       state,
       pincode,
       isDefault: isDefault || false,
     });
-
-    await address.save();
 
     return res.status(201).json({
       message: "Address created successfully",
@@ -63,24 +67,24 @@ export const createAddress = async (req, res) => {
       address,
     });
   } catch (err) {
-    console.error("Error in createAddress:", err);
+    console.error("createAddress error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });
   }
 };
 
-// Get all addresses for a user
+// GET USER ADDRESSES
 export const getUserAddresses = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const addresses = await Address.find({ user: userId }).sort({
-      isDefault: -1,
-      createdAt: -1,
-    });
+    const addresses = await Address.find({ user: userId })
+      .sort({ isDefault: -1, createdAt: -1 })
+      .lean();
 
     return res.status(200).json({
       message: "Addresses fetched successfully",
@@ -89,25 +93,33 @@ export const getUserAddresses = async (req, res) => {
       addresses,
     });
   } catch (err) {
-    console.error("Error in getUserAddresses:", err);
+    console.error("getUserAddresses error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });
   }
 };
 
-// Get a specific address by ID
+// GET ADDRESS BY ID
 export const getAddressById = async (req, res) => {
   try {
-    const userId = req.userId;
     const { addressId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(addressId)) {
+      return res.status(400).json({
+        message: "Invalid address ID",
+        success: false,
+        error: true,
+      });
+    }
 
     const address = await Address.findOne({
       _id: addressId,
-      user: userId,
-    });
+      user: req.userId,
+    }).lean();
 
     if (!address) {
       return res.status(404).json({
@@ -124,25 +136,24 @@ export const getAddressById = async (req, res) => {
       address,
     });
   } catch (err) {
-    console.error("Error in getAddressById:", err);
+    console.error("getAddressById error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });
   }
 };
 
-// Update an address
+// UPDATE ADDRESS
 export const updateAddress = async (req, res) => {
   try {
-    const userId = req.userId;
     const { addressId } = req.params;
-    const { line1, line2, city, state, pincode, isDefault } = req.body;
 
     const address = await Address.findOne({
       _id: addressId,
-      user: userId,
+      user: req.userId,
     });
 
     if (!address) {
@@ -153,47 +164,17 @@ export const updateAddress = async (req, res) => {
       });
     }
 
-    // Prepare updated fields
-    const updatedLine1 = line1 !== undefined ? line1 : address.line1;
-    const updatedLine2 = line2 !== undefined ? line2 : address.line2;
-    const updatedCity = city !== undefined ? city : address.city;
-    const updatedState = state !== undefined ? state : address.state;
-    const updatedPincode = pincode !== undefined ? pincode : address.pincode;
+    const fields = ["line1", "line2", "city", "state", "pincode"];
 
-    // Check for duplicate address (excluding current address)
-    if (
-      line1 !== undefined ||
-      line2 !== undefined ||
-      city !== undefined ||
-      state !== undefined ||
-      pincode !== undefined
-    ) {
-      const duplicateAddress = await Address.findOne({
-        user: userId,
-        _id: { $ne: addressId }, // Exclude current address
-        line1: updatedLine1.trim(),
-        line2: updatedLine2.trim(),
-        city: updatedCity.trim(),
-        state: updatedState.trim(),
-        pincode: updatedPincode.trim(),
-      });
-
-      if (duplicateAddress) {
-        return res.status(400).json({
-          message: "This address already exists",
-          success: false,
-          error: true,
-        });
+    fields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        address[field] = req.body[field];
       }
-    }
+    });
 
-    // Update fields
-    if (line1 !== undefined) address.line1 = line1;
-    if (line2 !== undefined) address.line2 = line2;
-    if (city !== undefined) address.city = city;
-    if (state !== undefined) address.state = state;
-    if (pincode !== undefined) address.pincode = pincode;
-    if (isDefault !== undefined) address.isDefault = isDefault;
+    if (req.body.isDefault !== undefined) {
+      address.isDefault = req.body.isDefault;
+    }
 
     await address.save();
 
@@ -204,24 +185,24 @@ export const updateAddress = async (req, res) => {
       address,
     });
   } catch (err) {
-    console.error("Error in updateAddress:", err);
+    console.error("updateAddress error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });
   }
 };
 
-// Delete an address
+// DELETE ADDRESS
 export const deleteAddress = async (req, res) => {
   try {
-    const userId = req.userId;
     const { addressId } = req.params;
 
     const address = await Address.findOneAndDelete({
       _id: addressId,
-      user: userId,
+      user: req.userId,
     });
 
     if (!address) {
@@ -239,32 +220,30 @@ export const deleteAddress = async (req, res) => {
       address,
     });
   } catch (err) {
-    console.error("Error in deleteAddress:", err);
+    console.error("deleteAddress error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });
   }
 };
 
-// Set default address
+// SET DEFAULT ADDRESS
 export const setDefaultAddress = async (req, res) => {
   try {
-    const userId = req.userId;
     const { addressId } = req.params;
 
-    // First, unset all default addresses for this user
     await Address.updateMany(
-      { user: userId },
-      { $set: { isDefault: false } }
+      { user: req.userId },
+      { $set: { isDefault: false } },
     );
 
-    // Set the specified address as default
     const address = await Address.findOneAndUpdate(
-      { _id: addressId, user: userId },
+      { _id: addressId, user: req.userId },
       { $set: { isDefault: true } },
-      { new: true }
+      { new: true },
     );
 
     if (!address) {
@@ -282,9 +261,10 @@ export const setDefaultAddress = async (req, res) => {
       address,
     });
   } catch (err) {
-    console.error("Error in setDefaultAddress:", err);
+    console.error("setDefaultAddress error:", err);
+
     return res.status(500).json({
-      message: err.message || err,
+      message: err.message || "Server error",
       success: false,
       error: true,
     });

@@ -1,6 +1,7 @@
 import * as productService from "../services/product.service.js";
 import { deleteImage } from "../utils/imagekit.js";
 
+// CREATE PRODUCT
 export const createProduct = async (req, res) => {
   const fileIds = Array.isArray(req.body.image_file_ids)
     ? req.body.image_file_ids
@@ -10,14 +11,6 @@ export const createProduct = async (req, res) => {
     const user = req.user;
     const data = req.body;
 
-    // validate first
-    if (!data.images || data.images.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Images are required",
-      });
-    }
-
     const product = await productService.createProduct(data, user);
 
     return res.status(201).json({
@@ -26,7 +19,7 @@ export const createProduct = async (req, res) => {
       data: product,
     });
   } catch (error) {
-    // cleanup uploaded images
+    // Cleanup uploaded images if product fails
     if (fileIds.length > 0) {
       await Promise.all(fileIds.map((id) => deleteImage(id)));
     }
@@ -38,6 +31,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
+// GET ALL PRODUCTS
 export const getAllProducts = async (req, res, next) => {
   try {
     const result = await productService.getAllProducts(req.query);
@@ -45,13 +39,14 @@ export const getAllProducts = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Products fetched successfully",
-      ...result,
+      ...result, // keep for frontend
     });
   } catch (error) {
     next(error);
   }
 };
 
+// GET SINGLE PRODUCT
 export const getSingleProduct = async (req, res, next) => {
   try {
     const product = await productService.getSingleProduct(req.params.id);
@@ -60,6 +55,21 @@ export const getSingleProduct = async (req, res, next) => {
       success: true,
       message: "Product fetched successfully",
       data: product,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET BOOSTED PRODUCTS
+export const getBoostedProducts = async (req, res, next) => {
+  try {
+    const products = await productService.getBoostedProducts();
+
+    return res.status(200).json({
+      success: true,
+      message: "Boosted products fetched successfully",
+      data: products,
     });
   } catch (error) {
     next(error);

@@ -1,39 +1,46 @@
+import mongoose from "mongoose";
 import Report from "../models/Report.model.js";
 import Product from "../models/Product.model.js";
 
 export const reportProduct = async (productId, data, user) => {
-  // Check product exists
+  // VALIDATE PRODUCT ID
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new Error("Invalid product ID");
+  }
+
+  // CHECK PRODUCT EXISTS
   const product = await Product.findOne({
     _id: productId,
     is_deleted: false,
-  });
+  })
+    .select("seller_id")
+    .lean();
 
   if (!product) {
     throw new Error("Product not found");
   }
 
-  // Prevent self-report
+  // PREVENT SELF REPORT
   if (product.seller_id.toString() === user._id.toString()) {
     throw new Error("You cannot report your own product");
   }
 
-  // Check duplicate report
-  const existingReport = await Report.findOne({
-    reporter_id: user._id,
-    product_id: productId,
-  });
+  // CREATE REPORT (HANDLE DUPLICATE SAFELY)
+  try {
+    const report = await Report.create({
+      reporter_id: user._id,
+      product_id: productId,
+      reason: data.reason,
+      message: data.message,
+    });
 
-  if (existingReport) {
-    throw new Error("You have already reported this product");
+    return report;
+  } catch (error) {
+    // Handle duplicate report (unique index)
+    if (error.code === 11000) {
+      throw new Error("You have already reported this product");
+    }
+
+    throw error;
   }
-
-  // Create report
-  const report = await Report.create({
-    reporter_id: user._id,
-    product_id: productId,
-    reason: data.reason,
-    message: data.message,
-  });
-
-  return report;
 };

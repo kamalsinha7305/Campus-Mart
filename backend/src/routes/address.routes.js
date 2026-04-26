@@ -1,5 +1,6 @@
 import { Router } from "express";
 import auth from "../middlewares/auth.middleware.js";
+
 import {
   createAddress,
   getUserAddresses,
@@ -10,7 +11,9 @@ import {
 } from "../controllers/address.controller.js";
 
 const addressRouter = Router();
+
 addressRouter.use(auth);
+
 addressRouter.post("/", createAddress);
 addressRouter.get("/", getUserAddresses);
 addressRouter.get("/:addressId", getAddressById);

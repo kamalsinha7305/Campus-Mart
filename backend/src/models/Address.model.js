@@ -5,48 +5,45 @@ const addressSchema = new Schema(
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User is required for address"],
-      index: true,
+      required: true,
     },
 
     line1: {
       type: String,
-      required: [true, "Address line 1 is required"],
+      required: true,
       trim: true,
-      maxlength: [200, "Address line 1 cannot exceed 200 characters"],
+      maxlength: 200,
     },
 
     line2: {
       type: String,
       trim: true,
-      maxlength: [200, "Address line 2 cannot exceed 200 characters"],
+      maxlength: 200,
       default: "",
     },
 
     city: {
       type: String,
-      required: [true, "City is required"],
+      required: true,
       trim: true,
-      maxlength: [100, "City name cannot exceed 100 characters"],
+      maxlength: 100,
     },
 
     state: {
       type: String,
-      required: [true, "State is required"],
+      required: true,
       trim: true,
-      maxlength: [100, "State name cannot exceed 100 characters"],
+      maxlength: 100,
     },
 
     pincode: {
       type: String,
-      required: [true, "Pincode is required"],
+      required: true,
       trim: true,
       validate: {
-        validator: function(v) {
-          return /^\d{6}$/.test(v);
-        },
-        message: "Pincode must be exactly 6 digits"
-      }
+        validator: (v) => /^\d{6}$/.test(v),
+        message: "Pincode must be exactly 6 digits",
+      },
     },
 
     isDefault: {
@@ -56,19 +53,22 @@ const addressSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-
+// Indexes (minimal + useful)
+addressSchema.index({ user: 1 });
 addressSchema.index({ user: 1, isDefault: 1 });
 
+// Ensure only one default address per user
 addressSchema.pre("save", async function () {
   if (this.isDefault) {
-  
-    await mongoose.model("Address").updateMany(
-      { user: this.user, _id: { $ne: this._id } },
-      { $set: { isDefault: false } }
-    );
+    await mongoose
+      .model("Address")
+      .updateMany(
+        { user: this.user, _id: { $ne: this._id } },
+        { $set: { isDefault: false } },
+      );
   }
 });
 

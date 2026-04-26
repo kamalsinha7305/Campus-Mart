@@ -42,8 +42,11 @@ const reportSchema = new Schema(
   },
 );
 
-// Prevent duplicate reports by same user on same product
+// Prevent duplicate reports
 reportSchema.index({ reporter_id: 1, product_id: 1 }, { unique: true });
+
+// fast moderation queries
+reportSchema.index({ status: 1, createdAt: -1 });
 
 const Report = mongoose.model("Report", reportSchema);
 

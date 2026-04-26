@@ -14,6 +14,7 @@ export const reportProduct = async (req, res, next) => {
       data: report,
     });
   } catch (error) {
+    // Forward to global error handler
     next(error);
   }
 };

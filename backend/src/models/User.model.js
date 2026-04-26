@@ -40,6 +40,7 @@ const userSchema = new Schema(
       type: String,
       default: null,
       trim: true,
+      match: [/^\d{10}$/, "Mobile must be 10 digits"],
     },
 
     gender: {
@@ -61,7 +62,6 @@ const userSchema = new Schema(
       type: String,
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
-      index: true,
     },
 
     is_email_verified: {
@@ -132,15 +132,6 @@ const userSchema = new Schema(
       type: Date,
       default: null,
     },
-    reset_password_token: {
-      type: String,
-      select: false,
-      default: "",
-    },
-    reset_password_expiry: {
-      type: Date,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -148,7 +139,7 @@ const userSchema = new Schema(
   },
 );
 
-
+userSchema.index({ status: 1 });
 
 const User = mongoose.model("User", userSchema);
 

@@ -252,7 +252,8 @@ export const googleAuthCallbackController = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        avatar: picture || "https://ik.imagekit.io/mspoxwn8v/avatar-default.svg",
+        avatar:
+          picture || "https://ik.imagekit.io/mspoxwn8v/avatar-default.svg",
         is_email_verified: true,
         verifyTokenEmail: "",
       });
@@ -261,12 +262,12 @@ export const googleAuthCallbackController = async (req, res) => {
       if (picture) {
         user.avatar = picture;
       }
-      
+
       // Ensure email is verified for Google sign-in
       if (!user.is_email_verified) {
         user.is_email_verified = true;
       }
-      
+
       await user.save();
     }
 
@@ -346,7 +347,9 @@ export const checkEmailVerificationController = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: user.is_email_verified ? "Email is verified" : "Email is not verified yet",
+      message: user.is_email_verified
+        ? "Email is verified"
+        : "Email is not verified yet",
       success: true,
       error: false,
       verified: user.is_email_verified,
@@ -388,7 +391,7 @@ export const logoutUser = async (req, res) => {
 export const refreshAccessTokenController = async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
-    
+
     if (!refreshToken) {
       return res.status(401).json({
         message: "Refresh token required",
@@ -397,7 +400,10 @@ export const refreshAccessTokenController = async (req, res) => {
       });
     }
 
-    const decode = jwt.verify(refreshToken, process.env.SECRET_KEY_REFRESH_TOKEN);
+    const decode = jwt.verify(
+      refreshToken,
+      process.env.SECRET_KEY_REFRESH_TOKEN,
+    );
     const user = await userModel.findById(decode.id);
 
     if (!user || user.refresh_token !== refreshToken) {
@@ -574,13 +580,11 @@ export const resendVerificationController = async (req, res) => {
     }
 
     if (user.is_email_verified) {
-      return res
-        .status(400)
-        .json({
-          message: "Email is already verified. Please log in.",
-          success: false,
-          error: true,
-        });
+      return res.status(400).json({
+        message: "Email is already verified. Please log in.",
+        success: false,
+        error: true,
+      });
     }
 
     // Generate a new token and update the user
@@ -597,13 +601,11 @@ export const resendVerificationController = async (req, res) => {
       html: verifyEmailTempplate({ name: user.name, url: verifyEmailUrl }),
     });
 
-    return res
-      .status(200)
-      .json({
-        message: "Verification email resent!",
-        success: true,
-        error: false,
-      });
+    return res.status(200).json({
+      message: "Verification email resent!",
+      success: true,
+      error: false,
+    });
   } catch (error) {
     return res
       .status(500)

@@ -1,19 +1,38 @@
-import {Router} from "express";
-import {registerUserController, loginController, verifyEmailController, logoutUser, forgotPasswordController, resetPasswordController, verifyResetTokenPreCheck, resendVerificationController, googleAuthRedirectController, googleAuthCallbackController, refreshAccessTokenController, checkEmailVerificationController} from "../controllers/auth.controller.js";
+import { Router } from "express";
+import {
+  registerUserController,
+  loginController,
+  verifyEmailController,
+  logoutUser,
+  forgotPasswordController,
+  resetPasswordController,
+  verifyResetTokenPreCheck,
+  resendVerificationController,
+  googleAuthRedirectController,
+  googleAuthCallbackController,
+  refreshAccessTokenController,
+  checkEmailVerificationController,
+} from "../controllers/auth.controller.js";
 
 const authRouter = Router();
 
+
 authRouter.post("/register", registerUserController);
 authRouter.post("/login", loginController);
+
 authRouter.get("/google", googleAuthRedirectController);
 authRouter.get("/google/callback", googleAuthCallbackController);
+
 authRouter.post("/verify-email", verifyEmailController);
 authRouter.get("/check-verification", checkEmailVerificationController);
-authRouter.get("/logoutUser", logoutUser);
+authRouter.post("/resend-verification", resendVerificationController);
+
 authRouter.post("/forgot-password", forgotPasswordController);
 authRouter.get("/reset-password/:token", verifyResetTokenPreCheck);
 authRouter.post("/reset-password/:token", resetPasswordController);
-authRouter.post('/resend-verification', resendVerificationController);
+
 authRouter.post("/refresh-token", refreshAccessTokenController);
 
-export default authRouter; 
+authRouter.get("/logoutUser", logoutUser);
+
+export default authRouter;
