@@ -5,19 +5,22 @@ import { EllipsisVertical, IndianRupee } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquareMore } from "lucide-react";
-import { FaRegHeart } from "react-icons/fa";
+import { FaRegHeart, FaHeart } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import { useParams } from "react-router-dom";
 import api from "../Utils/api";
+import { useWishlist } from "../Hooks/useWishlist";
 
 const ProductDescription = () => {
   const [report, setReport] = useState(false);
-  const [wishlish, setWishlish] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { toggleWishlist, checkProductInWishlist } = useWishlist();
 
   const images =
     product?.images && product.images.length > 0
@@ -36,6 +39,21 @@ const ProductDescription = () => {
     }
   }, [product]);
 
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      try {
+        const isInWish = await checkProductInWishlist(id);
+        setInWishlist(isInWish);
+      } catch (error) {
+        console.error("Error checking wishlist:", error);
+      }
+    };
+
+    if (id) {
+      checkWishlistStatus();
+    }
+  }, [id, checkProductInWishlist]);
+
   const handleReport = () => {
     setReport((prev) => !prev);
   };
@@ -48,9 +66,22 @@ const ProductDescription = () => {
     }, 800);
   };
 
-  const handleWishlish = () => {
-    setWishlish(!wishlish);
-    toast.success("Added to Wishlist", { id: "wishlist-toast" });
+  const handleWishlist = async () => {
+    setWishlistLoading(true);
+    try {
+      const result = await toggleWishlist(id);
+      setInWishlist(result);
+      if (result) {
+        toast.success("Added to Wishlist", { id: "wishlist-toast" });
+      } else {
+        toast.success("Removed from Wishlist", { id: "wishlist-toast" });
+      }
+    } catch (error) {
+      toast.error("Failed to update wishlist", { id: "wishlist-error" });
+      console.error("Wishlist error:", error);
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -305,13 +336,18 @@ const ProductDescription = () => {
 
           {/* Right bottom side */}
           <div className="flex flex-col w-full justify-between items-center mt-4 mb-6 gap-3 lg:flex-row xl:gap-96 dark:bg-[#131313]">
-            <div
-              onClick={handleWishlish}
-              className="outline outline-2 outline-offset-[-2px] outline-neutral-200 rounded-md text-black w-full py-3 flex justify-center items-center font-semibold text-sm md:text-base font-robotoFlex cursor-pointer gap-2 dark:border-[#DDDDDD] dark:text-[#F1F1F1] dark:outline-[#DDDDDD] dark:outline-1"
+            <button
+              onClick={handleWishlist}
+              disabled={wishlistLoading}
+              className="outline outline-2 outline-offset-[-2px] outline-neutral-200 rounded-md text-black w-full py-3 flex justify-center items-center font-semibold text-sm md:text-base font-robotoFlex cursor-pointer gap-2 dark:border-[#DDDDDD] dark:text-[#F1F1F1] dark:outline-[#DDDDDD] dark:outline-1 hover:bg-gray-50 dark:hover:bg-[#1A1D20] transition-colors disabled:opacity-50"
             >
-              <FaRegHeart className="lg:size-4 hover:text-red-500" />
-              Add to Wishlist
-            </div>
+              {inWishlist ? (
+                <FaHeart className="lg:size-4 text-pink-500" />
+              ) : (
+                <FaRegHeart className="lg:size-4 hover:text-pink-500 transition-colors" />
+              )}
+              {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            </button>
             <Link
               to={`/chat?seller=${product.seller_id?._id}`}
               className="bg-gradient-to-r from-indigo-600 to-blue-600 shadow-[0px_4px_12px_0px_rgba(0,0,0,0.17)] rounded-md text-white w-full py-3 flex justify-center items-center font-semibold gap-1 text-sm md:text-base"
