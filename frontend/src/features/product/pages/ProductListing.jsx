@@ -9,7 +9,7 @@ import { MdDelete } from "react-icons/md";
 import { HiOutlineLightBulb } from "react-icons/hi";
 import { BiMessageSquareError } from "react-icons/bi";
 import { Link } from "react-router-dom";
-import { uploadImage } from "../../../utils/imageUpload.js";
+import { uploadImage } from "../../../Utils/imageUpload.js";
 import { useNavigate } from "react-router-dom";
 import axios from "../../../services/axiosInstance";
 
