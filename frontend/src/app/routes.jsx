@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 
-import MainLayout from "../layouts/MainLayout.jsx";
-import ProtectedLayout from "../layouts/ProtectedLayout.jsx";
+import MainLayout from "../Layouts/MainLayout.jsx";
+import ProtectedLayout from "../Layouts/ProtectedLayout.jsx";
 
 // Auth
 import Login from "../features/auth/pages/Login.jsx";
