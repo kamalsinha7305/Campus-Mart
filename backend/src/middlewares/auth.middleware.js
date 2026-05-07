@@ -37,10 +37,15 @@ const auth = async (req, res, next) => {
 
     // Block inactive/suspended users
     if (user.status !== USER_STATUS.ACTIVE) {
+      const statusLabel =
+        user.status === USER_STATUS.SUSPENDED ? "suspended" : "inactive";
+
       return res.status(403).json({
-        message: "Account is inactive or suspended",
+        message: `Your account is ${statusLabel}. Please contact support.`,
         success: false,
         error: true,
+        accountBlocked: true,
+        accountStatus: user.status,
       });
     }
 

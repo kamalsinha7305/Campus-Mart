@@ -13,10 +13,35 @@ const addRefreshSubscriber = (callback) => {
   refreshSubscribers.push(callback);
 };
 
+const clearStoredAuth = () => {
+  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("cachedUserDetails");
+};
+
+const notifyAccountBlocked = (payload = {}) => {
+  window.dispatchEvent(
+    new CustomEvent("campus-mart:account-blocked", {
+      detail: {
+        message:
+          payload.message ||
+          "Your account access has been restricted. Please contact support.",
+        status: payload.accountStatus,
+      },
+    }),
+  );
+};
+
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const responseData = error.response?.data;
+
+    if (error.response?.status === 403 && responseData?.accountBlocked) {
+      clearStoredAuth();
+      notifyAccountBlocked(responseData);
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -47,8 +72,11 @@ instance.interceptors.response.use(
           return instance(originalRequest);
         }
       } catch (err) {
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("cachedUserDetails");
+        clearStoredAuth();
+
+        if (err.response?.data?.accountBlocked) {
+          notifyAccountBlocked(err.response.data);
+        }
 
         isRefreshing = false;
 

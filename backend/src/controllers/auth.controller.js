@@ -1,6 +1,4 @@
-import cookie from "cookie-parser";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import userModel from "../models/User.model.js";
@@ -9,36 +7,19 @@ import generatedAccessToken from "../utils/generatedAccessToken.js";
 import generatedRefreshToken from "../utils/generatedRefreshToken.js";
 import verifyEmailTempplate from "../utils/templates/verifyEmailTemplate.js";
 import forgotPaswordTemplate from "../utils/templates/forgotPaswordTemplate.js";
-import { USER_STATUS } from "../config/constants.js";
+import {
+  clearAuthCookies,
+  loginWithPassword,
+  refreshSession,
+  revokeRefreshToken,
+  setAuthCookies,
+} from "../services/auth.service.js";
 
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI,
 );
-
-const setAuthCookies = (res, accessToken, refreshToken) => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  const baseCookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
-  };
-
-  const accessTokenOptions = {
-    ...baseCookieOptions,
-    maxAge: 15 * 60 * 1000,
-  };
-
-  const refreshTokenOptions = {
-    ...baseCookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  };
-
-  res.cookie("accessToken", accessToken, accessTokenOptions);
-  res.cookie("refreshToken", refreshToken, refreshTokenOptions);
-};
 
 export const registerUserController = async (req, res) => {
   try {
@@ -121,66 +102,32 @@ export const registerUserController = async (req, res) => {
 
 export const loginController = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { accessToken, refreshToken, user } = await loginWithPassword(
+      req.body,
+    );
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Please provide email and password",
-        success: false,
-        error: true,
-      });
-    }
-
-    const user = await userModel.findOne({ email }).select("+password");
-    if (!user) {
-      return res.status(400).json({
-        message: "User with this email does not exist.",
-        success: false,
-        error: true,
-      });
-    }
-
-    if (!user.is_email_verified) {
-      return res.status(403).json({
-        message: "Please verify your email address before logging in.",
-        success: false,
-        error: true,
-        requiresVerification: true,
-      });
-    }
-    if (user.status && user.status !== USER_STATUS.ACTIVE) {
-      return res.status(400).json({
-        message: "Invalid email or password",
-        success: false,
-        error: true,
-      });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        message: "Invalid email or password",
-        success: false,
-        error: true,
-      });
-    }
-
-    const accesstoken = await generatedAccessToken(user._id);
-    const refreshtoken = await generatedRefreshToken(user._id);
-
-    setAuthCookies(res, accesstoken, refreshtoken);
+    setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({
       message: "Login successfully",
       success: true,
       error: false,
-      data: { refreshtoken, accesstoken },
+      data: {
+        refreshtoken: refreshToken,
+        accesstoken: accessToken,
+        refreshToken,
+        accessToken,
+        user,
+      },
     });
   } catch (err) {
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       message: err.message || err,
       success: false,
       error: true,
+      requiresVerification: Boolean(err.requiresVerification),
+      accountBlocked: Boolean(err.accountBlocked),
+      accountStatus: err.accountStatus,
     });
   }
 };
@@ -374,15 +321,10 @@ export const checkEmailVerificationController = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
+    await revokeRefreshToken(req.userId);
+    clearAuthCookies(res);
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
-    };
-
-    res.clearCookie("accessToken", cookieOptions).status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Logged out successfully",
       error: false,
@@ -399,44 +341,21 @@ export const logoutUser = async (req, res) => {
 
 export const refreshAccessTokenController = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    const session = await refreshSession({
+      refreshToken: req.cookies?.refreshToken,
+    });
 
-    if (!refreshToken) {
-      return res.status(401).json({
-        message: "Refresh token required",
-        success: false,
-        error: true,
-      });
-    }
-
-    const decode = jwt.verify(
-      refreshToken,
-      process.env.SECRET_KEY_REFRESH_TOKEN,
-    );
-    const user = await userModel.findById(decode.id);
-
-    if (!user || user.refresh_token !== refreshToken) {
-      return res.status(401).json({
-        message: "Invalid or expired refresh token",
-        success: false,
-        error: true,
-      });
-    }
-
-    const newAccessToken = await generatedAccessToken(user._id);
-    const newRefreshToken = await generatedRefreshToken(user._id);
-
-    setAuthCookies(res, newAccessToken, newRefreshToken);
+    setAuthCookies(res, session.accessToken, session.refreshToken);
 
     return res.status(200).json({
       message: "Token refreshed successfully",
       success: true,
       error: false,
-      data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
+      data: session,
     });
   } catch (err) {
-    return res.status(401).json({
-      message: "Invalid refresh token",
+    return res.status(err.statusCode || 401).json({
+      message: err.message || "Invalid refresh token",
       success: false,
       error: true,
     });

@@ -1,13 +1,3 @@
-/*
-How to use the enums:
-
-import { PRODUCT_STATUS, USER_ROLES } from "../config/constants.js";
-
-PRODUCT_STATUS.SOLD
-USER_ROLES.ADMIN
-*/
-
-// Object Freeze will prevent the object from being modified
 export const USER_ROLES = Object.freeze({
   USER: "user",
   ADMIN: "admin",

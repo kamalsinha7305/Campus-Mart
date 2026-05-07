@@ -13,9 +13,19 @@ import reportRouter from "./routes/report.routes.js";
 import addressRouter from "./routes/address.routes.js";
 import imagekitRouter from "./routes/imagekit.routes.js";
 import wishlistRouter from "./routes/wishlist.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 // import errorMiddleware from "./middlewares/error.middleware.js";
 const app = express();
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_FRONTEND_URL,
+]
+  .filter(Boolean)
+  .flatMap((origin) => origin.split(","))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Protection against XSS attacks, clickjacking, malicious headers
 app.use(
@@ -67,7 +77,13 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL, // only frontend allowed
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true, // allows cookies
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   }),
@@ -99,6 +115,7 @@ app.use("/api/report", reportRouter);
 app.use("/api/address", addressRouter);
 app.use("/api/imagekit", imagekitRouter);
 app.use("/api/wishlist", wishlistRouter);
+app.use("/api/admin", adminRouter);
 
 // If no route matches
 app.use((req, res) => {

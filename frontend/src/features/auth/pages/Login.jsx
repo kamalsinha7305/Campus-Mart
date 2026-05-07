@@ -1,14 +1,48 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { toast } from "react-hot-toast";
-
 import axios from "../../../services/axiosInstance.js";
-import Image9 from "../../../assets/circle_up.png";
-import ImageShade from "../../../assets/login_shade.png";
-import SignInwithGoogle from "../components/signinWithGoogle";
 import AuthPageRightPart from "../components/AuthPageRightPart";
 import { useUser } from "../../../context/useUserContext.jsx";
+import cmlogo from "../../../assets/final_cm_logo.png";
+
+const CampusMartLogo = () => (
+  <Link
+    to="/"
+    className=" md:absolute md:top-[3%] md:left-7 lg:top-[3%] lg:left-7 xl:top-[3%] xl:left-7 inline-flex items-center justify-center gap-2 md:gap-1.5 lg:gap-2 xl:gap-2 font-poppins text-xl md:text-sm lg:text-sm xl:text-base font-semibold text-white  md:text-[#012436] dark:md:text-white"
+  >
+    <img
+      src={cmlogo}
+      className="size-5 md:h-[17px] md:w-[13px] lg:h-[19px] lg:w-[15px] xl:h-[21px] xl:w-[17px] mb-1"
+      viewBox="0 0 27 26"
+      fill="none"
+    ></img>
+
+    <span>Campus Mart</span>
+  </Link>
+);
+
+const GoogleIcon = () => (
+  <svg className="size-4 lg:size-5" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"
+    />
+  </svg>
+);
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -51,6 +85,11 @@ function Login() {
         navigate("/");
       }
     } catch (error) {
+      if (error.response?.data?.accountBlocked) {
+        toast.error(error.response.data.message);
+        return;
+      }
+
       if (error.response?.data?.requiresVerification) {
         toast.error("Please verify your email first. Redirecting...");
 
@@ -71,157 +110,134 @@ function Login() {
     }
   };
 
+  const handleGoogleSignIn = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google`;
+  };
+
   return (
-    <div className="flex overflow-hidden select-none relative">
-      {/* Top left image */}
-      <div className="absolute -top-36 -left-52 z-10">
-        <img src={ImageShade} className="w-[35vw] h-[52vh]" alt="shade" />
-      </div>
-
+    <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] lg:overflow-hidden">
       {/* LEFT SECTION */}
-      <div className="relative h-screen w-[100%] lg:w-[38%] xl:w-[42%] bg-white shadow dark:bg-[#131313]">
-        <Link
-          to={"/"}
-          className="flex items-center justify-center mt-[6vh] xl:mt-[8vh]"
-        >
-          {/* SVG Logo kept intact */}
-          <svg
-            className="mb-[0.4vh]"
-            width="20"
-            height="20"
-            viewBox="0 0 27 26"
-            fill="none"
-          >
-            <path
-              d="M18.05 8.79119C18.05 11.3414 15.5629 13.4088 13.0126 13.4088C10.4624 13.4088 7.9752 11.3414 7.9752 8.79119C7.9752 6.24094 5.42505 3.33398 7.9753 3.33398C10.5256 3.33398 18.05 6.24094 18.05 8.79119Z"
-              stroke="#4D4EF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M19.1842 9.63082C19.1842 12.1811 16.6971 14.2485 14.1468 14.2485C11.5965 14.2485 9.10938 12.1811 9.10938 9.63082C9.10938 7.08056 15.0807 1.23511 17.6309 1.23511C20.1812 1.23511 19.1842 7.08056 19.1842 9.63082Z"
-              stroke="#534FF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M4.12511 10.2522C4.41527 9.14425 5.41637 8.37158 6.56164 8.37158H19.7557C20.8938 8.37158 21.8905 9.13479 22.1872 10.2335L25.5888 22.8271C26.0212 24.4279 24.8154 26.0026 23.1572 26.0026H3.26333C1.6131 26.0026 0.408693 24.4421 0.826795 22.8457L4.12511 10.2522Z"
-              fill="#394FF1"
-            />
-          </svg>
-          <span className="text-[#012436] dark:text-[#FFFFFF] text-[18px] lg:text-[1.5rem] xl:text-[1.45rem] font-poppins font-semibold ml-[0.3vw]">
-            Campus Mart
-          </span>
-        </Link>
-
-        <div>
-          <h1 className="flex items-center justify-center mt-[3vh] lg:mt-[4vh] xl:mt-[6vh]">
-            <span className="font-robotoflex text-black text-[18px] dark:text-[#F1F1F1] font-semibold  lg:text-[1.65rem] mr-[6px] xl:text-[1.55em] tracking-tight">
-              Welcome to
-            </span>
-            <span className="font-robotoflex font-semibold bg-gradient-to-l from-blue-600 to-indigo-600 bg-clip-text text-transparent lg:text-[1.65rem] text-[18px] xl:text-[1.55rem] tracking-tight">
-              Campus Mart
-            </span>
-          </h1>
-
-          <div className="flex items-center justify-center text-[#828F9B] dark:text-[#D6D6D6] text-[13px] lg:text-[1.025rem] font-normal font-['Poppins'] mb-[3vh] xl:text-[1vw] xl:mb-[2vh] xl:mt-[1vh]">
-            Enter your details to access Campus Mart.
+      <div className="relative flex min-h-[100dvh] w-full flex-col bg-white font-poppins dark:bg-[#131313] md:w-[44%] lg:w-[36%] xl:w-[38%]">
+        <div className="relative flex min-h-[100dvh] flex-col bg-gradient-to-br from-[#2f35f4] to-[#7472f5] pt-5 text-white sm:pt-8 md:bg-none md:px-8 md:py-8 md:text-[#111827] lg:px-12 lg:py-10 xl:px-16">
+          <CampusMartLogo />
+          <div className="flex h-[176px] shrink-0 flex-col items-center gap-4 sm:h-[192px] sm:gap-5 md:h-auto md:items-start md:gap-0">
+            <p className="text-center mt-4 text-[11px] font-medium text-base sm:text-xs md:hidden">
+              The smarter way to trade today
+            </p>
+            <div className="flex gap-2 md:hidden" aria-hidden="true">
+              <span className="h-0.5 w-7 rounded-full bg-white" />
+              <span className="h-0.5 w-3 rounded-full bg-white/80" />
+              <span className="h-0.5 w-3 rounded-full bg-white/80" />
+            </div>
           </div>
 
-          {/* FORM: Added onSubmit here */}
-          <div className="w-3/4 mx-auto">
+          <div className="flex flex-1 items-start justify-center md:items-center">
             <form
-              className="flex flex-col items-center justify-center"
+              className="-mt-12 min-h-[calc(100dvh-144px)] w-full flex-1 rounded-t-[24px] bg-white px-5 pb-6 pt-12 md:pt-6 text-[#18181B] shadow-[0_-18px_50px_rgba(30,35,120,0.18)] dark:bg-[#131313] dark:text-white sm:-mt-9 sm:min-h-[calc(100dvh-156px)] sm:px-7 md:mt-0 md:min-h-0 md:flex-none md:max-w-[300px] md:rounded-none md:p-0 md:shadow-none xl:max-w-[320px] "
               onSubmit={handleLogin}
             >
-              {/* EMAIL */}
-              <div className="mt-[3vh]">
-                <div className="text-[#1e1e1e] dark:text-[#D6D6D6] text-[13.5px] lg:text-[15px] font-normal font-['Poppins'] xl:mb-1">
-                  Email
-                </div>
-                <input
-                  className="w-[77vw] h-[5.2vh] rounded-md lg:w-[24.5vw] lg:h-[5.8vh] border border-[#DEDEDE] pl-[4vw] dark:text-white dark:bg-[#1a1d20] lg:pl-[1vw] outline-none dark:border-[#848484]"
-                  type="email"
-                  value={email}
-                  placeholder="Enter your email address"
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+              <div className="mb-5 md:mb-2.5 lg:mb-4 xl:mb-4 ">
+                <h1 className="font-figtree font-semibold leading-6 tracking-normal text-xl sm:text-lg md:text-[1.3 rem] lg:text-lg xl:text-xl ">
+                  Welcome back
+                </h1>
+                <p className="mt-1 font-figtree text-sm leading-4 text-gray-700 dark:text-[#D6D6D6] sm:text-[11px] md:text-[11px] lg:text-xs xl:text-xs">
+                  Login to your campus account to continue.
+                </p>
               </div>
 
-              {/* PASSWORD */}
-              <div className="relative mt-[2vh]">
-                <div className="text-[#1e1e1e] dark:text-[#D6D6D6] text-[13.5px] lg:text-[15px] xl:mb-1">
-                  Password
-                </div>
-
-                <input
-                  className="w-[77vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] rounded-md border border-[#bbc2c9] pl-[1.2vw] dark:text-white dark:bg-[#1a1d20] outline-none dark:border-[#848484]"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
-
-                <button
-                  type="button"
-                  className="absolute top-[38%] right-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-
-                <div className="flex justify-end items-center mt-[2vh]">
-                  <div className="text-[#2d3339] dark:text-[#BBC2C9] text-[12px] lg:text-sm font-medium cursor-pointer">
-                    <Link to={"/forgot-password"}>Forgot Password</Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* SIGN IN BUTTON */}
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="text-white bg-[#1a1d20] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] mt-[3vh] hover:bg-[#0b0c0d] disabled:opacity-60 transition-opacity"
+                type="button"
+                onClick={handleGoogleSignIn}
+                className="flex h-10 sm:h-9 md:h-9 lg:h-9 xl:h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300/30 bg-white  font-semibold text-gray-700 shadow-[0px_1px_2px_rgba(0,0,0,0.05)] transition hover:border-slate-300 hover:bg-[#F9FAFB] dark:border-[#363A42] dark:bg-[#1A1D20] dark:text-white dark:hover:bg-[#20242A] text-sm lg:text-[0.7rem] md:text-[10px] xl:text-xs md:rounded-xl"
               >
-                {isSubmitting ? "Signing in..." : "Sign in"}
+                <GoogleIcon />
+                Sign in with Google
               </button>
 
-              {/* SEPARATOR */}
-              <div className="flex items-center gap-2 my-[2vh]">
-                <div className="w-[8vw] border dark:border-[#D7D7D7]"></div>
-                <span className="text-[#64707d] dark:text-[#D6D6D6] text-[13px] xl:text-[14px]">
+              <div className="my-4 sm:my-4 md:my-2.5 lg:my-3 xl:my-3 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-300/30 dark:bg-[#3A3A3A]" />
+                <span className="text-[9px] sm:text-[9px] font-normal uppercase leading-3 tracking-[0.18em] text-gray-500 ">
                   or continue with
                 </span>
-                <div className="w-[8vw] border dark:border-[#D7D7D7]"></div>
+                <div className="h-px flex-1 bg-slate-300/30 dark:bg-[#3A3A3A]" />
               </div>
 
-              <SignInwithGoogle />
-
-              <div className="mt-[2vh] xl:mt-0">
-                <span className="text-[#848484] text-[13px] font-poppins">
-                  Don&apos;t have an account?{" "}
-                </span>
-                <Link to={"/signup"}>
-                  <span className="text-[#292929] dark:text-neutral-300 text-[13px] xl:text-[14px] font-medium font-poppins">
-                    Create account
+              <div className="space-y-3.5 sm:space-y-3 md:space-y-3 lg:space-y-2.5 xl:space-y-3">
+                <label className="block">
+                  <span className="mb-1 block text-[12px]  sm:text-[11px] lg:text-xs xl:text-xs  font-normal leading-4 text-zinc-900 dark:text-[#E5E7EB] ">
+                    Email Address
                   </span>
+                  <span className="relative block">
+                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
+                    <input
+                      className="h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-3  text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 text-[11px] md:text-xs"
+                      type="email"
+                      value={email}
+                      placeholder="student@university.edu"
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </span>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-[12px] font-normal leading-4 text-zinc-900 dark:text-[#E5E7EB] sm:text-[11px] lg:text-xs">
+                    Password
+                  </span>
+                  <span className="relative block">
+                    <LockKeyhole className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
+                    <input
+                      className="h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-10  text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:pr-12 text-[11px] md:text-xs"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="********"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-[#393AF2] sm:right-4"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-2 flex justify-end">
+                <Link
+                  to="/forgot-password"
+                  className="text-[12px] sm:text-xs md:text-[11px] lg:text-xs xl:text-xs font-semibold text-[#393AF2] transition hover:text-[#2426C7] "
+                >
+                  Forgot password?
                 </Link>
               </div>
 
-              {/* Footer */}
-              <div className="absolute bottom-[2vh] left-0 w-full flex flex-col items-center justify-center">
-                <div className="hidden lg:block w-[35vw] border dark:border-[#D7D7D7]"></div>
-                <div className=" hidden lg:flex items-center justify-between w-[35vw] text-[#AAB9C5] text-sm mt-[0.5vh]">
-                  <span>@2026 Copyright Reserved</span>
-                  <span>Login issues ? Contact us.</span>
-                </div>
-              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className=" h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 mt-4 md:mt-2.5 lg:mt-3 xl:mt-3.5 w-full rounded-lg bg-[#393AF2] font-semibold text-white transition hover:bg-[#2829D8] focus:outline-none focus:ring-4 focus:ring-[#393AF2]/25 disabled:cursor-not-allowed disabled:opacity-60 md:rounded-xl text-sm md:text-xs lg:text-xs xl:text-sm"
+              >
+                {isSubmitting ? "Signing in..." : "Sign In"}
+              </button>
+
+              <p className="mt-4 md:mt-2 lg:mt-2.5 xl:mt-3.5 text-center text-xs text-gray-700 sm:text-[11px] md:text-[11px] lg:text-xs xl:text-xs">
+                Don&apos;t have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="font-semibold text-blue-700 transition hover:text-[#2426C7]"
+                >
+                  Sign up
+                </Link>
+              </p>
+
+              <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-[#CBD5E1] md:hidden" />
             </form>
           </div>
-        </div>
-
-        <div className="lg:hidden flex justify-center">
-          <img src={Image9} className="w-[89vw] h-[24vh]" alt="graphic" />
         </div>
       </div>
       {/* RIGHT SECTION */}
