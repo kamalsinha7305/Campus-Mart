@@ -64,4 +64,10 @@ export const REPORT_REASONS = Object.freeze({
   OTHER: "other",
 });
 
+export const USER_TIER = Object.freeze({
+  BASE_USER: "base_user",
+  PRO: "pro",
+  PRO_PLUS:"pro_plus"
+})
+
 export const enumToArray = (enumObj) => Object.values(enumObj);

@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
-import { USER_ROLES, USER_STATUS } from "../config/constants.js";
+import { USER_ROLES, USER_STATUS, USER_TIER } from "../config/constants.js";
 
 const userSchema = new Schema(
   {
@@ -51,6 +51,11 @@ const userSchema = new Schema(
       default: null,
     },
 
+    subscription: {
+      type: String,
+      enum: Object.values(USER_TIER),
+      default: USER_TIER.BASE_USER,
+    },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
