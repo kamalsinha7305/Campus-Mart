@@ -1,50 +1,54 @@
 import { useState } from "react";
-
 import { Link, useNavigate } from "react-router-dom";
-
-import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
-
-import { toast } from "react-hot-toast";
-
+import { Check, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import cmlogo from "../../../assets/final_cm_logo.png";
-
-import axios from "../../../services/axiosInstance.js";
-
+import whitecmlogo from "../../../assets/white_cm_logo_mobile.png";
+import { getGoogleAuthUrl, registerUser } from "../api/authApi.js";
 import AuthPageRightPart from "../components/AuthPageRightPart";
+import AuthMessageBanner from "../components/AuthMessageBanner";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import {
+  getPasswordStrength,
+  isPasswordStrongEnough,
+} from "../utils/passwordStrength.js";
 
 const CampusMartLogo = () => (
   <Link
     to="/"
-    className=" md:absolute md:top-[3%] md:left-7 lg:top-[3%] lg:left-7 xl:top-[3%] xl:left-7 inline-flex items-center justify-center gap-2 md:gap-1.5 lg:gap-2 xl:gap-2 font-poppins text-xl md:text-sm lg:text-sm xl:text-base font-semibold text-white  md:text-[#012436] dark:md:text-white"
+    className="inline-flex items-center justify-center gap-2 md:gap-1.5 lg:gap-2 xl:gap-2 2xl:gap-2.5 font-poppins text-xl md:text-sm lg:text-sm xl:text-base 2xl:text-[1.7rem] font-semibold text-white md:text-[#012436] dark:md:text-white"
   >
     <img
       src={cmlogo}
-      className="size-5 md:h-[17px] md:w-[13px] lg:h-[19px] lg:w-[15px] xl:h-[21px] xl:w-[17px] mb-1"
-      viewBox="0 0 27 26"
-      fill="none"
-    ></img>
-
+      className="mb-1 size-5 hidden md:block  md:h-[1.0625rem] md:w-[0.8125rem] lg:h-[1.1875rem] lg:w-[0.9375rem] xl:h-[1.3125rem] xl:w-[1.0625rem] 2xl:h-[3vh] 2xl:w-[1.2vw]"
+      alt="Campus Mart Logo"
+    />
+    <img
+      src={whitecmlogo}
+      className="block mb-1 size-5 md:hidden md:h-[1.0625rem] md:w-[0.8125rem] lg:h-[1.1875rem] lg:w-[0.9375rem] xl:h-[1.3125rem] xl:w-[1.0625rem] 2xl:h-[3vh] 2xl:w-[1.2vw]"
+      alt="Campus Mart Logo"
+    />
     <span>Campus Mart</span>
   </Link>
 );
 
 const GoogleIcon = () => (
-  <svg className="size-4 lg:size-5" viewBox="0 0 24 24" aria-hidden="true">
+  <svg
+    className="size-4 shrink-0 lg:size-5 xl:size-4"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
     <path
       fill="#4285F4"
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
     />
-
     <path
       fill="#34A853"
       d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
     />
-
     <path
       fill="#FBBC05"
       d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"
     />
-
     <path
       fill="#EA4335"
       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"
@@ -54,165 +58,225 @@ const GoogleIcon = () => (
 
 function Signup() {
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
-
   const [fname, setFname] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formMessage, setFormMessage] = useState(null);
 
   const navigate = useNavigate();
+  const strength = getPasswordStrength(password);
+  const showPasswordOk = strength?.level === "awesome";
+
+  const clearFormMessage = () => setFormMessage(null);
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    clearFormMessage();
+
+    if (!isPasswordStrongEnough(password)) {
+      setFormMessage({
+        variant: "error",
+        text: "Please meet all password requirements below before continuing.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/auth/register", {
+      const response = await registerUser({
         name: fname,
-
         email,
-
         password,
       });
 
       if (response.data.success) {
-        toast.success(response.data.message || "Account created successfully!");
-
-        navigate("/checkEmail", { state: { email } });
+        setFormMessage({
+          variant: "success",
+          text:
+            response.data.message ||
+            "Account created successfully! Check your email to verify your account.",
+        });
+        window.setTimeout(() => {
+          navigate("/checkEmail", { state: { email } });
+        }, 1400);
       }
     } catch (error) {
       console.error("Signup Error:", error);
-
-      const errorMessage =
-        error.response?.data?.message ||
-        "An error occurred connecting to the server.";
-
-      toast.error(errorMessage);
+      setFormMessage({
+        variant: "error",
+        text:
+          error.response?.data?.message ||
+          "An error occurred connecting to the server.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google`;
+    window.location.href = getGoogleAuthUrl();
   };
 
   return (
-    <div className="flex min-h-[100dvh] overflow-x-hidden bg-white dark:bg-[#131313] lg:overflow-hidden">
-      {/* Left Side */}
+    <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] md:h-[100dvh] md:overflow-hidden">
+      {/* ── LEFT PANEL ── */}
+      <div className="relative flex min-h-[100dvh] w-full flex-col bg-white font-poppins dark:bg-[#131313] md:h-full md:min-h-0 md:w-[44%] lg:w-[36%] xl:w-[41%]">
+        {/*
+          Mobile: full-height gradient column.
+          Desktop (md+): plain white/dark panel.
+        */}
+        <div className="relative flex min-h-[100dvh] flex-col bg-gradient-to-br from-[#2f35f4] to-[#7472f5] text-white md:h-full md:min-h-0 md:bg-none md:bg-white dark:md:bg-[#131313] md:text-[#111827]">
+          {/* Logo */}
+          <div className="flex shrink-0 items-center justify-center pt-6 sm:pt-8 md:justify-start md:pt-0 md:mt-2 md:pl-4 xl:mt-5 xl:pl-7">
+            <CampusMartLogo />
+          </div>
 
-      <div className="relative flex min-h-[100dvh] w-full flex-col bg-white font-poppins dark:bg-[#131313] md:w-[44%] lg:w-[36%] xl:w-[38%]">
-        <div className="relative flex min-h-[100dvh] flex-col bg-gradient-to-br from-[#2f35f4] to-[#7472f5] pt-5 text-white sm:pt-8 md:bg-none md:px-8 md:py-8 md:text-[#111827] lg:px-12 lg:py-10 xl:px-16">
-          <CampusMartLogo />
-
-          <div className="flex h-[85px] shrink-0 flex-col items-center gap-4 sm:h-[192px] sm:gap-5 md:h-auto md:items-start md:gap-0">
-            <p className="text-center mt-4 text-[11px] font-medium sm:text-xs md:hidden">
+          {/* Tagline — mobile only */}
+          <div className="mb-5 flex shrink-0 flex-col items-center gap-3 pt-2 pb-1 sm:mb-8 md:hidden">
+            <p className="text-center text-[0.6875rem] font-medium opacity-90 sm:text-[0.75rem]">
               The smarter way to trade today
             </p>
-
-            <div className="flex gap-2 md:hidden" aria-hidden="true">
+            <div className="flex gap-2" aria-hidden="true">
               <span className="h-0.5 w-7 rounded-full bg-white" />
-
               <span className="h-0.5 w-3 rounded-full bg-white/80" />
-
               <span className="h-0.5 w-3 rounded-full bg-white/80" />
             </div>
           </div>
 
-          <div className="flex flex-1 items-start justify-center md:items-center">
+          {/* Form card */}
+          <div className="flex min-h-0 flex-1 items-end justify-center md:items-center md:px-8 lg:px-12 xl:px-16">
             <form
-              className="mt-0 sm:-mt-9 md:mt-6 lg:mt-6 xl:mt-9 min-h-[calc(100dvh-144px)] w-full flex-1 rounded-t-[24px] bg-white px-5 pb-6 pt-6 text-[#18181B] shadow-[0_-18px_50px_rgba(30,35,120,0.18)] dark:bg-[#131313] dark:text-white  sm:min-h-[calc(100dvh-156px)] sm:px-7 md:min-h-0 md:flex-none md:max-w-[300px] md:rounded-none md:p-0 md:shadow-none xl:max-w-[320px]"
               onSubmit={handleRegister}
+              className=" w-full h-[80dvh] md:h-auto overflow-y-auto overflow-x-hidden rounded-t-[1.5rem] bg-white px-5 pb-8 pt-8 text-[#18181B] shadow-[0_-1.125rem_3.125rem_rgba(30,35,120,0.18)] dark:bg-[#131313] dark:text-white sm:px-8 md:mt-0 md:max-h-[calc(100dvh-5rem)] md:min-h-0 md:flex-none md:rounded-none md:overflow-y-auto md:overflow-x-hidden md:w-full md:max-w-[40rem] lg:max-w-[44rem] xl:max-w-[26.5vw] 2xl:max-w-[52rem] 3xl:max-w-[56rem] md:p-0 md:shadow-none
+              "
             >
-              <div className="mb-4 md:mb-2 lg:mb-2.5 xl:mb-3.5">
-                <h1 className="font-figtree  font-semibold leading-6 tracking-normal text-lg sm:text-lg md:text-[1.2rem] lg:text-lg xl:text-xl ">
+              {/* Heading */}
+              <div className="mb-4 md:mb-2 lg:mb-2.5 xl:mb-[2.5vh] 2xl:mb-[1.5vh]">
+                <h1 className="font-figtree text-[1.25rem] sm:text-[1.125rem] md:text-[1.2rem] lg:text-lg xl:text-[1.45rem] 2xl:text-xl font-semibold leading-snug tracking-normal">
                   Create Account
                 </h1>
-
-                <p className="mt-1 font-figtree text-[11px] leading-4 text-gray-700 dark:text-[#D6D6D6] sm:text-[11px] md:text-[10px] lg:text-xs xl:text-xs">
+                <p className="mt-1 font-figtree text-[0.75rem] leading-snug text-gray-700 dark:text-[#D6D6D6] sm:text-[0.8125rem] md:text-[0.8125rem] lg:text-xs xl:text-[0.8rem] 2xl:text-lg">
                   Enter your details to start your academic journey.
                 </p>
               </div>
 
+              {/* Google button */}
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="flex h-10 sm:h-9 md:h-9 lg:h-9 xl:h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300/30 bg-white  font-semibold text-gray-700 shadow-[0px_1px_2px_rgba(0,0,0,0.05)] transition hover:border-slate-300 hover:bg-[#F9FAFB] dark:border-[#363A42] dark:bg-[#1A1D20] dark:text-white dark:hover:bg-[#20242A] text-sm md:text-[10px] lg:text-[0.7rem] xl:text-xs md:rounded-xl  "
+                className="flex h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6vh] md:text-xs lg:text-sm xl:text-[0.8rem] 2xl:text-xl md:rounded-xl w-full items-center justify-center gap-2 rounded-lg border border-slate-300/30 bg-white text-sm font-semibold text-gray-700 shadow-[0_0.0625rem_0.125rem_rgba(0,0,0,0.05)] transition hover:border-slate-300 hover:bg-[#F9FAFB] dark:border-[#363A42] dark:bg-[#1A1D20] dark:text-white dark:hover:bg-[#20242A] "
               >
                 <GoogleIcon />
-                Sign Up with Google
+                Google
               </button>
 
-              <div className="my-4 sm:my-4 md:my-2.5 lg:my-2 xl:my-3 flex items-center gap-3">
+              {/* Divider */}
+              <div className="my-[2.8vh] sm:my-4 md:my-2.5 lg:my-2 xl:my-[3vh] 2xl:my-[1.4vh] flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-300/30 dark:bg-[#3A3A3A]" />
-
-                <span className="text-[9px] sm:text-[9px] font-normal uppercase leading-3 tracking-[0.18em] text-gray-500 ">
+                <span className="text-[0.5625rem] font-normal uppercase leading-tight tracking-[0.18em] text-gray-500 sm:text-[0.625rem] xl:text-[0.525rem] 2xl:text-base">
                   or register with email
                 </span>
-
                 <div className="h-px flex-1 bg-slate-300/30 dark:bg-[#3A3A3A]" />
               </div>
 
-              <div className="space-y-3.5 sm:space-y-3 md:space-y-2.5 lg:space-y-2.5 xl:space-y-3">
+              {formMessage ? (
+                <div className="mb-3 sm:mb-3.5 md:mb-2.5 lg:mb-2.5 xl:mb-[2vh]">
+                  <AuthMessageBanner variant={formMessage.variant}>
+                    {formMessage.text}
+                  </AuthMessageBanner>
+                </div>
+              ) : null}
+
+              {/* Fields */}
+              <div className="space-y-[2.4vh] sm:space-y-3.5 md:space-y-2.5 lg:space-y-2.5 xl:space-y-[2.2vh] 2xl:space-y-[2.5vh]">
+                {/* Full Name */}
                 <label className="block">
-                  <span className="mb-1 block text-[12px] sm:text-[11px] lg:text-xs xl:text-xs font-normal leading-4 text-zinc-900 dark:text-[#E5E7EB]">
-                    Full Name
-                  </span>
-
-                  <span className="relative block">
-                    <UserRound className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
-
+                  <span className="relative block group">
+                    <UserRound className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4 xl:size-4 2xl:size-5" />
+                    <span
+                      className={`pointer-events-none absolute left-10 sm:left-11 px-1 transition-all duration-200 ${
+                        fname
+                          ? "-top-0 -translate-y-1/2 bg-white text-[0.625rem] text-[#393AF2] dark:bg-[#131313] dark:text-[#818cf8]"
+                          : "top-1/2 -translate-y-1/2 text-[0.75rem] text-gray-500/80"
+                      } group-focus-within:-top-0 group-focus-within:-translate-y-1/2 group-focus-within:bg-white group-focus-within:text-[0.625rem] group-focus-within:text-[#393AF2] dark:group-focus-within:bg-[#131313] dark:group-focus-within:text-[#818cf8] 2xl:text-base`}
+                    >
+                      Full Name
+                    </span>
                     <input
-                      className="h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-3  text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 text-[11px]       md:text-xs"
+                      className="h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6vh] w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:text-xs xl:text-xs 2xl:text-lg"
                       type="text"
-                      placeholder="John Doe"
+                      placeholder=" "
                       value={fname}
-                      onChange={(e) => setFname(e.target.value)}
+                      onChange={(e) => {
+                        setFname(e.target.value);
+                        clearFormMessage();
+                      }}
                       required
                     />
                   </span>
                 </label>
 
+                {/* Email */}
                 <label className="block">
-                  <span className="mb-1 block text-[12px] font-normal leading-4 text-zinc-900 dark:text-[#E5E7EB] sm:text-[11px] lg:text-xs">
-                    Email Address
-                  </span>
-
-                  <span className="relative block">
-                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
-
+                  <span className="relative block group">
+                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4 2xl:size-5" />
+                    <span
+                      className={`pointer-events-none absolute left-10 sm:left-11 px-1 transition-all duration-200 ${
+                        email
+                          ? "-top-0 -translate-y-1/2 bg-white text-[0.625rem] text-[#393AF2] dark:bg-[#131313] dark:text-[#818cf8]"
+                          : "top-1/2 -translate-y-1/2 text-[0.75rem] text-gray-500/80"
+                      } group-focus-within:-top-0 group-focus-within:-translate-y-1/2 group-focus-within:bg-white group-focus-within:text-[0.625rem] group-focus-within:text-[#393AF2] dark:group-focus-within:bg-[#131313] dark:group-focus-within:text-[#818cf8] 2xl:text-base`}
+                    >
+                      Email Address
+                    </span>
                     <input
-                      className="h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-3 text-[11px] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:text-xs "
+                      className="h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6vh] w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:text-xs 2xl:text-lg"
                       type="email"
-                      placeholder="name@university.edu"
+                      placeholder=" "
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFormMessage();
+                      }}
                       required
                     />
                   </span>
                 </label>
 
+                {/* Password */}
                 <label className="block">
-                  <span className="mb-1 block text-[12px] font-normal leading-4 text-zinc-900 dark:text-[#E5E7EB] sm:text-[11px] lg:text-xs">
-                    Password
-                  </span>
-
-                  <span className="relative block">
-                    <LockKeyhole className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
-
+                  <span className="relative block group">
+                    <LockKeyhole className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4 2xl:size-5" />
+                    <span
+                      className={`pointer-events-none absolute left-10 sm:left-11 px-1 transition-all duration-200 ${
+                        password
+                          ? "-top-0 -translate-y-1/2 bg-white text-[0.625rem] text-[#393AF2] dark:bg-[#131313] dark:text-[#818cf8]"
+                          : "top-1/2 -translate-y-1/2 text-[0.75rem] text-gray-500/80"
+                      } group-focus-within:-top-0 group-focus-within:-translate-y-1/2 group-focus-within:bg-white group-focus-within:text-[0.625rem] group-focus-within:text-[#393AF2] dark:group-focus-within:bg-[#131313] dark:group-focus-within:text-[#818cf8] 2xl:text-base`}
+                    >
+                      Password
+                    </span>
                     <input
-                      className="h-12 sm:h-10 md:h-9 lg:h-9 xl:h-10 w-full rounded-lg border border-transparent bg-slate-50 pl-10 pr-10 text-[11px] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:pr-12 md:text-xs "
+                      className={`h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6vh] w-full rounded-lg border border-transparent bg-slate-50 pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20] md:rounded-xl md:pl-11 md:text-xs 2xl:text-lg ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : "pr-10 md:pr-12"}`}
                       type={showPassword ? "text" : "password"}
-                      placeholder="********"
+                      placeholder=" "
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearFormMessage();
+                      }}
                       required
                     />
-
+                    {showPasswordOk ? (
+                      <span
+                        className="pointer-events-none absolute right-[2.75rem] top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 sm:right-[3rem] md:right-[3.25rem]"
+                        aria-hidden="true"
+                      >
+                        <Check className="size-[1.125rem]" strokeWidth={2.5} />
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-[#393AF2] sm:right-4"
@@ -221,19 +285,24 @@ function Signup() {
                         showPassword ? "Hide password" : "Show password"
                       }
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? (
+                        <EyeOff className="size-[1.125rem]" />
+                      ) : (
+                        <Eye className="size-[1.125rem]" />
+                      )}
                     </button>
                   </span>
+                  <PasswordStrengthMeter password={password} />
                 </label>
               </div>
 
-              <label className="mt-3 md:mt-2 lg:mt-2.5 xl:mt-3.5 flex items-start gap-2.5 md:gap-2 lg:gap-2.5 xl:gap-2.5 leading-4 text-gray-700  text-[11px] sm:text-[10px] md:text-[10px] lg:text-[11px] xl:text-[11px]">
+              {/* Terms checkbox */}
+              <label className="mt-[2.2vh] flex items-start gap-2.5 text-[0.6875rem] leading-snug text-gray-700 sm:text-[0.625rem] md:mt-2 md:gap-2 md:text-[0.625rem] lg:mt-2.5 lg:gap-2.5 lg:text-[0.6875rem] xl:mt-2.6 xl:gap-2.5 xl:text-[0.6875rem] 2xl:text-lg 2xl:mt-[2vh]">
                 <input
                   type="checkbox"
                   required
-                  className="mt-0.5 size-3.5 rounded border-slate-300/50 text-[#393AF2] focus:ring-[#393AF2] md:size-3 lg:size-4 xl:size-4 "
+                  className="mt-0.2 size-3.5 rounded border-slate-300/50 text-[#393AF2] focus:ring-[#393AF2] md:size-3 lg:size-4 xl:size-3 shrink-0  2xl:size-5"
                 />
-
                 <span>
                   I agree to the{" "}
                   <Link
@@ -253,15 +322,17 @@ function Signup() {
                 </span>
               </label>
 
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="sm:h-10 md:h-9 lg:h-9 xl:h-10 mt-4 md:mt-2.5 lg:mt-2.5 xl:mt-3.5 h-12 w-full rounded-lg bg-[#393AF2] font-semibold text-white transition hover:bg-[#2829D8] focus:outline-none focus:ring-4 focus:ring-[#393AF2]/25 disabled:cursor-not-allowed disabled:opacity-60 md:rounded-xl text-sm md:text-xs lg:text-xs xl:text-sm"
+                className="mt-[2.2vh] h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6vh] w-full rounded-lg bg-[#393AF2] text-sm font-semibold text-white transition hover:bg-[#2829D8] focus:outline-none focus:ring-4 focus:ring-[#393AF2]/25 disabled:cursor-not-allowed disabled:opacity-60  md:mt-2.5  md:rounded-xl md:text-xs lg:mt-2.5 lg:text-sm xl:text-[0.8rem] xl:mt-[3vh] 2xl:text-xl 2xl:mt-[1.5vh]"
               >
                 {isSubmitting ? "Creating..." : "Create Account"}
               </button>
 
-              <div className="mt-4 md:mt-2 lg:mt-2.5 xl:mt-3.5 text-center text-xs text-gray-700 sm:text-[11px]   md:text-[11px] lg:text-xs xl:text-xs  ">
+              {/* Login link */}
+              <div className="mt-[2.7vh] text-center text-xs text-gray-700 sm:text-[0.8125rem] md:mt-2 md:text-[0.8125rem] lg:mt-2.5 lg:text-xs xl:mt-3.5 xl:text-sm 2xl:text-2xl">
                 Already have an account?{" "}
                 <Link
                   to="/login"
@@ -270,15 +341,12 @@ function Signup() {
                   Log In
                 </Link>
               </div>
-
-              <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-[#CBD5E1] md:hidden" />
             </form>
           </div>
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
-
+      {/* ── RIGHT PANEL ── */}
       <AuthPageRightPart />
     </div>
   );

@@ -1,5 +1,6 @@
 import axios from "axios";
 import instance from "./axiosInstance";
+import { getRefreshTokenUrl } from "../features/auth/api/authApi";
 
 let isRefreshing = false;
 let refreshSubscribers = [];
@@ -58,7 +59,7 @@ instance.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/auth/refresh-token`,
+          getRefreshTokenUrl(),
           {},
           { withCredentials: true },
         );

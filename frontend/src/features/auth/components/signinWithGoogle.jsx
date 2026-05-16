@@ -1,8 +1,8 @@
-function SignInwithGoogle() {
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
+import { getGoogleAuthUrl } from "../api/authApi";
 
+function SignInwithGoogle() {
   const handleGoogleSignIn = () => {
-    window.location.href = `${baseURL}/api/auth/google`;
+    window.location.href = getGoogleAuthUrl();
   };
 
   return (

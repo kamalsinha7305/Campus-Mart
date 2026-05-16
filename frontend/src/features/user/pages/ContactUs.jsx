@@ -1,75 +1,199 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Profile_left_part from "../components/Profile_left_part.jsx";
-import { MdEmail } from "react-icons/md";
 import emailjs from "@emailjs/browser";
-import { Toaster } from "react-hot-toast";
-import { toast } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import Loading from "../../../Components/ui/ContactLoader.jsx";
+import { useUser } from "../../../context/useUserContext.jsx";
+import {
+  MdAccessTime,
+  MdEmail,
+  MdHelp,
+  MdOutlineArrowForward,
+  MdOutlineChat,
+  MdOutlineLocalOffer,
+  MdOutlinePerson,
+  MdOutlineReceiptLong,
+  MdOutlineSubject,
+} from "react-icons/md";
+
+const EMAILJS_SERVICE_ID = (
+  import.meta.env.VITE_EMAILJS_SERVICE_ID ||
+  import.meta.env.VITE_SERVICE_ID ||
+  ""
+).trim();
+const EMAILJS_TEMPLATE_ID = (
+  import.meta.env.VITE_EMAILJS_TEMPLATE_ID ||
+  import.meta.env.VITE_TEMPLATE_ID ||
+  ""
+).trim();
+const EMAILJS_PUBLIC_KEY = (
+  import.meta.env.VITE_EMAILJS_PUBLIC_KEY ||
+  import.meta.env.VITE_PUBLIC_KEY ||
+  ""
+).trim();
+const SUPPORT_EMAIL =
+  import.meta.env.VITE_SUPPORT_EMAIL?.trim() || "imaginum.org@gmail.com";
+
+if (EMAILJS_PUBLIC_KEY) {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+}
+
+const contactTypes = [
+  { value: "order", label: "Order issue" },
+  { value: "payment", label: "Payment issue" },
+  { value: "account", label: "Account help" },
+  { value: "listing", label: "Product listing" },
+  { value: "deal", label: "Deal or chat help" },
+  { value: "safety", label: "Safety report" },
+  { value: "other", label: "Other" },
+];
+
+const priorityOptions = [
+  { value: "low", label: "Low", hint: "General question" },
+  { value: "normal", label: "Normal", hint: "Need help soon" },
+  { value: "urgent", label: "Urgent", hint: "Blocking issue" },
+];
+
+const replyMethods = [
+  { value: "email", label: "Email" },
+  { value: "chat", label: "Campus Mart chat" },
+  { value: "either", label: "Either works" },
+];
 
 const faqs = [
   {
     question: "How do I track my order?",
     answer:
-      "You can track your order from the 'My Orders' section in your account. Each order will have a tracking link once it is shipped.",
+      "Open My Orders from your profile menu. If the seller has shared status updates, they will appear inside the order card.",
   },
   {
-    question: "What is your return policy?",
+    question: "What should I include for payment issues?",
     answer:
-      "We accept returns within 7-10 days of delivery, as long as the item is unused and in its original packaging.",
+      "Share the order or product reference, payment time, amount, and a short description. Do not send passwords or card details.",
   },
   {
-    question: "How can I change my shipping address?",
+    question: "How fast will support reply?",
     answer:
-      "You can change your shipping address from the 'My Account' section, or update it before placing your order at checkout.",
+      "Most messages are reviewed within 24 hours. Urgent safety or payment issues are prioritized first.",
+  },
+  {
+    question: "Can I report a suspicious listing?",
+    answer:
+      "Yes. Choose Safety report or Product listing, include the product reference if you have it, and describe what looked wrong.",
   },
 ];
 
+const getOptionLabel = (options, value) =>
+  options.find((option) => option.value === value)?.label || "";
+
 function ContactUs() {
+  const { userDetails } = useUser();
   const [contactType, setContactType] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [replyMethod, setReplyMethod] = useState("email");
+  const [name, setName] = useState(userDetails?.name || "");
+  const [email, setEmail] = useState(userDetails?.email || "");
+  const [subject, setSubject] = useState("");
+  const [reference, setReference] = useState("");
   const [message, setMessage] = useState("");
   const [activeIndex, setActiveIndex] = useState(null);
-  const [isContactTypeOpen, setIsContactTypeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const selectedContactType = getOptionLabel(contactTypes, contactType);
+  const selectedPriority = getOptionLabel(priorityOptions, priority);
+  const selectedReplyMethod = getOptionLabel(replyMethods, replyMethod);
 
-    if (!contactType || !message.trim()) {
-      toast("Please fill all fields");
+  useEffect(() => {
+    if (userDetails?.name) setName((current) => current || userDetails.name);
+    if (userDetails?.email) setEmail((current) => current || userDetails.email);
+  }, [userDetails?.email, userDetails?.name]);
+
+  const messagePreview = useMemo(() => {
+    const trimmed = message.trim();
+    if (!trimmed) return "Tell us what happened and what you need help with.";
+    return trimmed.length > 88 ? `${trimmed.slice(0, 88)}...` : trimmed;
+  }, [message]);
+
+  const resetForm = () => {
+    setContactType("");
+    setPriority("normal");
+    setReplyMethod("email");
+    setName(userDetails?.name || "");
+    setEmail(userDetails?.email || "");
+    setSubject("");
+    setReference("");
+    setMessage("");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !contactType ||
+      !subject.trim() ||
+      !message.trim()
+    ) {
+      toast("Please complete the required fields.");
       return;
     }
 
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+      toast.error("Contact service is not configured. Please try again later.");
+      return;
+    }
+
+    const cleanReference = reference.trim() || "Not provided";
+    const cleanSubject = subject.trim();
+    const cleanMessage = message.trim();
+
+    const fullMessage = [
+      `Sender name: ${name.trim()}`,
+      `Sender email: ${email.trim()}`,
+      `Contact type: ${selectedContactType}`,
+      `Priority: ${selectedPriority}`,
+      `Preferred reply: ${selectedReplyMethod}`,
+      `Reference: ${cleanReference}`,
+      "",
+      "Message:",
+      cleanMessage,
+    ].join("\n");
+
     setLoading(true);
 
-    emailjs
-      .send(
-        import.meta.env.VITE_SERVICE_ID,
-        import.meta.env.VITE_TEMPLATE_ID,
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
         {
-          contact_type:
-            contactType === "order"
-              ? "Order issue"
-              : contactType === "payment"
-                ? "Payment issue"
-                : contactType === "account"
-                  ? "Account help"
-                  : "Other",
-          message: message,
+          to_email: SUPPORT_EMAIL,
+          from_name: name.trim(),
+          sender_name: name.trim(),
+          user_name: name.trim(),
+          from_email: email.trim(),
+          sender_email: email.trim(),
+          reply_to: email.trim(),
+          contact_type: selectedContactType,
+          priority: selectedPriority,
+          preferred_reply: selectedReplyMethod,
+          reference: cleanReference,
+          subject: `Campus Mart Support: ${cleanSubject}`,
+          user_subject: cleanSubject,
+          message: fullMessage,
+          user_message: cleanMessage,
         },
-        import.meta.env.VITE_PUBLIC_KEY,
-      )
-      .then(() => {
-        toast.success("Message sent successfully!");
-        setContactType("");
-        setMessage("");
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to send message. Try again.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+        { publicKey: EMAILJS_PUBLIC_KEY },
+      );
+
+      toast.success("Message sent successfully!");
+      resetForm();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to send message. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleFAQ = (index) => {
@@ -81,236 +205,293 @@ function ContactUs() {
       <Toaster
         position="top-center"
         toastOptions={{
-          duration: 1500,
+          duration: 1800,
           maxToasts: 1,
         }}
       />
       {loading && <Loading />}
 
-      <div className="w-screen h-screen overflow-hidden dark:bg-[#131313]">
-        {/* <Header bagUrl={bag} darkUrl={bluebag} /> */}
-
-        <div className="flex h-[calc(100vh-70px)]">
-          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[26%] pt-[3.5vh] pl-[2vw] pr-[1.75vw] pb-[2vh] bg-[#FBFBFB] dark:bg-[#131313] xl:pt-[2.5vh] xl:-mr-4 xl:pb-0">
+      <div className="min-h-screen bg-[#FBFBFB] dark:bg-[#131313]">
+        <div className="flex min-h-[calc(100vh-70px)]">
+          <aside className="hidden bg-[#FBFBFB] pb-[2vh] pl-[2vw] pr-[1.75vw] pt-[3.5vh] dark:bg-[#131313] md:block md:w-[37%] lg:w-[28%] xl:-mr-4 xl:w-[26%] xl:pb-0 xl:pt-[2.5vh]">
             <Profile_left_part />
-          </div>
-          <div className="h-full md:w-[63%] lg:w-[72%] xl:w-[73.5%] overflow-y-auto no-scrollbar bg-[#FBFBFB] dark:bg-[#131313] xl:pl-8">
-            <div className="lg:ml-[1.5vw] md:ml-[2vw] md:mr-[3.2vw]">
-              <div className="mt-[5vh] mb-[4vh] max-sm:ml-[4vw]">
-                <div className="flex flex-col items-start">
-                  <div className="text-[#2A2A2A] dark:text-[#F1F1F1] text-[18px] lg:text-[24px] font-medium font-poppins flex items-center xl:text-[1.4vw]">
-                    <MdEmail
-                      size={21}
-                      className="mr-[1.5vw] lg:mr-[0.3vw] xl:mr-[0.5vw] text-[#364EF2]"
-                    />
-                    <span>Contact Us</span>
-                  </div>
+          </aside>
 
-                  <div className="ml-[1vw] md:ml-[0.3vw] justify-start text-[#4D7399] text-sm md:text-base font-inter xl:text-sm xl:mt-1">
-                    We&apos;re here to help! Please fill out the form below to
-                    get in touch with our support team.
-                  </div>
+          <main className="w-full overflow-y-auto bg-[#FBFBFB] px-4 py-6 dark:bg-[#131313] md:w-[63%] md:px-7 lg:w-[72%] xl:w-[73.5%] xl:px-10">
+            <div className="mx-auto max-w-6xl">
+              <section className="overflow-hidden rounded-3xl border border-[#E7E9FF] bg-white shadow-[0_18px_45px_rgba(36,49,148,0.08)] dark:border-[#282A2C] dark:bg-[#1A1D20]">
+                <div className="relative bg-gradient-to-r from-[#364EF2] via-[#4545F4] to-[#2367E8] px-5 py-6 text-white sm:px-7 lg:px-8">
+                  <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-white/10" />
+                  <div className="absolute bottom-[-4rem] left-[32%] h-32 w-32 rounded-full bg-white/10" />
 
-                  <div className="flex justify-center">
+                  <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                      <form
-                        onSubmit={handleSubmit}
-                        className="rounded-xl py-6 px-3 mb-2 xl:mt-3"
-                      >
-                        <div className="mb-5">
-                          <label
-                            htmlFor="contactType"
-                            className="block text-sm font-medium text-gray-800 mb-2 dark:text-white font-nirmala"
-                          >
-                            Contact Type
-                          </label>
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+                        <MdEmail className="text-base" />
+                        Campus Mart Support
+                      </div>
+                      <h1 className="font-poppins text-2xl font-semibold tracking-normal sm:text-3xl">
+                        How can we help?
+                      </h1>
+                      <p className="mt-2 max-w-2xl font-inter text-sm leading-6 text-white/85 sm:text-base">
+                        Send us the details and we&apos;ll route your message
+                        with the right context.
+                      </p>
+                    </div>
 
-                          <div className="relative w-[80vw] md:w-[50vw] lg:w-[25vw]">
-                            {/* Trigger */}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setIsContactTypeOpen((prev) => !prev)
-                              }
-                              className={`h-11 w-full rounded-lg border text-sm pl-3 pr-4 flex items-center justify-between outline-none  
-        bg-white dark:bg-[#1A1D20] dark:text-white dark:border-none border-gray-300
-        transition-all duration-200 ${isContactTypeOpen ? "shadow-md" : ""}`}
-                            >
-                              <span
-                                className={
-                                  contactType
-                                    ? "text-gray-800 dark:text-white"
-                                    : "text-gray-400"
-                                }
-                              >
-                                {contactType === ""
-                                  ? "Select a contact type"
-                                  : contactType === "order"
-                                    ? "Order issue"
-                                    : contactType === "payment"
-                                      ? "Payment issue"
-                                      : contactType === "account"
-                                        ? "Account help"
-                                        : "Other"}
-                              </span>
-
-                              {/* Chevron */}
-                              <span className="flex items-center">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  className={`w-4 h-4 transition-transform duration-200 ease-out dark:text-white ${
-                                    isContactTypeOpen
-                                      ? "rotate-180"
-                                      : "rotate-0"
-                                  }`}
-                                >
-                                  <path
-                                    d="M6 9l6 6 6-6"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </span>
-                            </button>
-
-                            <div
-                              className={`
-        absolute left-0 mt-1 w-full rounded-lg border font-['Poppins'] dark:text-white border-gray-200
-        bg-white dark:bg-[#1A1D20] dark:border-none shadow-lg z-30 overflow-hidden
-        transform origin-top transition-all duration-200 ease-out
-        ${
-          isContactTypeOpen
-            ? "scale-y-100 opacity-100"
-            : "scale-y-95 opacity-0 pointer-events-none"
-        }
-      `}
-                            >
-                              {[
-                                { value: "order", label: "Order issue" },
-                                { value: "payment", label: "Payment issue" },
-                                { value: "account", label: "Account help" },
-                                { value: "other", label: "Other" },
-                              ].map((opt) => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => {
-                                    setContactType(opt.value);
-                                    setIsContactTypeOpen(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#252A30]
-            ${
-              contactType === opt.value ? "bg-gray-100 dark:bg-[#252A30]" : ""
-            }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mb-6">
-                          <label
-                            htmlFor="message"
-                            className="block text-sm font-medium text-gray-800 mb-2 dark:text-white"
-                          >
-                            Message
-                          </label>
-                          <textarea
-                            id="message"
-                            rows="5"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            className="w-[80vw] md:w-[50vw] lg:w-[25vw] rounded-lg border border-gray-300 text-sm px-3 py-2 resize-none outline-none dark:bg-[#1A1D20] dark:text-white dark:border-none"
-                            placeholder="Describe your issue or question..."
-                          />
-                        </div>
-
-                        {/* Button */}
-                        <button
-                          disabled={loading}
-                          type="submit"
-                          className="disabled:opacity-60 inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-[#364EF2] text-white text-sm font-medium transition-all ease-in-out duration-150 hover:bg-[#2d44dd] xl:py-3 xl:px-14"
-                        >
-                          {loading ? "Sending..." : "Send"}
-                        </button>
-                      </form>
-
-                      {/* FAQ section */}
-                      <section>
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4 dark:text-white font-['Roboto']">
-                          Frequently Asked Questions
-                        </h2>
-
-                        <div className="space-y-3">
-                          {faqs.map((item, index) => {
-                            const isOpen = activeIndex === index;
-                            return (
-                              <div
-                                key={index}
-                                className="border dark:bg-[#1A1D20] border-gray-200 dark:border-none rounded-lg bg-white w-full  lg:w-[60vw]"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => toggleFAQ(index)}
-                                  className="w-full flex items-center justify-between text-left px-4 py-3"
-                                >
-                                  <span className="text-sm sm:text-base text-gray-800 dark:text-white font-normal font-['Roboto']">
-                                    {item.question}
-                                  </span>
-
-                                  <span className="flex items-center">
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      className={`w-4 h-4 transition-transform duration-300 dark:text-white ease-out ${
-                                        isOpen ? "rotate-180" : "rotate-0"
-                                      }`}
-                                    >
-                                      <path
-                                        d="M6 9l6 6 6-6"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  </span>
-                                </button>
-
-                                <div
-                                  className={`grid transition-all duration-300 ease-out ${
-                                    isOpen
-                                      ? "grid-rows-[1fr] opacity-100"
-                                      : "grid-rows-[0fr] opacity-0"
-                                  }`}
-                                >
-                                  <div className="overflow-hidden">
-                                    <div className="px-4 pb-3 text-sm text-gray-600 dark:text-gray-400 font-normal font-['Poppins']">
-                                      {item.answer}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </section>
+                    <div className="grid grid-cols-2 gap-3 text-sm sm:flex">
+                      <div className="rounded-2xl bg-white/14 px-4 py-3 backdrop-blur">
+                        <p className="text-white/70">Typical reply</p>
+                        <p className="mt-1 font-semibold">Within 24h</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/14 px-4 py-3 backdrop-blur">
+                        <p className="text-white/70">Priority routing</p>
+                        <p className="mt-1 font-semibold">Enabled</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+
+                <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:p-8">
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Field
+                        label="Your name"
+                        required
+                        icon={<MdOutlinePerson />}
+                      >
+                        <input
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          className="contact-input"
+                          placeholder="Enter your name"
+                        />
+                      </Field>
+
+                      <Field label="Email address" required icon={<MdEmail />}>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          className="contact-input"
+                          placeholder="you@example.com"
+                        />
+                      </Field>
+
+                      <Field label="Contact type" required icon={<MdHelp />}>
+                        <select
+                          value={contactType}
+                          onChange={(event) =>
+                            setContactType(event.target.value)
+                          }
+                          className="contact-input appearance-none"
+                        >
+                          <option value="">Select a contact type</option>
+                          {contactTypes.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      <Field label="Priority" icon={<MdAccessTime />}>
+                        <select
+                          value={priority}
+                          onChange={(event) => setPriority(event.target.value)}
+                          className="contact-input appearance-none"
+                        >
+                          {priorityOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label} - {option.hint}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      <Field
+                        label="Order/Product reference"
+                        icon={<MdOutlineReceiptLong />}
+                      >
+                        <input
+                          value={reference}
+                          onChange={(event) => setReference(event.target.value)}
+                          className="contact-input"
+                          placeholder="Optional ID, product name, or chat name"
+                        />
+                      </Field>
+
+                      <Field label="Preferred reply" icon={<MdOutlineChat />}>
+                        <select
+                          value={replyMethod}
+                          onChange={(event) =>
+                            setReplyMethod(event.target.value)
+                          }
+                          className="contact-input appearance-none"
+                        >
+                          {replyMethods.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    </div>
+
+                    <Field label="Subject" required icon={<MdOutlineSubject />}>
+                      <input
+                        value={subject}
+                        onChange={(event) => setSubject(event.target.value)}
+                        className="contact-input"
+                        placeholder="Short summary of the issue"
+                      />
+                    </Field>
+
+                    <Field
+                      label="Message"
+                      required
+                      icon={<MdOutlineLocalOffer />}
+                    >
+                      <textarea
+                        rows="6"
+                        value={message}
+                        onChange={(event) => setMessage(event.target.value)}
+                        className="contact-input min-h-[9rem] resize-none py-3 leading-6"
+                        placeholder="Describe what happened, what you tried, and what outcome you need."
+                      />
+                    </Field>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Please do not include passwords, OTPs, or card details.
+                      </p>
+                      <button
+                        disabled={loading}
+                        type="submit"
+                        className="inline-flex h-[6.3vh] items-center justify-center gap-2 rounded-xl bg-[#364EF2] px-7 font-poppins text-sm font-semibold text-white shadow-[0_12px_24px_rgba(54,78,242,0.25)] transition hover:bg-[#2d44dd] disabled:cursor-not-allowed disabled:opacity-60 xl:text-xs"
+                      >
+                        {loading ? "Sending..." : "Send "}
+                        <MdOutlineArrowForward className="text-lg xl:text-base" />
+                      </button>
+                    </div>
+                  </form>
+
+                  <aside className="space-y-4">
+                    <div className="rounded-2xl border border-[#E7E9FF] bg-[#F7F8FF] p-5 dark:border-[#2A2D35] dark:bg-[#131313]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#364EF2]">
+                        Message preview
+                      </p>
+                      <h2 className="mt-3 font-poppins text-lg font-semibold text-slate-950 dark:text-white">
+                        {subject.trim() || "No subject yet"}
+                      </h2>
+                      <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                        <p>
+                          <span className="font-medium text-slate-950 dark:text-white">
+                            From:
+                          </span>{" "}
+                          {name.trim() || "Your name"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-950 dark:text-white">
+                            Type:
+                          </span>{" "}
+                          {selectedContactType || "Not selected"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-950 dark:text-white">
+                            Priority:
+                          </span>{" "}
+                          {selectedPriority}
+                        </p>
+                        <p className="leading-6">{messagePreview}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#E7E9FF] bg-white p-5 dark:border-[#2A2D35] dark:bg-[#131313]">
+                      <h2 className="font-poppins text-lg font-semibold text-slate-950 dark:text-white">
+                        Quick tips
+                      </h2>
+                      <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        <li>
+                          Include an order or product reference when possible.
+                        </li>
+                        <li>
+                          Use urgent only for blocked payments or safety issues.
+                        </li>
+                        <li>Tell us what result would solve the problem.</li>
+                      </ul>
+                    </div>
+                  </aside>
+                </div>
+              </section>
+
+              <section className="mt-6 rounded-3xl border border-[#E7E9FF] bg-white p-5 shadow-[0_18px_45px_rgba(36,49,148,0.06)] dark:border-[#282A2C] dark:bg-[#1A1D20] sm:p-7">
+                <h2 className="font-poppins text-xl font-semibold text-gray-950 dark:text-white">
+                  Frequently Asked Questions
+                </h2>
+
+                {/* Changed from 'grid lg:grid-cols-2' to 'flex flex-col' for 1 row per question */}
+                <div className="mt-5 flex flex-col gap-3">
+                  {faqs.map((item, index) => {
+                    const isOpen = activeIndex === index;
+                    return (
+                      <div
+                        key={item.question}
+                        className="rounded-2xl border border-gray-200 bg-white dark:border-[#2A2D35] dark:bg-[#131313]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleFAQ(index)}
+                          className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left"
+                        >
+                          <span className="font-poppins text-sm font-medium text-gray-900 dark:text-white">
+                            {item.question}
+                          </span>
+                          <span
+                            className={`text-lg text-[#364EF2] transition-transform duration-200 ${
+                              isOpen ? "rotate-45" : ""
+                            }`}
+                          >
+                            +
+                          </span>
+                        </button>
+
+                        <div
+                          className={`grid transition-all duration-300 ease-out ${
+                            isOpen
+                              ? "grid-rows-[1fr] opacity-100"
+                              : "grid-rows-[0fr] opacity-0"
+                          }`}
+                        >
+                          <div className="overflow-hidden">
+                            <p className="px-4 pb-4 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                              {item.answer}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
-          </div>
+          </main>
         </div>
       </div>
     </>
+  );
+}
+
+function Field({ label, required = false, icon, children }) {
+  return (
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 font-poppins text-sm font-medium text-slate-800 dark:text-white">
+        <span className="text-lg text-[#364EF2]">{icon}</span>
+        {label}
+        {required ? <span className="text-[#364EF2]">*</span> : null}
+      </span>
+      {children}
+    </label>
   );
 }
 

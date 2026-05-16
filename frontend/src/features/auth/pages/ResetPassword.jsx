@@ -1,13 +1,51 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
-import { toast } from "react-hot-toast";
-
-import axios from "../../../services/axiosInstance.js";
-
-import Image9 from "../../../assets/circle_up.png";
-import ImageShade from "../../../assets/login_shade.png";
+import { Check, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import {
+  resetPassword,
+  verifyResetPasswordToken,
+} from "../api/authApi.js";
 import AuthPageRightPart from "../components/AuthPageRightPart";
+import AuthMessageBanner from "../components/AuthMessageBanner";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import {
+  getPasswordStrength,
+  isPasswordStrongEnough,
+} from "../utils/passwordStrength";
+import cmlogo from "../../../assets/final_cm_logo.png";
+import whitecmlogo from "../../../assets/white_cm_logo_mobile.png";
+
+const CampusMartLogo = () => (
+  <Link
+    to="/"
+    className="inline-flex items-center justify-center gap-2 md:gap-1.5 lg:gap-2 xl:gap-2 2xl:gap-2.5 font-poppins text-xl md:text-sm lg:text-sm xl:text-base 2xl:text-[1.7rem] font-semibold text-white md:text-[#012436] dark:md:text-white"
+  >
+    <img
+      src={cmlogo}
+      className="mb-1 size-5 hidden md:block  md:h-[1.0625rem] md:w-[0.8125rem] lg:h-[1.1875rem] lg:w-[0.9375rem] xl:h-[1.3125rem] xl:w-[1.0625rem] 2xl:h-[3vh] 2xl:w-[1.2vw]"
+      alt="Campus Mart Logo"
+    />
+    <img
+      src={whitecmlogo}
+      className="block mb-1 size-5 md:hidden md:h-[1.0625rem] md:w-[0.8125rem] lg:h-[1.1875rem] lg:w-[0.9375rem] xl:h-[1.3125rem] xl:w-[1.0625rem] 2xl:h-[3vh] 2xl:w-[1.2vw]"
+      alt="Campus Mart Logo"
+    />
+    <span>Campus Mart</span>
+  </Link>
+);
+
+const cardShell =
+  "w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-t-[1.5rem] bg-white px-5 pb-8 pt-8 text-[#18181B] shadow-[0_-1.125rem_3.125rem_rgba(30,35,120,0.18)] dark:bg-[#131313] dark:text-white sm:px-8 md:mt-0 md:max-h-[calc(100dvh-5rem)] md:min-h-0 md:flex-none md:rounded-none md:overflow-y-auto md:overflow-x-hidden md:w-full md:max-w-[40rem] lg:max-w-[44rem] xl:max-w-[26.5vw] 2xl:max-w-[52rem] 3xl:max-w-[56rem] md:p-0 md:shadow-none";
+
+const inputClassBase =
+  "h-[6.3vh] w-full rounded-lg border border-transparent bg-slate-50 pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20] sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10  xl:text-xs xl:h-[6.4vh] ";
+
+const inputClassToggle = `${inputClassBase} pr-10 md:pr-12`;
+const inputClassNoToggle = `${inputClassBase} pr-3 md:pr-3`;
+
+const primaryBtn =
+  "mt-4 h-[6.3vh] w-full rounded-lg bg-[#393AF2] text-sm font-semibold text-white transition hover:bg-[#2829D8] focus:outline-none focus:ring-4 focus:ring-[#393AF2]/25 disabled:cursor-not-allowed disabled:opacity-60 sm:h-11 md:mt-3 md:h-10 md:rounded-xl md:text-xs lg:h-10 lg:text-sm xl:h-[6.4vh] xl:text-[0.8rem]";
 
 function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -19,22 +57,28 @@ function ResetPassword() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [formMessage, setFormMessage] = useState(null);
 
   const navigate = useNavigate();
   const { token } = useParams();
+  const strength = getPasswordStrength(password);
+  const showPasswordOk = strength?.level === "awesome";
+  const clearFormMessage = () => setFormMessage(null);
 
-  // VERIFY TOKEN
   useEffect(() => {
     const verifyTokenOnLoad = async () => {
       try {
-        const response = await axios.get(`/api/auth/reset-password/${token}`);
+        const response = await verifyResetPasswordToken(token);
 
         if (response.data.success) {
           setIsTokenValid(true);
         }
       } catch (error) {
         setIsTokenValid(false);
-        toast.error(error.response?.data?.message || "Invalid or expired link");
+        setLoadError(
+          error.response?.data?.message || "Invalid or expired link.",
+        );
       } finally {
         setIsValidating(false);
       }
@@ -42,187 +86,266 @@ function ResetPassword() {
 
     if (token) {
       verifyTokenOnLoad();
+    } else {
+      setIsValidating(false);
+      setIsTokenValid(false);
     }
   }, [token]);
 
-  // HANDLE RESET
   const handleSubmit = async (e) => {
     e.preventDefault();
+    clearFormMessage();
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match!");
+    if (!isPasswordStrongEnough(password)) {
+      setFormMessage({
+        variant: "error",
+        text: "Please meet all password requirements below before continuing.",
+      });
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
+    if (password !== confirmPassword) {
+      setFormMessage({
+        variant: "error",
+        text: "Passwords do not match.",
+      });
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(`/api/auth/reset-password/${token}`, {
+      const response = await resetPassword(token, {
         password,
       });
 
       if (response.data.success) {
-        toast.success("Password reset successfully!");
-        setIsSuccess(true);
+        setFormMessage({
+          variant: "success",
+          text:
+            response.data.message ||
+            "Password updated successfully. You can sign in with your new password.",
+        });
+        window.setTimeout(() => setIsSuccess(true), 1000);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to reset password.");
+      setFormMessage({
+        variant: "error",
+        text:
+          error.response?.data?.message ||
+          "Failed to reset password. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex overflow-hidden select-none relative">
-      <div className="absolute -top-36 -left-52 z-10">
-        <img src={ImageShade} className="w-[35vw] h-[52vh]" alt="shade" />
-      </div>
-
-      <div className="relative h-screen w-[100%] lg:w-[38%] xl:w-[42%] bg-white shadow dark:bg-[#131313] flex flex-col items-center">
-        <Link
-          to={"/"}
-          className="flex items-center justify-center mt-[6vh] xl:mt-[8vh]"
-        >
-          <svg
-            className="mb-[0.4vh]"
-            width="20"
-            height="20"
-            viewBox="0 0 27 26"
-            fill="none"
-          >
-            <path
-              d="M18.05 8.79119C18.05 11.3414 15.5629 13.4088 13.0126 13.4088C10.4624 13.4088 7.9752 11.3414 7.9752 8.79119C7.9752 6.24094 5.42505 3.33398 7.9753 3.33398C10.5256 3.33398 18.05 6.24094 18.05 8.79119Z"
-              stroke="#4D4EF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M19.1842 9.63082C19.1842 12.1811 16.6971 14.2485 14.1468 14.2485C11.5965 14.2485 9.10938 12.1811 9.10938 9.63082C9.10938 7.08056 15.0807 1.23511 17.6309 1.23511C20.1812 1.23511 19.1842 7.08056 19.1842 9.63082Z"
-              stroke="#534FF2"
-              strokeWidth="1.67914"
-            />
-            <path
-              d="M4.12511 10.2522C4.41527 9.14425 5.41637 8.37158 6.56164 8.37158H19.7557C20.8938 8.37158 21.8905 9.13479 22.1872 10.2335L25.5888 22.8271C26.0212 24.4279 24.8154 26.0026 23.1572 26.0026H3.26333C1.6131 26.0026 0.408693 24.4421 0.826795 22.8457L4.12511 10.2522Z"
-              fill="#394FF1"
-            />
-          </svg>
-          <span className="text-[#012436] dark:text-[#FFFFFF] text-[18px] lg:text-[1.5rem] xl:text-[1.45rem] font-poppins font-semibold ml-[0.3vw]">
-            Campus Mart
-          </span>
-        </Link>
-
-        {/* UI LOGIC TREE */}
-        {isValidating ? (
-          /* 1. Loading State */
-          <div className="mt-[20vh] text-center dark:text-white font-poppins animate-pulse">
-            Verifying secure link...
+    <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] md:h-[100dvh] md:overflow-hidden">
+      <div className="relative flex min-h-[100dvh] w-full flex-col bg-white font-poppins dark:bg-[#131313] md:h-full md:min-h-0 md:w-[44%] lg:w-[36%] xl:w-[41%]">
+        <div className="relative flex min-h-[100dvh] flex-col bg-gradient-to-br from-[#2f35f4] to-[#7472f5] text-white md:h-full md:min-h-0 md:bg-none md:bg-white dark:md:bg-[#131313] md:text-[#111827]">
+          <div className="flex shrink-0 items-center justify-center pt-6 sm:pt-8 md:justify-start md:pt-0 md:mt-2 md:pl-4 xl:mt-3 xl:pl-7">
+            <CampusMartLogo />
           </div>
-        ) : !isTokenValid ? (
-          /* 2. Error State (Expired/Bad Link) */
-          <div className="w-full flex flex-col items-center mt-[10vh]">
-            <h1 className="font-robotoflex text-red-500 text-[22px] font-semibold lg:text-[1.8rem]">
-              Link Expired
-            </h1>
-            <div className="text-center text-[#828F9B] dark:text-[#D6D6D6] text-[14px] lg:text-[15px] font-normal font-['Poppins'] mt-[2vh] mb-[4vh] w-[80%] lg:w-[65%]">
-              This password reset link is invalid or has expired. For your
-              security, links only last for 15 minutes.
+
+          <div className="mb-5 flex shrink-0 flex-col items-center gap-3 pt-2 pb-1 sm:mb-8 md:hidden">
+            <p className="text-center text-[0.6875rem] font-medium opacity-90 sm:text-[0.75rem]">
+              Secure password recovery
+            </p>
+            <div className="flex gap-2" aria-hidden="true">
+              <span className="h-0.5 w-7 rounded-full bg-white" />
+              <span className="h-0.5 w-3 rounded-full bg-white/80" />
+              <span className="h-0.5 w-3 rounded-full bg-white/80" />
             </div>
-            <button
-              onClick={() => navigate("/forgot-password")}
-              className="text-white bg-[#394FF1] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] font-medium hover:bg-[#2b3ed6] transition-all"
-            >
-              Request a new link
-            </button>
           </div>
-        ) : !isSuccess ? (
-          /* 3. Form State (Link is good, enter new password) */
-          <div className="w-full flex flex-col items-center mt-[6vh]">
-            <h1 className="font-robotoflex text-black text-[22px] dark:text-[#F1F1F1] font-semibold lg:text-[1.8rem] tracking-tight">
-              Create a new password
-            </h1>
-            <div className="text-center text-[#828F9B] dark:text-[#D6D6D6] text-[14px] lg:text-[15px] font-normal font-['Poppins'] mt-[2vh] mb-[4vh] w-[80%] lg:w-[65%]">
-              Your identity is verified. Set a new password that&apos;s secure
-              and easy to remember.
+
+          <div className="flex min-h-0 flex-1 items-end justify-center md:items-center md:px-8 lg:px-12 xl:px-16">
+            <div className={cardShell}>
+              {isValidating ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center md:py-16">
+                  <div
+                    className="mb-6 size-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#393AF2] dark:border-zinc-700 dark:border-t-[#818cf8] sm:mb-8 sm:size-14 md:size-16"
+                    aria-hidden="true"
+                  />
+                  <p className="font-figtree text-sm font-medium text-zinc-700 animate-pulse dark:text-zinc-300 sm:text-base md:text-lg">
+                    Verifying secure link…
+                  </p>
+                </div>
+              ) : !isTokenValid ? (
+                <div className="flex flex-col">
+                  <div className="mb-5 md:mb-4 lg:mb-5">
+                    <h1 className="font-figtree text-[1.25rem] sm:text-[1.125rem] md:text-[1.2rem] lg:text-lg xl:text-[1.45rem]  font-semibold leading-snug text-red-600 dark:text-red-400 xl:text-2xl">
+                      Link Expired
+                    </h1>
+                    <p className="mt-2 font-figtree text-sm leading-tight text-gray-600 dark:text-[#9AA8B6] sm:text-[0.8125rem] md:text-[0.8125rem] lg:text-sm xl:text-sm">
+                      This password reset link is invalid or has expired. For
+                      your security, links only stay valid for a limited time.
+                    </p>
+                    {loadError ? (
+                      <div className="mt-4 mb-[-1.5vh] xl:mb-[-1.4vh]">
+                        <AuthMessageBanner variant="error">
+                          {loadError}
+                        </AuthMessageBanner>
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className={primaryBtn}
+                  >
+                    Request a new link
+                  </button>
+                  <p className="mt-6 text-center text-xs text-gray-700 sm:text-[0.8125rem] md:mt-3 lg:text-sm xl:mt-5">
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center gap-1.5 text-[0.75rem] font-medium text-[#393AF2] transition hover:text-[#2426C7] sm:text-[0.8125rem] lg:text-xs xl:text-[0.8125rem]"
+                    >
+                      <ArrowLeft className="size-[0.875rem]" /> Back to Login
+                    </Link>
+                  </p>
+                </div>
+              ) : !isSuccess ? (
+                <form onSubmit={handleSubmit} className="flex flex-col">
+                  <div className="mb-4 md:mb-4 lg:mb-5 xl:mb-[2.4vh]">
+                    <h1 className="font-figtree text-[1.25rem] sm:text-[1.125rem] md:text-[1.2rem] lg:text-lg xl:text-[1.45rem]  font-semibold leading-snug tracking-normal 2xl:text-2xl">
+                      Create a new password
+                    </h1>
+                    <p className="mt-1 font-figtree text-xs leading-snug text-gray-700 dark:text-[#D6D6D6] sm:text-[0.8125rem] md:text-[0.8125rem] lg:text-xs xl:text-sm">
+                      Your identity is verified. Choose a strong password you
+                      haven&apos;t used elsewhere.
+                    </p>
+                  </div>
+
+                  {formMessage ? (
+                    <div className="mb-[2.1vh] mt-[-0.8vh]  md:mb-3 xl:mb-[2vh] xl:mt-[-0.7vh] ">
+                      <AuthMessageBanner variant={formMessage.variant}>
+                        {formMessage.text}
+                      </AuthMessageBanner>
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-[2.3vh] sm:space-y-4 md:space-y-3 lg:space-y-3.5 xl:space-y-[2.4vh]">
+                    <label className="block">
+                      <span className="relative block group">
+                        <LockKeyhole className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
+                        <span
+                          className={`pointer-events-none absolute left-10 sm:left-11 px-1 transition-all duration-200 ${
+                            password
+                              ? "-top-0 -translate-y-1/2 bg-white text-[0.625rem] text-[#393AF2] dark:bg-[#131313] dark:text-[#818cf8]"
+                              : "top-1/2 -translate-y-1/2 text-[0.75rem] text-gray-500/80"
+                          } group-focus-within:-top-0 group-focus-within:-translate-y-1/2 group-focus-within:bg-white group-focus-within:text-[0.625rem] group-focus-within:text-[#393AF2] dark:group-focus-within:bg-[#131313] dark:group-focus-within:text-[#818cf8]`}
+                        >
+                          New password
+                        </span>
+                        <input
+                          className={`${inputClassToggle} ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : ""}`}
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            clearFormMessage();
+                          }}
+                          placeholder=" "
+                          required
+                        />
+                        {showPasswordOk ? (
+                          <span
+                            className="pointer-events-none absolute right-[2.75rem] top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 sm:right-[3rem] md:right-[3.25rem]"
+                            aria-hidden="true"
+                          >
+                            <Check
+                              className="size-[1.125rem]"
+                              strokeWidth={2.5}
+                            />
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-[#393AF2] sm:right-4"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff className="size-[1.125rem]" />
+                          ) : (
+                            <Eye className="size-[1.125rem]" />
+                          )}
+                        </button>
+                      </span>
+                      <PasswordStrengthMeter password={password} />
+                    </label>
+
+                    <label className="block">
+                      <span className="relative block group">
+                        <LockKeyhole className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 sm:left-4" />
+                        <span
+                          className={`pointer-events-none absolute left-10 sm:left-11 px-1 transition-all duration-200 ${
+                            confirmPassword
+                              ? "-top-0 -translate-y-1/2 bg-white text-[0.625rem] text-[#393AF2] dark:bg-[#131313] dark:text-[#818cf8]"
+                              : "top-1/2 -translate-y-1/2 text-[0.75rem] text-gray-500/80"
+                          } group-focus-within:-top-0 group-focus-within:-translate-y-1/2 group-focus-within:bg-white group-focus-within:text-[0.625rem] group-focus-within:text-[#393AF2] dark:group-focus-within:bg-[#131313] dark:group-focus-within:text-[#818cf8]`}
+                        >
+                          Confirm new password
+                        </span>
+                        <input
+                          className={inputClassNoToggle}
+                          type={showPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            clearFormMessage();
+                          }}
+                          placeholder=" "
+                          required
+                        />
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`${primaryBtn} mt-[2.3vh] xl:mt-[2.4vh]`}
+                  >
+                    {isSubmitting ? "Updating…" : "Update password"}
+                  </button>
+
+                  <p className="mt-4 text-center text-xs md:mt-3 lg:text-sm xl:mt-[2.5vh]">
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center gap-1.5 text-[0.75rem] font-medium text-[#393AF2] transition hover:text-[#2426C7] sm:text-[0.8125rem] lg:text-xs xl:text-[0.8125rem]"
+                    >
+                      <ArrowLeft className="size-[0.875rem]" /> Back to Signin
+                    </Link>
+                  </p>
+
+                  <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-[#CBD5E1] md:hidden" />
+                </form>
+              ) : (
+                <div className="flex flex-col">
+                  <div className="mb-5 md:mb-4 lg:mb-5">
+                    <h1 className="font-figtree text-xl font-semibold leading-snug text-zinc-900 dark:text-zinc-100 sm:text-[1.125rem] md:text-[1.3rem] lg:text-lg xl:text-xl">
+                      Password updated
+                    </h1>
+                    <p className="mt-2 font-figtree text-sm leading-snug text-gray-600 dark:text-[#9AA8B6] sm:text-[0.8125rem] md:text-[0.8125rem] lg:text-sm xl:text-base">
+                      Your password has been changed. You can sign in with your
+                      new password.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className={primaryBtn}
+                  >
+                    Back to signin
+                  </button>
+                </div>
+              )}
             </div>
-
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col items-center w-full mt-4"
-            >
-              <div className="relative w-[80vw] lg:w-[24.5vw] mb-[2vh]">
-                <label className="text-[#1e1e1e] dark:text-[#D6D6D6] text-[13.5px] lg:text-[15px] font-medium block mb-1">
-                  New password
-                </label>
-                <input
-                  className="w-full h-[5.2vh] lg:h-[5.8vh] rounded-md border border-[#DEDEDE] pl-3 pr-10 dark:text-white dark:bg-[#1a1d20] outline-none dark:border-[#848484] focus:border-[#394FF1] focus:ring-1 focus:ring-[#394FF1]"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute top-[60%] right-3 -translate-y-1/2 text-gray-500"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              <div className="w-[80vw] lg:w-[24.5vw]">
-                <label className="text-[#1e1e1e] dark:text-[#D6D6D6] text-[13.5px] lg:text-[15px] font-medium block mb-1">
-                  Confirm new password
-                </label>
-                <input
-                  className="w-full h-[5.2vh] lg:h-[5.8vh] rounded-md border border-[#DEDEDE] pl-3 dark:text-white dark:bg-[#1a1d20] outline-none dark:border-[#848484] focus:border-[#394FF1] focus:ring-1 focus:ring-[#394FF1]"
-                  type={showPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Type your new password again"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="text-white bg-[#394FF1] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] mt-[4vh] font-medium hover:bg-[#2b3ed6] disabled:opacity-60 transition-all"
-              >
-                {isSubmitting ? "Updating..." : "Update password"}
-              </button>
-            </form>
           </div>
-        ) : (
-          /* 4. Success State */
-          <div className="w-full flex flex-col items-center mt-[10vh]">
-            <h1 className="font-robotoflex text-black text-[22px] dark:text-[#F1F1F1] font-semibold lg:text-[1.8rem] tracking-tight">
-              Password updated
-            </h1>
-            <div className="text-center text-[#828F9B] dark:text-[#D6D6D6] text-[14px] lg:text-[15px] font-normal font-['Poppins'] mt-[2vh] mb-[4vh] w-[80%] lg:w-[65%]">
-              Your password has been changed successfully. You can now sign in
-              again with your new password.
-            </div>
-
-            <button
-              onClick={() => navigate("/login")}
-              className="text-white bg-[#394FF1] rounded-md w-[80vw] h-[5vh] lg:w-[24.5vw] lg:h-[5.8vh] font-medium hover:bg-[#2b3ed6] transition-all"
-            >
-              Back to sign in
-            </button>
-          </div>
-        )}
-
-        <div className="lg:hidden flex justify-center mt-auto mb-10">
-          <img
-            src={Image9}
-            className="w-[89vw] h-[24vh] object-contain"
-            alt="graphic"
-          />
         </div>
       </div>
 
