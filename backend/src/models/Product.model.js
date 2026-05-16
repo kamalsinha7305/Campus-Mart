@@ -7,6 +7,7 @@ import {
   PRODUCT_CATEGORIES,
   PRODUCT_CONDITION,
   PRODUCT_PAYMENT,
+  PRODUCT_USAGE_DURATION,
 } from "../config/constants.js";
 
 const productSchema = new Schema(
@@ -65,6 +66,7 @@ const productSchema = new Schema(
       },
       usage_duration: {
         type: String,
+        enum: Object.values(PRODUCT_USAGE_DURATION),
         trim: true,
       },
       purchase_date: {
@@ -122,8 +124,17 @@ const productSchema = new Schema(
       address_line: { type: String, trim: true, required: true },
       city: { type: String, trim: true, required: true },
       state: { type: String, trim: true, required: true },
-      pincode: { type: String, trim: true, required: true },
-      mobile: { type: String, trim: true },
+      pincode: {
+        type: String,
+        trim: true,
+        required: true,
+        match: [/^\d{6}$/, "Invalid pincode"],
+      },
+      mobile: {
+        type: String,
+        trim: true,
+        match: [/^[6-9]\d{9}$/, "Invalid mobile number"],
+      },
       additional_info: { type: String, trim: true },
     },
 

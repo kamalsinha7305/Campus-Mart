@@ -4,9 +4,14 @@ export const reportProduct = async (req, res, next) => {
   try {
     const user = req.user;
     const { productId } = req.params;
-    const data = req.body;
 
-    const report = await reportService.reportProduct(productId, data, user);
+    const { reason, description } = req.body;
+
+    const report = await reportService.reportProduct(
+      productId,
+      { reason, description },
+      user,
+    );
 
     return res.status(201).json({
       success: true,
@@ -14,7 +19,29 @@ export const reportProduct = async (req, res, next) => {
       data: report,
     });
   } catch (error) {
-    // Forward to global error handler
+    next(error);
+  }
+};
+
+export const reportUser = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { userId } = req.params;
+
+    const { reason, description } = req.body;
+
+    const report = await reportService.reportUser(
+      userId,
+      { reason, description },
+      user,
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "User reported successfully",
+      data: report,
+    });
+  } catch (error) {
     next(error);
   }
 };

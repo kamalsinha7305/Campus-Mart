@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
-import { REPORT_REASONS } from "../config/constants.js";
+
+import { REPORT_REASONS, REPORT_STATUS } from "../config/constants.js";
 
 const reportSchema = new Schema(
   {
@@ -7,23 +8,28 @@ const reportSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
-    product_id: {
+    target_id: {
       type: Schema.Types.ObjectId,
-      ref: "Product",
       required: true,
-      index: true,
+      refPath: "target_model",
+    },
+
+    target_model: {
+      type: String,
+      required: true,
+      enum: ["Product", "User"],
     },
 
     reason: {
       type: String,
       enum: Object.values(REPORT_REASONS),
       required: true,
+      trim: true,
     },
 
-    message: {
+    description: {
       type: String,
       trim: true,
       maxlength: 500,
@@ -31,9 +37,18 @@ const reportSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["pending", "reviewed", "rejected"],
-      default: "pending",
-      index: true,
+      enum: Object.values(REPORT_STATUS),
+      default: REPORT_STATUS.PENDING,
+    },
+
+    admin_note: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+
+    reviewed_at: {
+      type: Date,
     },
   },
   {
@@ -42,11 +57,19 @@ const reportSchema = new Schema(
   },
 );
 
-// Prevent duplicate reports
-reportSchema.index({ reporter_id: 1, product_id: 1 }, { unique: true });
+reportSchema.index(
+  {
+    reporter_id: 1,
+    target_id: 1,
+    target_model: 1,
+  },
+  { unique: true },
+);
 
-// fast moderation queries
-reportSchema.index({ status: 1, createdAt: -1 });
+reportSchema.index({
+  status: 1,
+  createdAt: -1,
+});
 
 const Report = mongoose.model("Report", reportSchema);
 
