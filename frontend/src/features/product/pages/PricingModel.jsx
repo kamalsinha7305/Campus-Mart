@@ -115,7 +115,7 @@ const PricingModel = () => {
       return (
         <XCircle
           aria-label="Not included"
-          className="mx-auto size-4 text-slate-300 dark:text-slate-500"
+          className="mx-auto size-4 text-red-400 dark:text-red-400"
           strokeWidth={1.8}
         />
       );
@@ -307,13 +307,13 @@ const PricingModel = () => {
         <div className="mt-14 overflow-x-auto overflow-y-visible pb-4 pt-10">
           <div className="relative min-w-[780px]">
             {/* Rounded Pro column highlight */}
-           <div className="pointer-events-none absolute left-[54%] top-[-40px] z-30 h-[calc(100%+40px)] w-[20%] rounded-2xl bg-[#3300ff]/[0.055] p-2">
-  <div className="h-full rounded-xl border-2 border-[#9f95ff] bg-[#3300ff]/[0.025] shadow-[inset_0_0_0_1px_rgba(51,0,255,0.08),0_0_22px_rgba(51,0,255,0.09)]">
-    <div className="h-10 rounded-t-lg bg-[#3300ff] text-center text-sm font-medium leading-10 text-white font-poppins">
-      Popular
-    </div>
-  </div>
-</div>
+            <div className="pointer-events-none absolute left-[54%] top-[-40px] z-30 h-[calc(100%+40px)] w-[20%] rounded-2xl bg-[#3300ff]/[0.055] p-2">
+              <div className="h-full rounded-xl border-2 border-[#9f95ff] bg-[#3300ff]/[0.025] shadow-[inset_0_0_0_1px_rgba(51,0,255,0.08),0_0_22px_rgba(51,0,255,0.09)]">
+                <div className="h-10 rounded-t-lg bg-[#3300ff] text-center text-sm font-medium leading-10 text-white font-poppins">
+                  Popular
+                </div>
+              </div>
+            </div>
 
             {/* Comparison table */}
             <table className="relative z-20 w-full table-fixed overflow-hidden rounded-xl bg-white text-left shadow-xl shadow-slate-200 dark:bg-[#1A1D20] dark:shadow-none">
