@@ -1,99 +1,74 @@
 const verifyEmailTemplate = ({ name, url }) => {
   return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify Your Email</title>
-      <style>
-        /* Basic reset for email clients */
-        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; background-color: #F8FAFC; }
-        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
-        table { border-collapse: collapse !important; }
+    <div style="font-family: 'Inter', 'Poppins', Arial, sans-serif; max-width: 480px; margin: 0 auto; background-color: #ffffff; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);">
+      
+      <div style="border-bottom: 1px solid #F1F5F9; padding: 32px 20px; text-align: center; border-top: 4px solid #2563EB; background-image: url('https://ik.imagekit.io/mspoxwn8v/Backend/Email%20Template%20Images/HorizontalBorder.png?updatedAt=1779453128090'); background-size: cover; background-position: center;">
+        <h1 style="color: #2563EB; font-size: 24px; font-weight: 700; margin: 0; display: inline-block; background-color: rgba(255, 255, 255, 0.95); padding: 8px 16px; border-radius: 8px; align-items: center;">
+          <img src="https://ik.imagekit.io/mspoxwn8v/Backend/Email%20Template%20Images/Group%2014.png" alt="Logo" style="height: 24px; vertical-align: middle; margin-right: 8px;" />Campus Mart
+        </h1>
+      </div>
+
+      <div style="padding: 32px 24px; text-align: center;">
         
-        @media screen and (max-width: 600px) {
-          .container { width: 100% !important; border-radius: 0 !important; }
-          .content-padding { padding-left: 20px !important; padding-right: 20px !important; }
-        }
-      </style>
-    </head>
-    <body style="background-color: #F8FAFC; padding: 20px 0;">
-      <center>
-        <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" class="container" style="background-color: #ffffff; border: 1px solid #F1F5F9; border-radius: 12px; overflow: hidden; font-family: 'Inter', Arial, sans-serif;">
-          
-          <tr>
-            <td align="center" style="padding: 32px; background-color: #ffffff; border-bottom: 1px solid #F8FAFC;">
-              <table border="0" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="color: #364EF2; font-size: 28px; font-weight: 600; font-family: 'Poppins', Arial, sans-serif;">
-                    Unideals
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+        <div style="width: 64px; height: 64px; background-color: #EFF6FF; border-radius: 50%; margin: 0 auto 20px auto; position: relative; display: inline-flex; align-items: center; justify-content: center;">
+          <img src="https://ik.imagekit.io/mspoxwn8v/Backend/Email%20Template%20Images/Icon.svg" alt="Icon" style="width: 32px; height: 32px;" />
+          <div style="position: absolute; bottom: 0; right: -4px; background-color: #22C55E; color: white; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; font-size: 12px; font-weight: bold; border: 2px solid white;">
+            ✓
+          </div>
+        </div>
 
-          <tr>
-            <td align="center" class="content-padding" style="padding: 40px 48px;">
-              <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
-                <tr>
-                  <td align="center" bgcolor="#E9F2FE" style="width: 80px; height: 80px; border-radius: 50%; font-size: 40px; line-height: 80px;">
-                    ✉️
-                  </td>
-                </tr>
-              </table>
+        <h2 style="color: #0F172A; font-size: 22px; font-weight: 700; margin: 0 0 12px 0;">
+          Verify Your Email Address
+        </h2>
 
-              <h1 style="margin: 0 0 24px 0; color: #0F172A; font-size: 28px; font-weight: 700; line-height: 36px; text-align: center;">
-                Verify Your Email Address
-              </h1>
+        <p style="color: #64748B; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+          Hi <strong>${name}</strong>,<br/> Thanks for signing up for our platform! We're excited to have you on board. Please click the button below to verify your email address and activate your account.
+        </p>
 
-              <p style="margin: 0 0 32px 0; color: #64748B; font-size: 16px; line-height: 26px; text-align: center;">
-                Dear ${name}, thanks for signing up for our platform! We're excited to have you on board. Please click the button below to verify your email address and activate your account.
-              </p>
+        <a href="${url}" target="_blank" style="display: inline-block; background-color: #4F46E5; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 32px; border-radius: 6px; margin-bottom: 24px;">
+          Verify Email
+        </a>
 
-              <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
-                <tr>
-                  <td align="center" bgcolor="#394FF1" style="border-radius: 8px;">
-                    <a href="${url}" target="_blank" style="display: inline-block; padding: 14px 40px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
-                      Verify Email
-                    </a>
-                  </td>
-                </tr>
-              </table>
+        <div style="background-color: #F8FAFC; border: 1px solid #F1F5F9; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="color: #64748B; font-size: 12px; margin: 0 0 8px 0; text-align: left;">
+            If the button doesn't work,
+          </p>
+          <div style="background-color: #ffffff; border: 1px solid #E2E8F0; border-radius: 4px; padding: 10px;">
+            <p style="color: #64748B; font-size: 12px; margin: 0;">
+              You can also <a href="${url}" style="color: #4F46E5; font-weight: 700; text-decoration: underline; word-break: break-all;">verify your email here.</a>
+            </p>
+          </div>
+        </div>
 
-              <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#F8FAFC" style="border-radius: 8px; margin-bottom: 24px;">
-                <tr>
-                  <td align="center" style="padding: 16px; font-size: 12px; color: #64748B;">
-                    If the button doesn't work, you can also 
-                    <a href="${url}" style="color: #394FF1; font-weight: 700; text-decoration: underline;">verify your email here.</a>
-                  </td>
-                </tr>
-              </table>
+        <div style="text-align: left; padding: 0 10px;">
+          <p style="color: #94A3B8; font-size: 11px; line-height: 1.5; margin: 0;">
+            <span style="font-size: 12px;">ⓘ</span> This link will expire in 24 hours. If you didn't create an account with Campus Mart, you can safely delete this email.
+          </p>
+        </div>
 
-              <p style="margin: 0; color: #94A3B8; font-size: 12px; line-height: 18px; text-align: center;">
-                This link will expire in 24 hours. If you didn't create an account with Unideals, you can safely delete this email.
-              </p>
-            </td>
-          </tr>
+      </div>
 
-          <tr>
-            <td align="center" bgcolor="#F8FAFC" style="padding: 32px; border-top: 1px solid #F1F5F9;">
-              <p style="margin: 0 0 16px 0; color: #94A3B8; font-size: 12px; line-height: 16px; text-align: center;">
-                © 2026 Unideals Inc. All rights reserved.<br/>
-                Vellore, India
-              </p>
-              <p style="margin: 0; color: #94A3B8; font-size: 12px; font-weight: 500; text-align: center;">
-                <a href="#" style="color: #94A3B8; text-decoration: none;">Privacy Policy</a>
-                &nbsp; • &nbsp;
-                <a href="#" style="color: #94A3B8; text-decoration: none;">Terms of Service</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </center>
-    </body>
-    </html>
+      <div style="background-color: #F8FAFC; border-top: 1px solid #F1F5F9; padding: 24px; text-align: center;">
+        
+        <div style="margin-bottom: 12px; color: #94A3B8; font-size: 14px;">
+          <span style="margin: 0 8px;">❓</span>
+          <span style="margin: 0 8px;">⚙️</span>
+          <span style="margin: 0 8px;">🔒</span>
+        </div>
+
+        <p style="color: #94A3B8; font-size: 11px; line-height: 1.6; margin: 0 0 12px 0;">
+          © 2026 Campus Mart Inc. All rights reserved.<br/>
+          Vellore, India
+        </p>
+
+        <p style="color: #94A3B8; font-size: 11px; margin: 0;">
+          <a href="#" style="color: #94A3B8; text-decoration: none; font-weight: 500;">Privacy Policy</a> 
+          <span style="margin: 0 8px;">•</span> 
+          <a href="#" style="color: #94A3B8; text-decoration: none; font-weight: 500;">Terms of Service</a>
+        </p>
+      </div>
+
+    </div>
   `;
 };
 
