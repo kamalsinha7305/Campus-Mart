@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Check, Eye, EyeOff, LockKeyhole } from "lucide-react";
-import { ArrowLeft } from "lucide-react";
+import { Check, Eye, EyeOff, LockKeyhole, ArrowLeft } from "lucide-react";
 import { resetPassword, verifyResetPasswordToken } from "../api/authApi.js";
 import AuthPageRightPart from "../components/AuthPageRightPart";
 import AuthMessageBanner from "../components/AuthMessageBanner";
@@ -15,12 +14,6 @@ import AuthBrandLogo from "../components/AuthBrandLogo";
 
 const cardShell =
   "w-full h-[80dvh] md:h-auto overflow-y-auto overflow-x-hidden rounded-t-[1.6rem] bg-white px-5 pb-8 pt-8 text-[#18181B] shadow-[0_-1.125rem_3.125rem_rgba(30,35,120,0.18)] dark:bg-[#131313] dark:text-white sm:px-10 md:mt-0 md:max-h-[calc(100dvh-5rem)] md:min-h-0 md:flex-none md:rounded-none md:overflow-y-auto md:overflow-x-hidden md:w-full md:max-w-[35vw] lg:max-w-[30vw] xl:max-w-[28.5vw] 2xl:max-w-[28.5vw] md:px-[1vw] 3xl:max-w-[56rem] md:py-0 md:shadow-none";
-
-const inputClassBase =
-  "h-[6.3vh] w-full rounded-xl border border-transparent bg-slate-50 pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20] sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh]";
-
-const inputClassToggle = `${inputClassBase} pr-10 md:pr-12`;
-const inputClassNoToggle = `${inputClassBase} pr-3 md:pr-3`;
 
 const primaryBtn =
   "mt-[2.2vh] h-[6.3vh] w-full rounded-xl bg-[#393AF2] text-sm font-semibold text-white transition hover:bg-[#2829D8] focus:outline-none focus:ring-4 focus:ring-[#393AF2]/25 disabled:cursor-not-allowed disabled:opacity-60 sm:h-11 md:mt-3 md:h-10 md:rounded-xl md:text-xs lg:mt-3 lg:h-10 lg:text-sm xl:mt-[2.9vh] xl:h-[6.4vh] xl:text-[0.8rem] 2xl:mt-[2.6vh] 2xl:h-[6.4vh] 2xl:text-[0.85rem]";
@@ -118,6 +111,16 @@ function ResetPassword() {
     }
   };
 
+  // Smart Error Parsing Logic
+  const isError = formMessage?.variant === "error";
+  const errorText = formMessage?.text?.toLowerCase() || "";
+  
+  // Highlight the primary password field if requirements aren't met, or if passwords don't match
+  const hasPasswordError = isError && (errorText.includes("requirements") || errorText.includes("password"));
+  
+  // Highlight the confirm password field specifically if they don't match
+  const hasConfirmError = isError && (errorText.includes("match") || errorText.includes("password"));
+
   return (
     <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] md:h-[100dvh] md:overflow-hidden">
       <div className="relative flex min-h-[100dvh] w-full flex-col bg-white font-figtree dark:bg-[#131313] md:h-full md:min-h-0 md:w-[44%] lg:w-[41%] xl:w-[41%] 2xl:w-[41%]">
@@ -208,7 +211,11 @@ function ResetPassword() {
                           New password
                         </span>
                         <input
-                          className={`${inputClassToggle} ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : ""}`}
+                          className={`h-[6.3vh] w-full rounded-xl border pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : "pr-10 md:pr-12"} ${
+                            hasPasswordError
+                              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
+                              : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
+                          }`}
                           type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => {
@@ -260,7 +267,11 @@ function ResetPassword() {
                           Confirm new password
                         </span>
                         <input
-                          className={inputClassNoToggle}
+                          className={`h-[6.3vh] w-full rounded-xl border pl-10 pr-3 md:pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] ${
+                            hasConfirmError
+                              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
+                              : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
+                          }`}
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => {

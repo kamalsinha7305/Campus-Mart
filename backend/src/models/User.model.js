@@ -164,6 +164,14 @@ const userSchema = new Schema(
 
 userSchema.index({ status: 1 });
 
+userSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 86400, // 86400 seconds = 24 hours
+    partialFilterExpression: { is_email_verified: false }
+  }
+);
+
 const User = mongoose.model("User", userSchema);
 
 export default User;

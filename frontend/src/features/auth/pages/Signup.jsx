@@ -75,6 +75,19 @@ function Signup() {
     }
   };
 
+  // Smart Error Parsing Logic for Signup
+  const isError = formMessage?.variant === "error";
+  const errorText = formMessage?.text?.toLowerCase() || "";
+  
+  // Highlight full name if the error explicitly mentions 'name'
+  const hasNameError = isError && errorText.includes("name");
+  
+  // Highlight email if the error explicitly mentions 'email'
+  const hasEmailError = isError && errorText.includes("email");
+  
+  // Highlight password if the error explicitly mentions 'password' or 'requirements'
+  const hasPasswordError = isError && (errorText.includes("password") || errorText.includes("requirements"));
+
   return (
     <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] md:h-[100dvh] md:overflow-hidden">
       {legalTab ? (
@@ -137,6 +150,7 @@ function Signup() {
 
               {/* Fields */}
               <div className="space-y-[2.4vh] sm:space-y-3.5 md:space-y-[2.1vh] lg:space-y-2.5 xl:space-y-[2.2vh] 2xl:space-y-[2.3vh]">
+                
                 {/* Full Name */}
                 <label className="block">
                   <span className="relative block group">
@@ -151,7 +165,11 @@ function Signup() {
                       Full Name
                     </span>
                     <input
-                      className="h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] w-full rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:text-xs xl:text-xs "
+                      className={`h-[6.3vh] w-full rounded-xl border pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] md:text-xs xl:text-xs ${
+                        hasNameError
+                          ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
+                          : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
+                      }`}
                       type="text"
                       placeholder=" "
                       value={fname}
@@ -178,7 +196,11 @@ function Signup() {
                       Email
                     </span>
                     <input
-                      className="h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] w-full rounded-xl border border-transparent bg-slate-50 pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20]  md:rounded-xl md:pl-11 md:text-xs "
+                      className={`h-[6.3vh] w-full rounded-xl border pl-10 pr-3 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] ${
+                        hasEmailError
+                          ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
+                          : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
+                      }`}
                       type="email"
                       placeholder=" "
                       value={email}
@@ -205,7 +227,11 @@ function Signup() {
                       Password
                     </span>
                     <input
-                      className={`h-[6.3vh] sm:h-11 md:h-10 lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] w-full rounded-xl border border-transparent bg-slate-50 pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:text-white dark:focus:bg-[#1A1D20] md:rounded-xl md:pl-11 md:text-xs  ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : "pr-10 md:pr-12"}`}
+                      className={`h-[6.3vh] w-full rounded-xl border pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : "pr-10 md:pr-12"} ${
+                        hasPasswordError
+                          ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
+                          : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
+                      }`}
                       type={showPassword ? "text" : "password"}
                       placeholder=" "
                       value={password}
