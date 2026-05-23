@@ -380,6 +380,7 @@ const PricingModel = () => {
         </p>
       </section>
     </main>
+    
   );
 };
 

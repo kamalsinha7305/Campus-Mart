@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:0f172a,50:1e3a5f,100:2563eb&text=Unideals&fontColor=ffffff&fontSize=58&fontAlignY=38&desc=The%20Modern%20Student%20Marketplace&descAlignY=58&descSize=18&animation=fadeIn" width="100%" />
+<p align="center">
+  <img src="https://res.cloudinary.com/dmkoxabbt/image/upload/v1766757687/linkedinbannerim_1_ghq9pt.png" />
+</p>
 
-<br/>
+<h1 align="center">Unideals</h1>
 
 <p>
   <a href="#"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" /></a>
@@ -22,13 +24,9 @@
 
 <br/>
 
-> **Unideals** is a full-stack student marketplace built for buying, selling, and discovering products within your campus community — fast, secure, and beautifully designed.
-
-<br/>
+**Unideals** is a full-stack student marketplace built for buying, selling, and discovering products within your campus community — fast, secure, and beautifully designed.
 
 </div>
-
----
 
 ## 📋 Table of Contents
 
@@ -43,8 +41,6 @@
 - [Security](#-security)
 - [License](#-license)
 
----
-
 ## 🌟 Overview
 
 Unideals is a purpose-built marketplace platform connecting students within a campus ecosystem. It supports real-time product listings, wishlists, order tracking, multi-provider authentication, image uploads, and a notification system — all packed into a clean monorepo.
@@ -57,7 +53,6 @@ Unideals is a purpose-built marketplace platform connecting students within a ca
 - 🖼️ **Optimized media** — ImageKit + Cloudinary integration
 - 🛡️ **Security-first** — Helmet, CORS, XSS filtering, rate limiting
 
----
 
 ## 🛠️ Tech Stack
 
@@ -84,7 +79,6 @@ Unideals is a purpose-built marketplace platform connecting students within a ca
 | **Cloudinary** | Cloud media storage |
 | **Google OAuth2** | Social authentication |
 
----
 
 ## 📁 Project Structure
 
@@ -117,7 +111,6 @@ campus-mart/
 └── README.md
 ```
 
----
 
 ## 🏗️ System Architecture
 
@@ -159,7 +152,6 @@ flowchart TB
     UI --> ImageKit
 ```
 
----
 
 ## 📡 API Reference
 
@@ -208,7 +200,6 @@ All API routes are prefixed with the base URL configured via `VITE_API_BASE_URL`
 | **ImageKit** | `/api/imagekit` | Signed upload tokens |
 | **Health** | `/health` | Server health check |
 
----
 
 ## 🗺️ Frontend Routes
 
@@ -245,7 +236,6 @@ All API routes are prefixed with the base URL configured via `VITE_API_BASE_URL`
 /termscondition            → Terms & conditions
 ```
 
----
 
 ## 🔧 Environment Variables
 
@@ -288,8 +278,6 @@ VITE_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id
 
 > ⚠️ **Never commit `.env` files.** Use `.env.sample` files as templates and add `.env` to `.gitignore`.
 
----
-
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -331,7 +319,6 @@ Frontend  →  http://localhost:5173
 API Health  →  http://localhost:5000/health
 ```
 
----
 
 ## 🛡️ Security
 
@@ -348,19 +335,16 @@ Unideals is built with a layered security model:
 | **HTTP hardening** | Helmet sets secure response headers |
 | **Media** | Signed ImageKit upload tokens; server-side Cloudinary keys |
 
----
 
 ## 📄 License
 
 Distributed under the **ISC License**. See [`LICENSE`](./LICENSE) for more information.
 
----
-
 <div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&height=120&color=0:2563eb,100:0f172a&section=footer" width="100%" />
 
-<p>Built with ❤️ for campus communities everywhere</p>
+<p>Built with ❤️ for campus communities everywhere by <b><a href="https://imaginumorg.vercel.app/">Team Imaginum</a></b></p>
 
 <p>
   <a href="#">⬆ Back to top</a>

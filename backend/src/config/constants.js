@@ -11,6 +11,7 @@ export const USER_STATUS = Object.freeze({
 });
 
 export const PRODUCT_STATUS = Object.freeze({
+  DRAFT: "draft",
   LISTED: "listed",
   SOLD: "sold",
   UNLISTED: "unlisted",

@@ -1,33 +1,52 @@
 import axios from "../../../services/axiosInstance";
 
-// Get all products (with optional filters, pagination, search, etc.)
+// GET PRODUCTS
 export const getProducts = (params = {}) => {
-  return axios.get("/api/product", { params });
+  return axios.get("/api/product", {
+    params,
+  });
 };
 
-// Get single product by ID
+// GET PRODUCT BY ID
 export const getProductById = (id) => {
   return axios.get(`/api/product/${id}`);
 };
 
-// Get user's products
+// GET USER PRODUCTS
 export const getUserProducts = () => {
   return axios.get("/api/product/user/my-products");
 };
 
-// Create a new product
+// CREATE PRODUCT
 export const createProduct = (data) => {
   return axios.post("/api/product", data);
 };
 
+// UPDATE PRODUCT
+export const updateProduct = (productId, data) => {
+  return axios.patch(`/api/product/${productId}`, data);
+};
+
+// SAVE DRAFT
+export const saveDraftProduct = (data) => {
+  return axios.post("/api/product", {
+    ...data,
+
+    status: "unlisted",
+  });
+};
+
+// DELETE PRODUCT
 export const deleteProduct = (productId) => {
   return axios.delete(`/api/product/${productId}`);
 };
 
+// UNLIST PRODUCT
 export const unlistProduct = (productId) => {
   return axios.patch(`/api/product/${productId}/unlist`);
 };
 
+// RELIST PRODUCT
 export const relistProduct = (productId) => {
   return axios.patch(`/api/product/${productId}/relist`);
 };
