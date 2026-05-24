@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Footer from "../../../components/layout/Footer.jsx";
+import Footer from "../../../Components/layout/Footer.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Clock3,
 } from "lucide-react";
-import toast from "react-hot-toast"
+import toast from "react-hot-toast";
 
 import { LuMessageSquareText } from "react-icons/lu";
 import { useParams, Link } from "react-router-dom";

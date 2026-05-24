@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Check, Eye, EyeOff, LockKeyhole, ArrowLeft } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  ArrowLeft,
+} from "lucide-react";
 import { resetPassword, verifyResetPasswordToken } from "../api/authApi.js";
 import AuthPageRightPart from "../components/AuthPageRightPart";
 import AuthMessageBanner from "../components/AuthMessageBanner";
@@ -114,12 +121,15 @@ function ResetPassword() {
   // Smart Error Parsing Logic
   const isError = formMessage?.variant === "error";
   const errorText = formMessage?.text?.toLowerCase() || "";
-  
+
   // Highlight the primary password field if requirements aren't met, or if passwords don't match
-  const hasPasswordError = isError && (errorText.includes("requirements") || errorText.includes("password"));
-  
+  const hasPasswordError =
+    isError &&
+    (errorText.includes("requirements") || errorText.includes("password"));
+
   // Highlight the confirm password field specifically if they don't match
-  const hasConfirmError = isError && (errorText.includes("match") || errorText.includes("password"));
+  const hasConfirmError =
+    isError && (errorText.includes("match") || errorText.includes("password"));
 
   return (
     <div className="flex min-h-[100dvh] overflow-x-hidden select-none bg-white dark:bg-[#131313] md:h-[100dvh] md:overflow-hidden">
@@ -211,7 +221,7 @@ function ResetPassword() {
                           New password
                         </span>
                         <input
-                          className={`h-[6.3vh] w-full rounded-xl border pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] ${showPasswordOk ? "pr-[3.25rem] md:pr-16" : "pr-10 md:pr-12"} ${
+                          className={`h-[6.3vh] w-full rounded-xl border pl-10 text-[0.6875rem] text-[#111827] outline-none transition placeholder:text-gray-500/60 dark:text-white sm:h-11 md:h-10 md:rounded-xl md:pl-11 md:text-xs lg:h-10 xl:h-[6.4vh] 2xl:h-[6.4vh] pr-[5.75rem] md:pr-[6.5rem] ${
                             hasPasswordError
                               ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 dark:border-red-500/80 dark:bg-[#1A1D20]"
                               : "border-transparent bg-slate-50 focus:border-[#393AF2] focus:bg-white focus:ring-4 focus:ring-[#393AF2]/10 dark:bg-[#1A1D20] dark:focus:bg-[#1A1D20]"
@@ -225,17 +235,25 @@ function ResetPassword() {
                           placeholder=" "
                           required
                         />
-                        {showPasswordOk ? (
-                          <span
-                            className="pointer-events-none absolute right-[2.75rem] top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 sm:right-[3rem] md:right-[3.25rem]"
-                            aria-hidden="true"
+                        <div className="absolute right-[3.5rem] top-1/2 -translate-y-1/2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="relative group flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:text-[#393AF2] focus:outline-none focus:ring-2 focus:ring-[#393AF2]/30"
+                            aria-label="Password requirements"
                           >
-                            <Check
-                              className="size-[1.125rem]"
-                              strokeWidth={2.5}
-                            />
-                          </span>
-                        ) : null}
+                            <AlertCircle className="size-[1rem]" />
+                            <span className="pointer-events-none absolute right-full top-1/2 hidden w-[16rem] -translate-y-1/2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[0.7rem] text-slate-700 shadow-lg opacity-0 transition-all duration-200 group-hover:block group-hover:opacity-100 dark:border-[#3A3A3A] dark:bg-[#111827] dark:text-[#E5E7EB]">
+                              Password must be 6-8 characters, include letters
+                              and numbers, and contain both upper and lower case
+                              letters.
+                            </span>
+                          </button>
+                          {showPasswordOk ? (
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              <Check className="size-[1rem]" strokeWidth={3} />
+                            </span>
+                          ) : null}
+                        </div>
                         <button
                           type="button"
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-[#393AF2] sm:right-4"

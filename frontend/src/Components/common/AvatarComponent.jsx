@@ -87,7 +87,13 @@ const AvatarComponent = ({
     cachedImage.trim().length > 0 &&
     !imageLoadError;
 
-  if (hasValidImage) {
+  // Treat backend default placeholder avatar as "no image" so initials render
+  const isDefaultAvatar =
+    typeof cachedImage === "string" && cachedImage.includes("avatar-default");
+
+  const shouldShowImage = hasValidImage && !isDefaultAvatar;
+
+  if (shouldShowImage) {
     return (
       <img
         src={cachedImage}
