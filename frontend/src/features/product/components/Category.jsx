@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 
 const Category = ({ title, imageSrc }) => {
-  const slug = title.toLowerCase().replace(/\s+/g, "-");
-
+  console.log(title);
+  const slug = title.toLowerCase().replace(/\s+/g, "_");
   return (
     <Link
       to={`/category/${slug}`}

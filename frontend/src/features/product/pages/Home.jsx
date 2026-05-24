@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-
+import { PRODUCT_CATEGORY_OPTIONS } from "../constants/productOptions.js";
 import Category from "../../../features/product/components/Category.jsx";
 import ProductCard from "../../../features/product/components/ProductCard.jsx";
 import Footer from "../../../Components/layout/Footer.jsx";
@@ -376,7 +376,16 @@ const Home = () => {
             onMouseUp={onMouseUp}
             onMouseMove={onMouseMove}
           >
-            <Category
+            {PRODUCT_CATEGORY_OPTIONS.map((category) => {
+              return (
+                <Category
+                  key={category.value}
+                  title={category.label}
+                  imageSrc="/assets/icons8-electronics-961.png"
+                />
+              );
+            })}
+            {/* <Category
               title="Electronics"
               imageSrc="/assets/icons8-electronics-961.png"
             />
@@ -387,7 +396,7 @@ const Home = () => {
               imageSrc="/assets/icons8-bicycle-961.png"
             />
             <Category title="Matress" imageSrc="/assets/icons8-bed-961.png" />
-            <Category title="Others" imageSrc={"/others.png"} />
+            <Category title="Others" imageSrc={"/others.png"} /> */}
           </div>
         </div>
 
