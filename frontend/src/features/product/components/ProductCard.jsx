@@ -1,4 +1,11 @@
-import { memo, forwardRef, useState, useEffect, useCallback } from "react";
+import {
+  memo,
+  forwardRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { Link } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
@@ -17,42 +24,69 @@ const ProductCard = memo(
       const [inWishlist, setInWishlist] = useState(false);
       const [loading, setLoading] = useState(false);
 
-      if (!product) return null;
-
-      const { _id, title, images, category, selling_price, original_price } =
-        product;
+      const productId = product?._id;
 
       useEffect(() => {
         let isMounted = true;
 
         const checkWishlist = async () => {
+          if (!productId) return;
+
           try {
-            const inWish = await checkProductInWishlist(_id);
-            if (isMounted) setInWishlist(inWish);
-          } catch (err) {
-            console.error("Wishlist check failed:", err);
+            const inWish = await checkProductInWishlist(productId);
+
+            if (isMounted) {
+              setInWishlist(inWish);
+            }
+          } catch (error) {
+            console.error("Wishlist check failed:", error);
           }
         };
 
-        if (_id) checkWishlist();
+        checkWishlist();
 
         return () => {
           isMounted = false;
         };
-      }, [_id, checkProductInWishlist]);
+      }, [productId, checkProductInWishlist]);
 
-      const imageUrl = images && images.length > 0 ? images[0] : FALLBACK_IMAGE;
+      if (!product) {
+        return null;
+      }
 
-      const discount =
-        original_price && original_price > selling_price
-          ? original_price - selling_price
-          : 0;
+      const { _id, title, images, category, selling_price, original_price } =
+        product;
+
+      const imageUrl = useMemo(
+        () => (images?.length ? images[0] : FALLBACK_IMAGE),
+        [images],
+      );
+
+      const discount = useMemo(
+        () =>
+          original_price && original_price > selling_price
+            ? original_price - selling_price
+            : 0,
+        [original_price, selling_price],
+      );
+
+      const discountPercentage = useMemo(
+        () =>
+          original_price && original_price > selling_price
+            ? Math.round(
+                ((original_price - selling_price) / original_price) * 100,
+              )
+            : 0,
+        [original_price, selling_price],
+      );
 
       const handleClick = useCallback(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
       }, []);
 
-      // ✅ Fixed wishlist handler (no spam clicks + safe)
       const handleWishlistClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -63,16 +97,20 @@ const ProductCard = memo(
 
         try {
           const result = await toggleWishlist(_id, product);
+
           setInWishlist(result);
 
           toast.success(
             result ? "Added to Wishlist" : "Removed from Wishlist",
-            { id: "wishlist-toast" },
+            {
+              id: "wishlist-toast",
+            },
           );
         } catch (error) {
           toast.error("Failed to update wishlist", {
             id: "wishlist-error",
           });
+
           console.error("Wishlist error:", error);
         } finally {
           setLoading(false);
@@ -84,17 +122,24 @@ const ProductCard = memo(
         e.stopPropagation();
 
         setInWishlist(false);
+
         onRemove?.(_id);
-        toast.success("Removed from Wishlist", { id: "wishlist-remove" });
+
+        toast.success("Removed from Wishlist", {
+          id: "wishlist-remove",
+        });
 
         try {
           await removeFromWishlist(_id);
         } catch (error) {
           setInWishlist(true);
+
           onRemoveError?.(_id);
+
           toast.error("Failed to remove from wishlist", {
             id: "wishlist-error",
           });
+
           console.error("Remove error:", error);
         }
       };
@@ -105,7 +150,7 @@ const ProductCard = memo(
           to={`/product/${_id}`}
           onClick={handleClick}
           aria-label={`View product ${title}`}
-          className="lg:w-[28vw] xl:w-[21vw] w-[44.7vw] md:w-[29vw] rounded-xl overflow-hidden shadow-[0px_4.115523815155029px_28.808666229248047px_0px_rgba(0,0,0,0.10)] outline outline-1 outline-offset-[-1.03px] outline-zinc-300 hover:shadow-sm animation duration-300 ease-linear hover:scale-105 dark:bg-[#121212] dark:shadow-[0px_4.115523815155029px_28.808666229248047px_0px_rgba(0,0,0,0.10)] dark:outline dark:outline-1 dark:outline-offset-[-1.03px] dark:outline-zinc-600"
+          className="lg:w-[28vw] xl:w-[21vw] w-[44.7vw] md:w-[29vw] rounded-xl overflow-hidden shadow-[0px_4.115523815155029px_28.808666229248047px_0px_rgba(0,0,0,0.10)] outline outline-1 outline-offset-[-1.03px] outline-zinc-300 hover:shadow-sm transition-all duration-300 ease-linear hover:scale-105 dark:bg-[#121212] dark:shadow-[0px_4.115523815155029px_28.808666229248047px_0px_rgba(0,0,0,0.10)] dark:outline dark:outline-1 dark:outline-offset-[-1.03px] dark:outline-zinc-600"
         >
           {/* IMAGE */}
           <div className="md:p-3 p-2 w-full h-[22vh] md:h-[21vh] lg:h-[19vh] xl:h-[40vh] object-contain relative">
@@ -126,7 +171,9 @@ const ProductCard = memo(
                 onClick={handleWishlistClick}
                 disabled={loading}
                 className="absolute flex items-center justify-center lg:w-10 w-7 lg:h-10 h-7 right-5 top-5 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-300"
-                aria-label="Add to wishlist"
+                aria-label={
+                  inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                }
               >
                 {inWishlist ? (
                   <FaHeart className="lg:w-4 w-3 lg:h-4 h-3 text-pink-500 transition-colors duration-300" />
@@ -138,14 +185,19 @@ const ProductCard = memo(
 
             {/* CATEGORY */}
             <div className="bg-[#394FF1] text-white px-2 py-1 rounded md:text-sm text-[2.9vw] font-medium absolute md:bottom-6 md:left-6 bottom-4 left-4">
-              {category}
+              {category
+                ?.replaceAll("_", " ")
+                ?.replace(/\b\w/g, (char) => char.toUpperCase())}
             </div>
 
             <img
               src={imageUrl}
               alt={title || "Product image"}
-              className="rounded-lg w-full h-full object-contain"
               loading="lazy"
+              onError={(e) => {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+              className="rounded-lg w-full h-full object-contain"
             />
           </div>
 
@@ -181,8 +233,10 @@ const ProductCard = memo(
             {/* DISCOUNT */}
             {discount > 0 && (
               <div className="flex items-center pl-1">
-                <h2 className="text-[#06981E] font-bold flex items-center">
-                  Save <MdOutlineCurrencyRupee /> {discount}
+                <h2 className="text-[#06981E] font-bold flex items-center flex-wrap">
+                  Save <MdOutlineCurrencyRupee />
+                  {discount}
+                  <span className="ml-1">({discountPercentage}%)</span>
                 </h2>
               </div>
             )}

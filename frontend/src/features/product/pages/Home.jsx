@@ -3,14 +3,11 @@ import { Link } from "react-router-dom";
 import { PRODUCT_CATEGORY_OPTIONS } from "../constants/productOptions.js";
 import Category from "../../../features/product/components/Category.jsx";
 import ProductCard from "../../../features/product/components/ProductCard.jsx";
-import Footer from "../../../Components/layout/Footer.jsx";
-
 import { getProducts } from "../api/productApi";
-
+import { FaPlus } from "react-icons/fa6";
 import { IoIosArrowForward } from "react-icons/io";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, A11y, Autoplay } from "swiper/modules";
-
 import { motion } from "framer-motion";
 
 import "swiper/css";
@@ -55,7 +52,7 @@ const Home = () => {
   };
 
   //STATE
-  const [search, setSearch] = useState("");
+  // const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
 
@@ -65,43 +62,52 @@ const Home = () => {
 
   const [error, setError] = useState(null);
 
+  const fetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
   //FETCH
-  const fetchProducts = useCallback(
-    async (pageNumber = 1) => {
-      if (loading || !hasMore) return;
+  const fetchProducts = useCallback(async (pageNumber = 1) => {
+    if (fetchingRef.current) return;
+    if (!hasMoreRef.current) return;
 
-      try {
-        setLoading(true);
-        if (pageNumber === 1) setInitialLoading(true);
+    try {
+      fetchingRef.current = true;
 
-        const res = await getProducts({
-          page: pageNumber,
-          limit: 10,
-        });
+      setLoading(true);
 
-        const newProducts = res.data?.data || [];
-        const pagination = res.data?.pagination || {};
+      const res = await getProducts({
+        page: pageNumber,
+        limit: 10,
+      });
 
-        setProducts((prev) => {
-          const existing = new Set(prev.map((p) => p._id));
-          const filtered = newProducts.filter((p) => !existing.has(p._id));
-          return [...prev, ...filtered];
-        });
+      const newProducts = res.data?.data || [];
+      const pagination = res.data?.pagination || {};
 
-        if (!pagination.totalPages || pageNumber >= pagination.totalPages) {
-          setHasMore(false);
-        }
+      setProducts((prev) => {
+        const existing = new Set(prev.map((p) => p._id));
 
-        setPage(pageNumber);
-      } catch (err) {
-        setError("Failed to load products");
-      } finally {
-        setLoading(false);
-        setInitialLoading(false);
-      }
-    },
-    [loading, hasMore],
-  );
+        const filtered = newProducts.filter((p) => !existing.has(p._id));
+
+        return [...prev, ...filtered];
+      });
+
+      setHasMore(
+        pagination.totalPages ? pageNumber < pagination.totalPages : false,
+      );
+
+      setPage(pageNumber);
+    } catch (err) {
+      setError("Failed to load products");
+    } finally {
+      fetchingRef.current = false;
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchProducts(1);
@@ -112,19 +118,29 @@ const Home = () => {
 
   const lastProductRef = useCallback(
     (node) => {
-      if (loading || !hasMore) return;
+      if (!hasMore) return;
 
       if (observerRef.current) observerRef.current.disconnect();
 
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          fetchProducts(page + 1);
-        }
-      });
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (
+            entries[0].isIntersecting &&
+            !loading &&
+            hasMore &&
+            !fetchingRef.current
+          ) {
+            fetchProducts(page + 1);
+          }
+        },
+        {
+          rootMargin: "300px",
+        },
+      );
 
       if (node) observerRef.current.observe(node);
     },
-    [loading, hasMore, page, fetchProducts],
+    [hasMore, page, fetchProducts],
   );
 
   return (
@@ -360,7 +376,7 @@ const Home = () => {
         </motion.div>
       </div>
 
-      <div className="w-full min-h-screen bg-white flex flex-col items-center pl-[4.5vw] pr-[4.5vw] dark:bg-[#131313]">
+      <div className="w-full min-h-screen bg-white flex flex-col items-center pl-[4.5vw] pr-[4.5vw] pb-24 lg:pb-0 dark:bg-[#131313]">
         {/* Category section */}
         <div className="flex w-[90vw] flex-col gap-2 lg:gap-4 xl:gap-6 lg:mt-12 mt-5">
           <div className="lg:text-[2vw] xl:text-[1.7vw] md:text-[2.1vw] text-sm">
@@ -457,7 +473,34 @@ const Home = () => {
         </button>
       )} */}
 
-      <Footer />
+      {/* Mobile Floating Sell Button */}
+      <Link
+        to="/upload"
+        aria-label="Sell Product"
+        className="
+          sm:hidden
+          fixed
+          left-1/2
+          -translate-x-1/2
+          bottom-[max(1rem,env(safe-area-inset-bottom))]
+          z-50
+          flex
+          items-center
+          gap-2 rounded-lg bg-[#3838EC]
+          px-5
+          py-3
+          text-base
+          font-semibold
+          text-white
+          shadow-[0_8px_30px_rgba(0,0,0,0.18)]
+          transition-all
+          duration-200
+          active:scale-95
+        "
+      >
+        <span>Sell</span>
+        <FaPlus className="size-3" />
+      </Link>
     </motion.div>
   );
 };

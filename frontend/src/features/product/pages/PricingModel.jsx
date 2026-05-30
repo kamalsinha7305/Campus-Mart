@@ -1,5 +1,5 @@
 import toast, { Toaster } from "react-hot-toast";
-import {useEffect} from "react"
+import { useEffect } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 const PricingModel = () => {
@@ -101,9 +101,9 @@ const PricingModel = () => {
     },
   ];
 
-    useEffect(() => {
-      window.scrollTo(0, 0);
-    }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   // Converts table values into icons, pills, dotted labels, or styled text.
   const renderComparisonValue = (value, plan, row) => {
     if (value === true) {

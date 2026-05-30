@@ -1,48 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Footer from "../../../Components/layout/Footer.jsx";
 import { useNavigate } from "react-router-dom";
-import {
-  Heart,
-  Share2,
-  MessageSquare,
-  Eye,
-  MapPin,
-  ShieldCheck,
-  Clock3,
-} from "lucide-react";
+import { getProducts } from "../api/productApi";
+import { Share2, MessageSquare, Eye, ShieldCheck, Clock3 } from "lucide-react";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
+import ProductCard from "../../../features/product/components/ProductCard.jsx";
 import toast from "react-hot-toast";
-
+import { Expand, Minimize2 } from "lucide-react";
 import { LuMessageSquareText } from "react-icons/lu";
 import { useParams, Link } from "react-router-dom";
 import { IoIosArrowForward } from "react-icons/io";
 import { getProductById } from "../api/productApi";
-import { useWishlist } from "../../../context/useWishlist";
 import { HiOutlineBuildingLibrary } from "react-icons/hi2";
 import { MdLocationPin } from "react-icons/md";
+
 // condition
 import { GoChecklist } from "react-icons/go";
-//color
-import { IoColorPaletteOutline } from "react-icons/io5";
 
-//date of purchase
+// color
+import { IoColorPaletteOutline } from "react-icons/io5";
+import { useWishlist } from "../../../context/useWishlist.js";
+
+// date of purchase
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaArrowRight } from "react-icons/fa6";
 
 const FALLBACK_IMAGE = "/image10.png";
 
 const ProductDescription = () => {
+  const { toggleWishlist, checkProductInWishlist } = useWishlist();
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
 
   const [activeImage, setActiveImage] = useState("");
-
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [similarProducts, setSimilarProducts] = useState([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
 
   const [inWishlist, setInWishlist] = useState(false);
 
-  const { toggleWishlist, checkProductInWishlist } = useWishlist();
+  const [showFloatingCTA, setShowFloatingCTA] = useState(true);
+  const ctaSentinelRef = useRef(null);
+
+  const [isContainMode, setIsContainMode] = useState(false);
+  const productId = product?._id;
   const navigate = useNavigate();
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -66,14 +71,76 @@ const ProductDescription = () => {
   }, [id]);
 
   useEffect(() => {
-    const checkWishlist = async () => {
-      const exists = await checkProductInWishlist(id);
+    let isMounted = true;
 
-      setInWishlist(exists);
+    const checkWishlist = async () => {
+      if (!productId) return;
+
+      try {
+        const inWish = await checkProductInWishlist(productId);
+
+        if (isMounted) {
+          setInWishlist(inWish);
+        }
+      } catch (error) {
+        console.error("Wishlist check failed:", error);
+      }
     };
 
     checkWishlist();
-  }, [id]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productId, checkProductInWishlist]);
+
+  useEffect(() => {
+    const fetchSimilarProducts = async () => {
+      if (!product?.category) return;
+
+      try {
+        setSimilarLoading(true);
+
+        const res = await getProducts({
+          category: product.category,
+        });
+
+        const filteredProducts = (res?.data?.data || [])
+          .filter((item) => item._id !== product._id)
+          .slice(0, 5);
+
+        setSimilarProducts(filteredProducts);
+      } catch (error) {
+        console.log("Failed to fetch similar products", error);
+      } finally {
+        setSimilarLoading(false);
+      }
+    };
+
+    fetchSimilarProducts();
+  }, [product]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ctaSentinelRef.current) return;
+
+      const rect = ctaSentinelRef.current.getBoundingClientRect();
+
+      const triggerPoint = window.innerHeight - 90;
+
+      setShowFloatingCTA(rect.top > triggerPoint);
+    };
+
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -91,6 +158,31 @@ const ProductDescription = () => {
   const savedPricedPercentage = Math.round(
     ((original - selling) / original) * 100,
   );
+
+  const handleWishlistClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!product?._id || wishlistLoading) return;
+
+    setWishlistLoading(true);
+
+    try {
+      const result = await toggleWishlist(product._id, product);
+
+      setInWishlist(result);
+
+      toast.success(result ? "Added to Wishlist" : "Removed from Wishlist", {
+        id: "wishlist-toast",
+      });
+    } catch (error) {
+      toast.error("Failed to update wishlist", {
+        id: "wishlist-error",
+      });
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -142,13 +234,13 @@ const ProductDescription = () => {
     product?.images?.length > 0 ? product.images : [FALLBACK_IMAGE];
 
   return (
-    <div className="w-full min-h-screen bg-[#F7F9FD] font-figtree">
-      <div className="w-full max-w-[1380px] mx-auto px-3 sm:px-4 md:px-5 lg:px-6 xl:px-0 pt-4 md:pt-6 xl:pt-4 text-[#454655]">
+    <div className="w-full min-h-screen bg-[#F7F9FD] font-figtree dark:bg-[#131313]">
+      <div className="pt-4 text-[#454655] mx-auto w-full max-w-[1380px] px-6 sm:px-8 md:px-11 lg:px-14 2xl:px-0">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-sm text-[#454655] mb-4 overflow-x-auto whitespace-nowrap font-semibold">
           <button
             onClick={() => navigate("/")}
-            className="hover:text-[#3838EC] transition-colors"
+            className="hover:text-[#3838EC] dark:text-slate-300 transition-colors"
           >
             Home
           </button>
@@ -157,14 +249,16 @@ const ProductDescription = () => {
 
           <button
             onClick={() => navigate(`/category/${product?.category}`)}
-            className="capitalize font-semibold text-[#454655] hover:text-[#3838EC] transition-colors"
+            className="capitalize font-semibold text-[#454655] dark:text-slate-300 hover:text-[#3838EC] transition-colors"
           >
             {product?.category.replaceAll("_", " ")}
           </button>
 
           <IoIosArrowForward size={12} />
 
-          <span className="font-bold text-black">{product?.title}</span>
+          <span className="font-bold text-black dark:text-white">
+            {product?.title}
+          </span>
         </div>
 
         {/* Main Grid */}
@@ -172,34 +266,30 @@ const ProductDescription = () => {
           {/* LEFT */}
           <div className="flex flex-col gap-4">
             {/* Image Card */}
-            <div className="bg-[#FFFFFF] rounded-xl border border-[#C9D1DC] p-3 md:p-4 xl:p-4">
+            <div className="bg-[#FFFFFF] dark:bg-[#1A1D20] dark:border-0 rounded-xl border border-[#C9D1DC] p-3 md:p-4 xl:p-4">
               {/* Main Image */}
-              <div className="relative overflow-hidden rounded-2xl">
+              <div className="relative overflow-hidden rounded-2xl bg-[#F8FAFC]">
                 <img
                   src={activeImage}
                   alt="Product"
-                  className="w-full aspect-[1/0.93] object-cover"
+                  className={`w-full aspect-[1/0.93] transition-all duration-300 ${
+                    isContainMode ? "object-contain" : "object-cover"
+                  }`}
                 />
+
+                {/* Image Fit Toggle */}
+                <button
+                  onClick={() => setIsContainMode((prev) => !prev)}
+                  className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:scale-105 transition-all duration-200"
+                >
+                  {isContainMode ? (
+                    <Minimize2 size={18} className="text-[#181C1F]" />
+                  ) : (
+                    <Expand size={18} className="text-[#181C1F]" />
+                  )}
+                </button>
                 {/* Top Actions */}
                 <div className="absolute top-3 right-3 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      toggleWishlist(id);
-
-                      setInWishlist(!inWishlist);
-                    }}
-                    className="w-10 h-10 md:w-11 md:h-11 lg:w-9 lg:h-9 rounded-full bg-white shadow-md flex items-center justify-center"
-                  >
-                    <Heart
-                      size={18}
-                      className={`transition-all duration-200 ${
-                        inWishlist
-                          ? "fill-red-500 text-red-500"
-                          : "text-[#181C1F]"
-                      }`}
-                    />
-                  </button>
-
                   <button
                     onClick={handleShare}
                     className="w-10 h-10 md:w-11 md:h-11 lg:w-9 lg:h-9 rounded-full bg-white shadow-md flex items-center justify-center"
@@ -224,21 +314,21 @@ const ProductDescription = () => {
                     <img
                       src={img}
                       alt={`Preview ${index}`}
-                      className="w-full h-full object-fill"
+                      className="w-full h-full object-cover"
                     />
                   </button>
                 ))}
               </div>
 
               {/* Stats */}
-              <div className="mt-4 border border-[#E2E8F0] rounded-xl px-3 bg-[#FFFFFF] py-3 flex flex-wrap items-center justify-between gap-3 text-[13px] md:text-sm text-[#6B7280]">
-                <div className="flex items-center gap-2 text-[#475569] font-medium">
+              <div className="mt-4 border border-[#E2E8F0] rounded-xl px-3 bg-[#FFFFFF] dark:bg-[#131313] dark:border-0 py-3 flex flex-wrap items-center justify-between gap-3 text-[12px] md:text-sm text-[#6B7280]">
+                <div className="flex items-center gap-2 text-[#475569] dark:text-white font-medium">
                   <Eye size={16} className="text-[#2563EB]" />
 
                   <span>{product?.views_count || 0} views</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-[#475569] font-medium">
+                <div className="flex items-center dark:text-white gap-2 text-[#475569] font-medium">
                   <MessageSquare size={16} />
 
                   <span>18 users chatted</span>
@@ -253,8 +343,8 @@ const ProductDescription = () => {
             </div>
 
             {/* Key Details */}
-            <div className="bg-white shadow-sm rounded-xl border border-[#E2E8F0] p-5 md:p-6">
-              <h2 className="text-[24px] md:text-[28px] xl:text-xl font-bold text-[#0F172A] mb-5">
+            <div className="bg-white dark:bg-[#1A1D20] dark:border-0 shadow-sm rounded-xl border border-[#E2E8F0] p-5 md:p-6">
+              <h2 className="text-lg dark:text-white md:text-xl lg:text-xl xl:text-xl font-bold text-[#0F172A] mb-5">
                 Key Details
               </h2>
 
@@ -295,18 +385,21 @@ const ProductDescription = () => {
                     value: product?.attributes?.purchase_date || "N/A",
                   },
                 ].map((item, index) => (
-                  <div key={index} className="flex items-start justify-between">
-                    <div className="flex items-center gap-3 text-[#6B7280]">
+                  <div
+                    key={index}
+                    className="flex items-start justify-between text-sm"
+                  >
+                    <div className="flex items-center gap-3 text-[#6B7280] dark:text-white">
                       <div className="flex items-center justify-center">
                         {item.icon}
                       </div>
 
-                      <span className="text-base text-[#64748B]">
+                      <span className="text-[#64748B] text-sm lg:text-base dark:text-slate-300">
                         {item.label}
                       </span>
                     </div>
 
-                    <span className="capitalize max-w-[180px] text-start text-base font-medium text-[#0F172A]">
+                    <span className="capitalize max-w-[180px] text-start text-sm lg:text-base font-medium text-[#0F172A] dark:text-slate-300">
                       {item.value.replaceAll("_", " ")}
                     </span>
                   </div>
@@ -318,7 +411,7 @@ const ProductDescription = () => {
           {/* RIGHT */}
           <div className="flex flex-col gap-4">
             {/* Product Info */}
-            <div className="bg-white rounded-xl border border-[#C9D1DC] p-5 md:p-7 xl:px-7 xl:py-5">
+            <div className="bg-white rounded-xl border border-[#C9D1DC] p-5 md:p-7 xl:px-7 xl:py-5 dark:bg-[#1A1D20] dark:border-0 dark:text-white">
               {/* Tags */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="bg-[#E9F9EE] text-[#319F43] text-sm font-medium px-4 py-1 rounded-full">
@@ -331,20 +424,20 @@ const ProductDescription = () => {
               </div>
 
               {/* Title */}
-              <h1 className="mt-4 md:mt-5 text-[28px] sm:text-[34px] md:text-[38px] xl:text-4xl leading-[1.1] tracking-[-1px] font-bold text-[#0F172A]">
+              <h1 className="mt-4 md:mt-5 text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-3xl 2xl:text-4xl leading-[1.1] tracking-[-1px] font-bold text-[#0F172A] dark:text-white">
                 {product?.title}
               </h1>
 
               {/* Price */}
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <div className="text-[#3838EC] flex items-center">
-                  <span className="text-[30px] sm:text-[36px] md:text-[42px] xl:text-3xl font-extrabold leading-none">
+                  <span className="text-2xl sm:text-2xl md:text-2xl lg:text-2xl xl:text-2xl 2xl:text-3xl font-extrabold leading-none">
                     ₹{product?.selling_price}
                   </span>
                 </div>
 
                 {product?.original_price && (
-                  <span className="line-through text-[#94A3B8] text-xl md:text-2xl xl:text-xl font-medium">
+                  <span className="line-through text-[#94A3B8] text-lg md:text-2xl xl:text-xl font-medium">
                     ₹{product?.original_price}
                   </span>
                 )}
@@ -360,15 +453,15 @@ const ProductDescription = () => {
                   <img
                     src={product.seller_id?.avatar || FALLBACK_IMAGE}
                     alt="seller"
-                    className="w-9 h-9 rounded-full object-cover"
+                    className="w-7 h-7 lg:w-9 lg:h-9 rounded-full object-cover"
                   />
 
-                  <span className="font-semibold text-[#181C1F]">
+                  <span className="font-semibold text-[#181C1F] text-sm dark:text-white">
                     {product?.seller_id?.name}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 text-[#181C1F] text-sm">
+                <div className="flex items-center gap-1 text-[#181C1F] text-xs dark:text-slate-300">
                   <Clock3 size={16} />
 
                   <span> Listed {getRelativeTime(product?.createdAt)}</span>
@@ -377,28 +470,59 @@ const ProductDescription = () => {
 
               {/* About */}
               <div className="mt-9">
-                <h2 className="text-[26px] md:text-xl font-bold text-[#181C1F]">
+                <h2 className="text-lg md:text-xl font-bold text-[#181C1F] dark:text-white">
                   About This Product
                 </h2>
 
-                <p className="max-w-[820px] mt-3 text-[#454655] text-[14px] sm:text-[15px] md:text-base leading-[1.9] whitespace-pre-line">
+                <p className="max-w-[820px] mt-3 text-[#454655] text-[14px] sm:text-[15px] md:text-base leading-[1.9] whitespace-pre-line dark:text-slate-300">
                   {product?.description}
                 </p>
               </div>
 
+              <div ref={ctaSentinelRef} className="h-px w-full"></div>
+
               {/* CTA */}
-              <Link
-                to={`/chat?seller=${product?.seller_id?._id}`}
-                className="mt-10 h-[55px] rounded-2xl bg-gradient-to-r from-[#2E3FDC] to-[#4B5CF5] flex items-center justify-center gap-3 text-white font-semibold text-base tracking-wider"
+              <div
+                className={`mt-10 flex flex-row items-stretch gap-3 transition-all duration-500 ${
+                  showFloatingCTA ? "opacity-100" : "opacity-100 scale-[1.01]"
+                }`}
               >
-                <LuMessageSquareText size={20} />
-                Chat with Seller
-              </Link>
+                {/* Wishlist */}
+                <button
+                  onClick={handleWishlistClick}
+                  disabled={wishlistLoading}
+                  aria-label={
+                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                  }
+                  className={`h-[55px] w-[60px] rounded-2xl border flex items-center justify-center transition-all duration-300 ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  } ${
+                    inWishlist
+                      ? "bg-[#FFF1F4] border-pink-200"
+                      : "bg-white dark:bg-[#1A1D20] border-[#D6DCE5] dark:border-zinc-700 hover:border-[#3838EC]"
+                  }`}
+                >
+                  {inWishlist ? (
+                    <FaHeart className="text-pink-500 text-lg transition-colors duration-300" />
+                  ) : (
+                    <FaRegHeart className="text-gray-400 hover:text-pink-500 text-lg transition-colors duration-300" />
+                  )}
+                </button>
+
+                {/* Chat */}
+                <Link
+                  to={`/chat?seller=${product?.seller_id?._id}`}
+                  className="flex-1 h-[55px] rounded-2xl bg-gradient-to-r from-[#2E3FDC] to-[#4B5CF5] flex items-center justify-center gap-3 text-white font-semibold text-base tracking-wide shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <LuMessageSquareText size={20} />
+                  Chat with Seller
+                </Link>
+              </div>
             </div>
 
             {/* Pickup & Safety */}
-            <div className="bg-white rounded-xl shadow-sm border border-[#E2E8F0] p-5 md:p-7 xl:px-7 xl:py-5">
-              <h2 className="text-[26px] md:text-xl font-bold text-[#111827] mb-7">
+            <div className="bg-white dark:bg-[#1A1D20] dark:border-0 rounded-xl shadow-sm border border-[#E2E8F0] p-5 md:p-7 xl:px-7 xl:py-5">
+              <h2 className="text-lg md:text-xl font-bold text-[#111827] dark:text-white mb-7">
                 Pickup & Safety
               </h2>
 
@@ -412,9 +536,11 @@ const ProductDescription = () => {
                   </div>
 
                   <div>
-                    <p className="text-[#64748B] text-sm">Campus Location</p>
+                    <p className="text-[#64748B] text-sm dark:text-slate-300">
+                      Campus Location
+                    </p>
 
-                    <h4 className="mt-1 font-semibold text-[#0F172A] text-base">
+                    <h4 className="mt-1 font-semibold text-[#0F172A] text-base dark:text-white">
                       VIT Vellore
                     </h4>
                   </div>
@@ -426,9 +552,11 @@ const ProductDescription = () => {
                   </div>
 
                   <div>
-                    <p className="text-[#64748B] text-sm">Meetup Point</p>
+                    <p className="text-[#64748B] text-sm dark:text-slate-300">
+                      Meetup Point
+                    </p>
 
-                    <h4 className="mt-1 font-semibold text-[#0F172A] text-base">
+                    <h4 className="mt-1 font-semibold text-[#0F172A] text-base dark:text-white">
                       {product.pickup_address_snapshot?.address_line} <br />
                       {product.pickup_address_snapshot?.city}
                       <br />
@@ -441,17 +569,17 @@ const ProductDescription = () => {
               </div>
 
               {/* Safety Box */}
-              <div className="mt-7 rounded-2xl bg-[#F5F6FF] border border-[#F1F5F9] p-5 flex gap-4">
+              <div className="mt-7 rounded-2xl bg-[#F5F6FF] dark:bg-[#131313] dark:border-0 border border-[#F1F5F9] p-5 flex gap-4">
                 <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center">
                   <ShieldCheck size={22} className="text-[#3838EC]" />
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-[#3838EC] text-lg">
+                  <h4 className="font-semibold text-[#3838EC] text-base">
                     Safe campus-only exchange
                   </h4>
 
-                  <p className="mt-1 text-[#666] leading-7">
+                  <p className="mt-1 text-[#666] leading-7 dark:text-slate-300">
                     Meet in public places. Avoid sharing personal details.
                   </p>
                 </div>
@@ -463,55 +591,68 @@ const ProductDescription = () => {
         {/* Similar Products */}
         <div className="w-full mt-12 mb-12">
           <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-[26px] md:text-xl font-bold text-[#0F172A]">
+            <h2 className="text-lg md:text-xl font-bold text-[#0F172A] dark:text-white">
               You might also like
             </h2>
 
-            <button className="text-[#2563EB] text-sm md:text-base font-semibold whitespace-nowrap capitalize flex items-center gap-2">
+            <button
+              onClick={() => navigate(`/category/${product?.category}`)}
+              className="text-[#2563EB] text-sm md:text-base font-semibold whitespace-nowrap capitalize flex items-center gap-2"
+            >
               Browse all {product?.category?.replaceAll("_", " ")}{" "}
               <FaArrowRight />
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-5">
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div
-                key={item}
-                className="bg-white rounded-[20px] border border-[#ECECEC] overflow-hidden hover:-translate-y-1 transition-all duration-200"
-              >
-                <div className="relative">
-                  <img
-                    src="/image10.png"
-                    alt=""
-                    className="w-full aspect-square object-cover"
-                  />
+          {!similarLoading && similarProducts.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-zinc-500">No similar products available</p>
+            </div>
+          )}
 
-                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center">
-                    <Heart size={16} />
-                  </button>
-                </div>
-
-                <div className="p-4">
-                  <h3 className="line-clamp-2 font-semibold text-[15px] text-[#111827]">
-                    Dell XPS 15 Laptop
-                  </h3>
-
-                  <p className="mt-2 text-[#4F46E5] text-xl font-bold">
-                    ₹1,15,000
-                  </p>
-
-                  <div className="mt-2 flex items-center gap-1 text-[#777] text-sm">
-                    <MapPin size={14} />
-
-                    <span>Main Canteen</span>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+            {similarProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         </div>
       </div>
-      <Footer />
+
+      <div
+        className={`sm:hidden fixed bottom-4 left-4 right-4 z-50 transform-gpu will-change-transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          showFloatingCTA
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-8 pointer-events-none"
+        }`}
+      >
+        <div className="flex gap-3">
+          {/* Wishlist */}
+          <button
+            onClick={handleWishlistClick}
+            disabled={wishlistLoading}
+            className={`h-[56px] w-[60px] rounded-2xl backdrop-blur-xl border shadow-xl flex items-center justify-center ${
+              inWishlist
+                ? "bg-[#FFF1F4] border-pink-200"
+                : "bg-white/95 border-white/50"
+            }`}
+          >
+            {inWishlist ? (
+              <FaHeart className="text-pink-500 text-lg" />
+            ) : (
+              <FaRegHeart className="text-gray-500 text-lg" />
+            )}
+          </button>
+
+          {/* Chat */}
+          <Link
+            to={`/chat?seller=${product?.seller_id?._id}`}
+            className="flex-1 h-[56px] rounded-2xl bg-gradient-to-r from-[#2E3FDC] to-[#4B5CF5] shadow-[0_12px_30px_rgba(46,63,220,0.35)] flex items-center justify-center gap-3 text-white font-semibold"
+          >
+            <LuMessageSquareText size={20} />
+            Chat with Seller
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

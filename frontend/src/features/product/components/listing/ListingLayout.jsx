@@ -55,7 +55,7 @@ const ListingLayout = () => {
           }}
           className="group inline-flex items-center gap-1 text-sm lg:text-base font-medium text-[#090A0B] dark:text-white"
         >
-          <div className="flex items-center justify-center w-8 h-8  bg-white dark:bg-[#1A1A1A] transition-all duration-200 group-hover:text-[#4F46E5]">
+          <div className="flex items-center justify-center w-8 h-8 group-hover:text-[#4F46E5]">
             <IoArrowBack className="size-4" />
           </div>
 
