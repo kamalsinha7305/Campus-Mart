@@ -93,7 +93,7 @@ const CategoryPage = () => {
             min={0}
             max={1000}
             value={priceRange}
-            onChange={(value) => setPriceRange(value)}
+            onAfterChange={(value) => setPriceRange(value)}
             minDistance={50}
           />
         </div>
