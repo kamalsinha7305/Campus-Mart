@@ -194,11 +194,11 @@ function ContactUs() {
       />
       {loading && <Loading />}
 
-      <div className="min-h-screen bg-[#FBFBFB] dark:bg-[#131313]">
+      <div className="min-h-screen bg-[#F7F9FD] dark:bg-[#131313] font-figtree">
         <div className="flex min-h-[calc(100vh-70px)]">
-        <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[25%] 2xl:w-[25%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-5  xl:pb-0 rounded-2xl lg:my-5 lg:ml-7">
-          <Profile_left_part />
-        </div>
+          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
+            <Profile_left_part />
+          </div>
 
           <main className="w-full overflow-y-auto bg-[#FBFBFB] px-4 py-6 dark:bg-[#131313] md:w-[63%] md:px-7 lg:w-[72%] xl:w-[73.5%] xl:px-10">
             <div className="mx-auto max-w-6xl">

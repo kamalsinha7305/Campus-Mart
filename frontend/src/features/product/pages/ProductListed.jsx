@@ -73,23 +73,23 @@ function ProductListed() {
   };
 
   return (
-    <div className="h-screen w-full dark:bg-[#131313] flex flex-col">
-      <div className="flex-1 lg:flex md:flex overflow-hidden">
+    <div className="w-full h-screen overflow-hidden dark:bg-[#131313] bg-[#F7F9FD] font-figtree">
+      <div className="flex h-[calc(100vh-70px)] ">
         {/* LEFT PANEL */}
-        <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[25%] 2xl:w-[25%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-5  xl:pb-0 rounded-2xl lg:my-5 lg:ml-7">
+        <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
           <Profile_left_part />
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="h-full w-full md:w-[63%] lg:w-[72%] xl:w-[73.5%] overflow-y-auto no-scrollbar bg-[#FBFBFB] dark:bg-[#131313] p-6 lg:p-10">
+        <div className="h-full md:w-[63%] lg:w-[72%] xl:w-[79.5%] 2xl:w-[79.5%] overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[10vh] xl:py-6 2xl:px-0">
           <div className="max-w-4xl mx-auto">
             {/* 1. Page Header */}
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h1 className="text-[1.4rem] lg:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                <h1 className="text-[1.4rem] lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 xl:text-xl">
                   My Listings
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                   {
                     products.filter(
                       (p) =>
@@ -100,20 +100,20 @@ function ProductListed() {
                   active · {products.length} total
                 </p>
               </div>
-              <button className="bg-[#364EF2] hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-sm shadow-blue-500/20">
+              <button className="bg-[#3838EC] hover:bg-blue-700 text-white px-3 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-sm shadow-blue-500/20">
                 <FiPlus size={18} />
                 List New Product
               </button>
             </div>
 
             {/* 2. Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
                 <div className="text-gray-400 dark:text-gray-500">
                   <FiEye size={20} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                  <div className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                     1,380
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -121,12 +121,12 @@ function ProductListed() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
                 <div className="text-gray-400 dark:text-gray-500">
                   <FiHeart size={20} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                  <div className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                     62
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -134,12 +134,12 @@ function ProductListed() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+              <div className="bg-white dark:bg-[#1c1c1c] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
                 <div className="text-gray-400 dark:text-gray-500">
                   <FiMessageSquare size={20} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                  <div className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                     17
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -155,7 +155,7 @@ function ProductListed() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-[0.45rem] rounded-xl text-sm font-medium transition-colors ${
                     activeTab === tab
                       ? "bg-[#1A1D20] text-white dark:bg-white dark:text-black shadow-md"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"

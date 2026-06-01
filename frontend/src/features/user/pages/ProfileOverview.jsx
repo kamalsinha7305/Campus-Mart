@@ -1,0 +1,466 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import Profile_left_part from "../components/Profile_left_part.jsx";
+
+// React Icons Imports
+import {
+  FiMapPin,
+  FiCalendar,
+  FiClock,
+  FiShoppingBag,
+  FiPackage,
+  FiHeart,
+  FiEye,
+  FiArrowUpRight,
+  FiChevronRight,
+} from "react-icons/fi";
+import { FaStar, FaBolt } from "react-icons/fa";
+import { MdCheckCircle } from "react-icons/md";
+
+function ProfileOverview() {
+  return (
+    <div className="w-full h-screen overflow-hidden dark:bg-[#131313] bg-[#F7F9FD] font-figtree">
+      <div className="flex h-[calc(100vh-70px)] ">
+        {/* LEFT PANEL */}
+        <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
+          <Profile_left_part />
+        </div>
+
+        {/* RIGHT PANEL */}
+        <div className="h-full md:w-[63%] lg:w-[72%] xl:w-[79.5%] 2xl:w-[79.5%] overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[10vh] xl:py-6 2xl:px-0">
+          <div className="max-w-5xl mx-auto space-y-7 pb-2">
+            {/* 1. PROFILE HEADER CARD */}
+            <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              {/* Left Section: Avatar + Text Information */}
+              <div className="flex items-center gap-6">
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <img
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Anurag&backgroundColor=b6e3f4"
+                    alt="Profile"
+                    className="w-[7vw] h-[14vh] rounded-2xl object-cover bg-sky-100 border-4 border-white dark:border-[#1c1c1c]"
+                  />
+                  {/* Active Dot */}
+                  <div className="absolute -bottom-1 -right-1 w-[1.5vw] h-[3vh] bg-[#00BA5E] rounded-full border-[3px] border-white dark:border-[#1c1c1c]"></div>
+                </div>
+
+                {/* Text Information Column */}
+                <div className="flex flex-col">
+                  {/* Row 1: Name & Badge */}
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-none">
+                      Kamal Sinha
+                    </h1>
+                    <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full text-[0.68rem] font-semibold">
+                      <MdCheckCircle size={13} />
+                      Verified Student
+                    </div>
+                  </div>
+
+                  {/* Row 2: Location & Date */}
+                  <div className="flex items-center gap-5 text-[0.85rem] text-gray-400 dark:text-gray-400">
+                    <div className="flex items-center gap-1.5">
+                      <FiMapPin size={15} className="text-indigo-500/70" />
+                      VIT Vellore
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <FiCalendar size={15} className="text-gray-400" />
+                      Member since October 2022
+                    </div>
+                  </div>
+
+                  {/* Row 3: The Divider Line (Now contained within the text block) */}
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-800 my-3.5"></div>
+
+                  {/* Row 4: Stats */}
+                  <div className="flex items-center gap-7 text-[0.92rem] font-semibold text-gray-900 dark:text-gray-100">
+                    <div className="flex items-center gap-2">
+                      <FaStar size={16} className="text-orange-400" />
+                      <span>
+                        4.8{" "}
+                        <span className="text-gray-400 font-normal ml-[0.4vh]">
+                          Trust Score
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-">
+                      <FaBolt
+                        size={16}
+                        className="text-indigo-600 dark:text-indigo-400"
+                      />
+                      <span>
+                        94%{" "}
+                        <span className="text-gray-400 font-normal ml-[0.4vh]">
+                          Response Rate
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiClock size={16} className="text-gray-400" />
+                      <span>
+                        &lt; 1 hour{" "}
+                        <span className="text-gray-400 font-normal ml-[0.4vh]">
+                          Avg Response
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Section: Edit Profile Button */}
+              <Link
+                to="/settings"
+                className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-6 py-2.5 rounded-xl text-[0.82rem] font-semibold transition-colors shrink-0"
+              >
+                Edit Profile
+              </Link>
+            </div>
+            {/* 2. YOUR ACTIVITY SECTION */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
+                Your Activity
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Card 1 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl px-5 py-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-green-100 dark:bg-green-900/20 p-2.5 rounded-xl text-green-500 ">
+                      <FiShoppingBag size={20} />
+                    </div>
+                    <span className="text-xs font-semibold text-green-500  flex items-center gap-1">
+                      <FiArrowUpRight size={14} /> +3 this month
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    12
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Products Sold
+                  </p>
+                </div>
+
+                {/* Card 2 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5  shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-xl text-indigo-600 dark:text-indigo-400">
+                      <FiPackage size={20} />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    8
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Active Listings
+                  </p>
+                </div>
+
+                {/* Card 3 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5  shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-pink-100 dark:bg-pink-900/20 p-2.5 rounded-xl text-pink-500 ">
+                      <FiHeart size={20} />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    23
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Wishlist Saved
+                  </p>
+                </div>
+
+                {/* Card 4 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5  shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl text-blue-600 dark:text-blue-400">
+                      <FiEye size={20} />
+                    </div>
+                    <span className="text-xs font-semibold text-green-500  flex items-center gap-1">
+                      <FiArrowUpRight size={14} /> +24 this week
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    341
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Profile Views
+                  </p>
+                </div>
+
+                {/* Card 5 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5  shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-yellow-100 dark:bg-yellow-900/20 p-2.5 rounded-xl text-yellow-400 dark:text-yellow-400">
+                      <FaStar size={18} />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    4.8
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Avg Rating
+                  </p>
+                </div>
+
+                {/* Card 6 */}
+                <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5  shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl text-blue-600 dark:text-blue-400">
+                      <FiClock size={20} />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                    &lt; 1 hour
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Response Time
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. RECENT ORDERS */}
+            <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Recent Orders
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Your latest transactions
+                  </p>
+                </div>
+                <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline">
+                  View all <FiArrowUpRight size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Order 1 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=150&q=80"
+                      alt="Sony Headphones"
+                      className="w-12 h-12 rounded-xl object-cover bg-gray-100"
+                    />
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Sony WH-1000XM4 Headphones
+                      </h4>
+                      <p className="text-xs text-gray-400">
+                        #130525-01 · 13-05-2025
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                      ₹750
+                    </p>
+                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 px-2 py-1 rounded-md">
+                      In Progress
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-gray-200 dark:bg-gray-800/50"></div>
+
+                {/* Order 2 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=150&q=80"
+                      alt="MacBook"
+                      className="w-12 h-12 rounded-xl object-cover bg-gray-100"
+                    />
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        MacBook Pro M1
+                      </h4>
+                      <p className="text-xs text-gray-400">
+                        #ORD-23 · 10-03-2024
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                      ₹72,000
+                    </p>
+                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 px-2 py-1 rounded-md">
+                      Delivered
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. BOTTOM GRID (Chats & Saved Items) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Chats */}
+              <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+                <div className="flex justify-between items-center mb-5">
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Recent Chats
+                  </h2>
+                  <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                    View all
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul"
+                        alt="Rahul"
+                        className="w-10 h-10 rounded-full bg-red-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          Rahul Kumar
+                        </h4>
+                        <p className="text-xs text-gray-500 truncate w-40 sm:w-56">
+                          Is the MacBook still available? Can we meet tomorrow?
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400">3h ago</span>
+                  </div>
+
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-800/50"></div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Priya"
+                        alt="Priya"
+                        className="w-10 h-10 rounded-full bg-pink-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          Priya Singh
+                        </h4>
+                        <p className="text-xs text-gray-500 truncate w-40 sm:w-56">
+                          Thanks! I'll pick it up this evening.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400">5h ago</span>
+                  </div>
+
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-800/50"></div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun"
+                        alt="Arjun"
+                        className="w-10 h-10 rounded-full bg-green-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          Arjun Sharma
+                        </h4>
+                        <p className="text-xs text-gray-500 truncate w-40 sm:w-56">
+                          Can you reduce the price a bit?
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400">1d ago</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Saved Items */}
+              <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+                <div className="flex justify-between items-center mb-5">
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Saved Items
+                  </h2>
+                  <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                    View all
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-center justify-between group cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=150&q=80"
+                        alt="iPad"
+                        className="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                          iPad Pro 11-inch (3rd Gen)
+                        </h4>
+                        <p className="text-xs font-bold text-blue-600">
+                          ₹32,000
+                        </p>
+                      </div>
+                    </div>
+                    <FiChevronRight
+                      size={16}
+                      className="text-gray-400 group-hover:text-blue-600 transition-colors"
+                    />
+                  </div>
+
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-800/50"></div>
+
+                  <div className="flex items-center justify-between group cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=150&q=80"
+                        alt="Headphones"
+                        className="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                          Sony WH-1000XM4 Headphones
+                        </h4>
+                        <p className="text-xs font-bold text-blue-600">
+                          ₹14,500
+                        </p>
+                      </div>
+                    </div>
+                    <FiChevronRight
+                      size={16}
+                      className="text-gray-400 group-hover:text-blue-600 transition-colors"
+                    />
+                  </div>
+
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-800/50"></div>
+
+                  <div className="flex items-center justify-between group cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="https://images.unsplash.com/photo-1662947278385-e10b659c4021?w=150&q=80"
+                        alt="Fold"
+                        className="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                      />
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                          Samsung Galaxy Z Fold3
+                        </h4>
+                        <p className="text-xs font-bold text-blue-600">
+                          ₹1,70,000
+                        </p>
+                      </div>
+                    </div>
+                    <FiChevronRight
+                      size={16}
+                      className="text-gray-400 group-hover:text-blue-600 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ProfileOverview;

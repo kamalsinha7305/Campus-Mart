@@ -41,9 +41,10 @@ function Wishlist() {
 
   return (
     <>
-      <div className="w-screen h-screen overflow-hidden dark:bg-[#131313]">
-        <div className="flex h-[calc(100vh-70px)]">
-          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[25%] 2xl:w-[25%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-5  xl:pb-0 rounded-2xl lg:my-5 lg:ml-7">
+      <div className="w-full h-screen overflow-hidden dark:bg-[#131313] bg-[#F7F9FD] font-figtree">
+        <div className="flex h-[calc(100vh-70px)] ">
+          {/* LEFT PANEL */}
+          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
             <Profile_left_part />
           </div>
 

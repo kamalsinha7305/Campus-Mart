@@ -6,12 +6,11 @@ function Termscondition() {
   const { userDetails } = useUser();
 
   return (
-    <div className="h-screen w-full dark:bg-[#131313] flex flex-col font-poppins">
+    <div className="h-screen w-full dark:bg-[#131313] flex flex-col bg-[#F7F9FD] font-figtree">
       <div className="flex-1 lg:flex md:flex overflow-hidden">
-        
         {/* LEFT PANEL - Only render if user exists */}
         {userDetails?._id ? (
-          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[26%] pt-[3.5vh] pl-[2vw] pr-[1.75vw] pb-[2vh] bg-[#FBFBFB] dark:bg-[#131313] xl:pt-[2.5vh] xl:-mr-4 xl:pb-0">
+          <div className="hidden md:block md:w-[37%] lg:w-[28%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0">
             <Profile_left_part />
           </div>
         ) : null}
@@ -29,7 +28,6 @@ function Termscondition() {
             <LegalDocument initialType="privacy" />
           </div>
         </div>
-        
       </div>
     </div>
   );

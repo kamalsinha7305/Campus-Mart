@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  FiEye, FiHeart, FiMessageSquare, FiEdit2, 
-  FiEyeOff, FiTrash2, FiRefreshCw 
+import {
+  FiEye,
+  FiHeart,
+  FiMessageSquare,
+  FiEdit2,
+  FiEyeOff,
+  FiTrash2,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { IoRocketOutline } from "react-icons/io5";
 
@@ -38,7 +43,10 @@ const OrderCard = ({
   const [isRelisting, setIsRelisting] = useState(false);
 
   const normalized = (status || "").toLowerCase().trim();
-  const isActive = normalized === "listed" || normalized === "active" || normalized === "in progress";
+  const isActive =
+    normalized === "listed" ||
+    normalized === "active" ||
+    normalized === "in progress";
   const isUnlisted = normalized === "unlisted";
   const isDelivered = normalized === "delivered" || normalized === "sold";
 
@@ -88,14 +96,13 @@ const OrderCard = ({
   };
 
   return (
-    <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden font-poppins">
-      
+    <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden font-figtree">
       {/* 1. HEADER */}
-      <div className="px-6 py-3.5 border-b border-gray-50 dark:border-gray-800/50 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-6 py-3.5 border-b bg-gray-100 border-gray-50 dark:border-gray-800/50 flex flex-wrap items-center justify-between gap-3">
         <div className="text-[13px] font-semibold text-gray-800 dark:text-gray-200">
           {isActive ? `#product id : ${orderId}` : `#Order id : ${orderId}`}
         </div>
-        
+
         {isActive ? (
           <div className="bg-[#E6FFEB] text-[#008526] dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase">
             ACTIVE
@@ -109,7 +116,6 @@ const OrderCard = ({
 
       {/* 2. BODY */}
       <div className="p-6 pb-5 flex flex-col sm:flex-row justify-between gap-4">
-        
         <div className="flex items-start gap-4">
           <img
             className="w-[84px] h-[84px] rounded-xl object-cover bg-gray-100 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
@@ -127,17 +133,25 @@ const OrderCard = ({
             {/* Dynamic Status Row below title */}
             {isActive ? (
               <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 mt-3 font-medium">
-                <span className="flex items-center gap-1.5"><FiEye size={14}/> 320</span>
-                <span className="flex items-center gap-1.5"><FiHeart size={14}/> 12</span>
-                <span className="flex items-center gap-1.5"><FiMessageSquare size={14}/> 3</span>
+                <span className="flex items-center gap-1.5">
+                  <FiEye size={14} /> 320
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FiHeart size={14} /> 12
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FiMessageSquare size={14} /> 3
+                </span>
               </div>
             ) : (
               <div className="mt-3">
-                <span className={`px-3 py-1 rounded-lg text-[11px] font-bold ${
-                  isDelivered 
-                    ? "bg-[#E6FFEB] text-[#008526] dark:bg-emerald-900/20 dark:text-emerald-400" 
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                }`}>
+                <span
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold ${
+                    isDelivered
+                      ? "bg-[#E6FFEB] text-[#008526] dark:bg-emerald-900/20 dark:text-emerald-400"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                  }`}
+                >
                   {isDelivered ? "Delivered" : "Unlisted"}
                 </span>
               </div>
@@ -146,23 +160,33 @@ const OrderCard = ({
         </div>
 
         <div className="text-left sm:text-right self-end sm:self-start">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Price</div>
-          <div className="text-lg font-bold text-gray-900 dark:text-white">₹{price}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Total Price
+          </div>
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
+            ₹{price}
+          </div>
           {isActive && (
-            <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">1 week ago</div>
+            <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+              1 week ago
+            </div>
           )}
         </div>
-
       </div>
 
       {/* 3. FOOTER ACTIONS */}
-      <div className={`px-6 py-4 bg-gray-50/30 dark:bg-[#1A1D20]/30 border-t border-gray-50 dark:border-gray-800/50 flex flex-wrap items-center gap-3 ${
-        isActive ? 'justify-between' : isDelivered ? 'justify-between' : 'justify-end'
-      }`}>
-        
+      <div
+        className={`px-6 py-4 bg-gray-50/30 dark:bg-[#1A1D20]/30 border-t border-gray-50 dark:border-gray-800/50 flex flex-wrap items-center gap-3 ${
+          isActive
+            ? "justify-between"
+            : isDelivered
+              ? "justify-between"
+              : "justify-end"
+        }`}
+      >
         {isActive && (
           <>
-            <button className="px-4 py-2 bg-[#364EF2] text-white rounded-lg text-[13px] font-medium hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 flex items-center gap-2">
+            <button className="px-4 py-2 bg-[#3838EC] text-white rounded-lg text-[13px] font-medium hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 flex items-center gap-2">
               <IoRocketOutline size={16} />
               Boost Visibility
             </button>
@@ -171,7 +195,7 @@ const OrderCard = ({
                 <FiEdit2 size={14} />
                 Edit Details
               </button>
-              <button 
+              <button
                 onClick={() => setUnlistModalOpen(true)}
                 disabled={isUnlisting}
                 className="px-4 py-2 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-[13px] font-medium hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -179,7 +203,7 @@ const OrderCard = ({
                 <FiEyeOff size={14} />
                 {isUnlisting ? "..." : "Unlist"}
               </button>
-              <button 
+              <button
                 onClick={() => setDeleteModalOpen(true)}
                 disabled={isDeleting}
                 className="px-4 py-2 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-gray-700 text-red-500 rounded-lg text-[13px] font-medium hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -193,7 +217,7 @@ const OrderCard = ({
 
         {isUnlisted && (
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setRelistModalOpen(true)}
               disabled={isRelisting}
               className="px-4 py-2 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-gray-700 text-[#364EF2] dark:text-blue-400 rounded-lg text-[13px] font-medium hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -201,7 +225,7 @@ const OrderCard = ({
               <FiRefreshCw size={14} />
               {isRelisting ? "..." : "Relist Product"}
             </button>
-            <button 
+            <button
               onClick={() => setDeleteModalOpen(true)}
               disabled={isDeleting}
               className="p-2.5 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-gray-700 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50"
