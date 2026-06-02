@@ -502,9 +502,9 @@ function Settings() {
                   type="button"
                   onClick={handleAddAddress}
                   disabled={addresses.length >= 3}
-                  className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-[#EEF0FF] text-base font-semibold text-[#4F46FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-5 flex h-10 w-full items-center justify-center rounded-xl bg-[#EEF0FF] text-sm font-semibold text-[#4F46FF] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Plus size={18} />
+                  <Plus size={16} className="mr-1.5" />
                   Add new address
                 </button>
               </section>
@@ -512,8 +512,8 @@ function Settings() {
 
             {activeTab === "Pickup Spots" && (
               <section className="max-w-[770px]">
-                <div className="mb-5 flex gap-4 rounded-2xl border border-[#CDD2FF] bg-[#F0F1FF] p-5 text-sm leading-7 text-[#526071]">
-                  <MapPin className="mt-1 shrink-0 text-[#4F46FF]" size={18} />
+                <div className="mb-5 flex gap-4 rounded-2xl border border-[#CDD2FF] bg-[#F0F1FF] p-3 text-sm leading-7 text-[#526071]">
+                  <MapPin className="mt-1 shrink-0 text-[#4F46FF]" size={15} />
                   <p>
                     Pickup spots are shared with buyers when they message you.
                     Set familiar campus locations so meetups are easy and safe.
@@ -521,7 +521,9 @@ function Settings() {
                 </div>
 
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1c1c1c]">
-                  <h2 className="mb-5 text-lg font-bold">Your pickup spots</h2>
+                  <h2 className="mb-5 text-base font-bold">
+                    Your pickup spots
+                  </h2>
                   <div className="space-y-4">
                     {pickupSpots.map((spot) => (
                       <div
@@ -534,38 +536,36 @@ function Settings() {
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                            className={`flex h-8 w-8 items-center justify-center rounded-xl ${
                               spot.isPrimary
                                 ? "bg-[#554BFF] text-white"
                                 : "bg-[#E9ECF3] text-[#98A1B2]"
                             }`}
                           >
-                            <MapPin size={18} />
+                            <MapPin size={16} />
                           </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-3">
-                              <h3 className="text-base font-bold">
-                                {spot.name}
-                              </h3>
+                              <h3 className="text-sm font-bold">{spot.name}</h3>
                               {spot.isPrimary && (
-                                <span className="rounded-full bg-[#5B4DFF] px-2.5 py-1 text-xs font-bold text-white">
+                                <span className="rounded-lg bg-[#5B4DFF] px-2 py-1 text-[0.65rem] font-medium text-white">
                                   Primary
                                 </span>
                               )}
                             </div>
-                            <p className="mt-1 text-sm font-medium text-[#98A1B2]">
+                            <p className="mt-1 text-xs font-medium text-[#98A1B2]">
                               {spot.detail}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-5">
                           {!spot.isPrimary && (
-                            <button className="text-sm font-semibold text-[#4F46FF]">
+                            <button className="text-xs font-semibold text-[#4F46FF]">
                               Set primary
                             </button>
                           )}
                           <button className="text-[#98A1B2]">
-                            <Trash2 size={17} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
@@ -575,9 +575,9 @@ function Settings() {
 
                 <button
                   type="button"
-                  className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-[#EEF0FF] text-base font-semibold text-[#4F46FF]"
+                  className="mt-5 flex h-10 w-full items-center justify-center rounded-xl bg-[#EEF0FF] text-sm font-semibold text-[#4F46FF]"
                 >
-                  <Plus size={18} />
+                  <Plus size={16} className="mr-1.5" />
                   Add pickup spot
                 </button>
                 <p className="mt-5 flex gap-2 text-sm font-medium text-[#98A1B2]">
@@ -591,16 +591,16 @@ function Settings() {
             {activeTab === "Verification" && (
               <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1c1c1c]">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#DCFCE7] text-[#16A34A]">
-                    <Shield size={22} />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#16A34A]">
+                    <Shield size={18} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold">
+                    <h2 className="text-base font-bold">
                       {userDetails?.is_email_verified
                         ? "Email verified"
                         : "Verification pending"}
                     </h2>
-                    <p className="mt-1 text-sm text-[#98A1B2]">
+                    <p className=" text-xs text-[#98A1B2]">
                       Student verification workflow is not available here yet.
                     </p>
                   </div>
@@ -673,59 +673,62 @@ function AddressCard({ address, index, onEdit, onDelete, onSetDefault }) {
 
   return (
     <article
-      className={`min-h-[190px] rounded-2xl border bg-white p-5 shadow-sm dark:bg-[#1c1c1c] ${
+      className={`rounded-2xl border bg-white px-5 py-4 shadow-sm dark:bg-[#1c1c1c] ${
         address.isDefault
           ? "border-[#514BFF] ring-2 ring-[#514BFF]"
           : "border-[#E2E6EF]"
       }`}
     >
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="mb-1 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2">
           <Icon
-            size={19}
+            size={15}
             className={address.isDefault ? "text-[#4F46FF]" : "text-[#98A1B2]"}
           />
-          <h3 className="text-base font-bold">{title}</h3>
+          <h3 className="text-[0.95rem] font-semibold tracking-wide ">
+            {title}
+          </h3>
         </div>
         {address.isDefault ? (
-          <span className="rounded-full bg-[#DDFBE9] px-3 py-1 text-xs font-bold text-[#16A34A]">
+          <span className="rounded-lg bg-[#DDFBE9] px-2.5 py-0.5 text-xs font-semibold text-[#16A34A]">
             Primary
           </span>
         ) : (
           <button
             type="button"
             onClick={onSetDefault}
-            className="text-sm font-semibold text-[#4F46FF]"
+            className="text-xs font-semibold text-[#4F46FF]"
           >
             Set primary
           </button>
         )}
       </div>
 
-      <div className="min-h-[70px] space-y-1.5 text-sm leading-6 text-[#334155] dark:text-[#D7D7D7]">
+      <div className="min-h-[70px] text-[0.85rem] leading-6 text-[#334155] dark:text-[#D7D7D7]">
         <p>{address.line1}</p>
         {address.line2 && <p>{address.line2}</p>}
         <p>
           {address.city}, {address.state} {address.pincode}
         </p>
       </div>
-
-      <button
-        type="button"
-        onClick={onEdit}
-        className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#4B5563] dark:text-[#D7D7D7]"
-      >
-        <Pencil size={16} />
-        Edit
-      </button>
-      <button
-        type="button"
-        onClick={onDelete}
-        className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#EF4444]"
-      >
-        <Trash2 size={15} />
-        Delete
-      </button>
+      <div className="flex justify-between mt-4">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-2 text-xs font-semibold text-[#4B5563] dark:text-[#D7D7D7]"
+        >
+          <Pencil size={14} />
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex items-center gap-2 text-xs font-semibold text-[#EF4444]"
+        >
+          <Trash2 size={14} />
+          Delete
+        </button>
+      </div>
     </article>
   );
 }
