@@ -14,6 +14,9 @@ import { HiOutlineBuildingLibrary } from "react-icons/hi2";
 import { MdLocationPin } from "react-icons/md";
 import AvatarComponent from "../../../Components/common/AvatarComponent.jsx";
 import { motion } from "framer-motion";
+import { FaWhatsapp, FaTelegram, FaLink } from "react-icons/fa";
+
+import { IoClose } from "react-icons/io5";
 // condition
 import { GoChecklist } from "react-icons/go";
 
@@ -32,13 +35,13 @@ const ProductDescription = () => {
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
-
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [activeImage, setActiveImage] = useState("");
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
-
+  const [copied, setCopied] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
 
   const staticCTARef = useRef(null);
@@ -46,6 +49,7 @@ const ProductDescription = () => {
   const [isContainMode, setIsContainMode] = useState(false);
   const productId = product?._id;
   const navigate = useNavigate();
+
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -173,17 +177,60 @@ const ProductDescription = () => {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
+  const getShareData = () => {
+    const shareUrl = `${window.location.origin}/product/${product._id}`;
 
-      toast.success("Product link copied");
-    } catch (error) {
-      console.log(error);
+    const title = product?.title || "Product";
 
-      toast.error("Failed to copy link");
-    }
+    const text = `🎓 Found this on Unideals
+
+${title}
+₹${product?.selling_price}
+
+Available on campus.
+
+${shareUrl}`;
+
+    return {
+      title,
+      text,
+      url: shareUrl,
+    };
   };
+
+  // const handleShare = async () => {
+  //   const shareData = getShareData();
+
+  //   try {
+  //     if (navigator.share) {
+  //       await navigator.share(shareData);
+
+  //       toast.success("Shared successfully");
+
+  //       return;
+  //     }
+
+  //     await navigator.clipboard.writeText(shareData.url);
+
+  //     toast.success("Link copied to clipboard");
+  //   } catch (error) {
+  //     if (error?.name !== "AbortError") {
+  //       toast.error("Unable to share product");
+  //     }
+  //   }
+  // };
+
+  const shareUrl = `${window.location.origin}/product/${product?._id}`;
+
+  const shareText = `🎓 Found this on Unideals
+
+📦 ${product?.title}
+💰 ₹${product?.selling_price}
+
+Available for pickup on campus.
+
+${shareUrl}`;
+
   const original = Number(product?.original_price);
   const selling = Number(product?.selling_price);
   const savedPricedPercentage = Math.round(
@@ -240,8 +287,6 @@ const ProductDescription = () => {
       </div>
     );
   }
-
-  console.log(product);
 
   const getRelativeTime = (date) => {
     const now = new Date();
@@ -373,12 +418,71 @@ const ProductDescription = () => {
                 {/* Top Actions */}
                 <div className="absolute top-3 right-3 flex items-center gap-2">
                   <button
-                    onClick={handleShare}
+                    onClick={() => setShowShareMenu(true)}
                     className="w-10 h-10 md:w-11 md:h-11 lg:w-9 lg:h-9 rounded-full bg-white shadow-md flex items-center justify-center"
                   >
                     <Share2 size={18} className="text-[#181C1F]" />
                   </button>
                 </div>
+                {showShareMenu && (
+                  <div className="absolute top-16 right-3 z-50 w-56 rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast.success("Link copied");
+                        setShowShareMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                    >
+                      Copy Link
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        window.open(
+                          `https://wa.me/?text=${encodeURIComponent(
+                            `${product.title} - ₹${product.selling_price}\n${window.location.href}`,
+                          )}`,
+                          "_blank",
+                        );
+
+                        setShowShareMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                    >
+                      Share on WhatsApp
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        window.open(
+                          `https://t.me/share/url?url=${encodeURIComponent(
+                            window.location.href,
+                          )}&text=${encodeURIComponent(product.title)}`,
+                          "_blank",
+                        );
+
+                        setShowShareMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                    >
+                      Share on Telegram
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        window.location.href = `mailto:?subject=${encodeURIComponent(
+                          product.title,
+                        )}&body=${encodeURIComponent(window.location.href)}`;
+
+                        setShowShareMenu(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                    >
+                      Share via Email
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Thumbnails */}
@@ -496,12 +600,11 @@ const ProductDescription = () => {
             <div className="bg-white rounded-xl border border-[#C9D1DC] p-5 md:p-7 xl:px-7 xl:py-5 dark:bg-[#1A1D20] dark:border-0 dark:text-white">
               {/* Tags */}
               <div className="flex flex-wrap items-center gap-3">
+                <div className="bg-[#EAECFB] text-[#3838EC] text-sm font-medium px-4 py-1 rounded-full capitalize">
+                  {product?.category?.replaceAll("_", " ")}
+                </div>
                 <div className="bg-[#E9F9EE] text-[#319F43] text-sm font-medium px-4 py-1 rounded-full">
                   Available
-                </div>
-
-                <div className="bg-[#2E40DC] text-[#CFD5FF] text-sm font-medium px-4 py-1 rounded-full capitalize">
-                  {product?.category?.replaceAll("_", " ")}
                 </div>
               </div>
 
@@ -740,6 +843,240 @@ const ProductDescription = () => {
           </Link>
         </div>
       </div>
+      {showShareMenu && (
+        <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowShareMenu(false)}
+            className="absolute
+    inset-0
+    bg-black/50
+    backdrop-blur-lg"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{
+              y: 120,
+              opacity: 0,
+              scale: 0.96,
+            }}
+            drag="y"
+            dragConstraints={{
+              top: 0,
+              bottom: 100,
+            }}
+            onDragEnd={(e, info) => {
+              if (info.offset.y > 120) {
+                setShowShareMenu(false);
+              }
+            }}
+            animate={{
+              y: 0,
+              opacity: 1,
+              scale: 1,
+            }}
+            exit={{
+              y: 120,
+              opacity: 0,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 350,
+              damping: 28,
+            }}
+            className="
+  relative
+  w-full
+  md:w-[520px]
+  mx-4
+  bg-white/90
+  dark:bg-[#1A1D20]/95
+  backdrop-blur-2xl
+  rounded-t-[32px]
+  md:rounded-[32px]
+  p-6
+  shadow-[0_25px_80px_rgba(0,0,0,0.22)]
+"
+          >
+            {/* Header */}
+            <div className="flex justify-center mb-4">
+              <div
+                className="
+      w-12
+      h-1.5
+      rounded-full
+      bg-gray-300
+    "
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold dark:text-white">
+                Share on Unideals
+              </h3>
+
+              <button onClick={() => setShowShareMenu(false)}>
+                <IoClose size={24} />
+              </button>
+            </div>
+
+            {/* Product Preview */}
+
+            <div
+              className="
+mt-5
+flex
+items-center
+gap-4
+p-4
+rounded-3xl
+bg-gradient-to-br
+from-[#F8FAFF]
+to-[#EEF2FF]
+border
+border-[#E5E7EB]
+"
+            >
+              <img
+                src={product?.images?.[0]}
+                className="
+    w-20
+    h-20
+    rounded-2xl
+    object-cover
+    shadow-md
+  "
+              />
+
+              <div>
+                <h4 className="font-semibold dark:text-white">
+                  {product?.title}
+                </h4>
+
+                <p className="text-[#3838EC] font-bold text-lg">
+                  ₹{product?.selling_price}
+                </p>
+              </div>
+            </div>
+
+            {/* Share Buttons */}
+
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <motion.button
+                onClick={() => {
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+                    "_blank",
+                  );
+
+                  setShowShareMenu(false);
+                }}
+                whileHover={{
+                  y: -1,
+                  scale: 1.01,
+                }}
+                whileTap={{
+                  scale: 0.94,
+                }}
+                className="h-14 rounded-2xl text-white transition-all shadow-sm hover:shadow-xl bg-[#25D366] flex items-center justify-center gap-3"
+              >
+                <FaWhatsapp size={28} />
+                <span className="font-medium">WhatsApp</span>
+              </motion.button>
+
+              <motion.button
+                onClick={() => {
+                  window.open(
+                    `https://t.me/share/url?url=${encodeURIComponent(
+                      shareUrl,
+                    )}&text=${encodeURIComponent(product?.title)}`,
+                    "_blank",
+                  );
+
+                  setShowShareMenu(false);
+                }}
+                whileHover={{
+                  y: -1,
+                  scale: 1.01,
+                }}
+                whileTap={{
+                  scale: 0.94,
+                }}
+                className="h-14 rounded-2xl text-white transition-all shadow-sm hover:shadow-xl bg-[#3390EC] flex items-center justify-center gap-3"
+              >
+                <FaTelegram size={22} />
+                Telegram
+              </motion.button>
+
+              <motion.button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(shareUrl);
+
+                  setCopied(true);
+
+                  setTimeout(() => {
+                    setCopied(false);
+                  }, 2000);
+
+                  toast.success("Link copied");
+
+                  setShowShareMenu(false);
+                }}
+                whileHover={{
+                  y: -1,
+                  scale: 1.01,
+                }}
+                whileTap={{
+                  scale: 0.94,
+                }}
+                className="col-span-2 h-14 rounded-2xl text-white bg-[#4556F0] flex items-center justify-center gap-3 font-semibold"
+              >
+                {copied ? (
+                  <>✓ Copied</>
+                ) : (
+                  <>
+                    <FaLink />
+                    Copy Link
+                  </>
+                )}
+              </motion.button>
+            </div>
+
+            <div
+              className="
+mt-6
+rounded-2xl
+bg-[#EEF2FF]
+border
+border-[#DDE4FF]
+p-4
+"
+            >
+              <p className="font-semibold text-[#3838EC]">
+                🎓 Share with classmates
+              </p>
+
+              <p className="text-sm text-slate-600 mt-1">
+                Great deals spread faster through hostel groups and batch
+                communities.
+              </p>
+            </div>
+
+            {/* URL Preview */}
+
+            <div className="mt-6 p-3 rounded-xl border bg-[#FAFAFA] text-sm truncate">
+              {shareUrl}
+            </div>
+
+            <p className="mt-4 text-center text-xs text-zinc-500">
+              Share with classmates and hostel groups
+            </p>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };

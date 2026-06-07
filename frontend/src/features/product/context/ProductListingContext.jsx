@@ -51,6 +51,9 @@ export const ProductListingProvider = ({ children }) => {
     const savedDraft = getDraftFromLocal();
 
     if (savedDraft) {
+      savedDraft.images = [];
+      savedDraft.imagePreviews = [];
+
       setFormData(savedDraft);
     }
   }, []);
@@ -128,9 +131,13 @@ export const ProductListingProvider = ({ children }) => {
   }, []);
 
   // AUTO SAVE DRAFT
-  useEffect(() => {
+useEffect(() => {
+  const timer = setTimeout(() => {
     saveDraftToLocal(formData);
-  }, [formData]);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [formData]);
 
   // CONTEXT VALUE
   const value = useMemo(

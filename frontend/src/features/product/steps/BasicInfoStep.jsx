@@ -11,6 +11,56 @@ import { validateBasicInfo } from "../validations";
 import FormError from "../components/shared/FormError";
 import { motion } from "framer-motion";
 
+const CategoryOption = (props) => {
+  const { data, innerRef, innerProps, isFocused, isSelected } = props;
+
+  return (
+    <motion.div
+      ref={innerRef}
+      {...innerProps}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15 }}
+      className={`
+        px-4 py-4 cursor-pointer transition-all duration-200
+        border-b border-[#F1F5F9]
+        ${isSelected ? "bg-[#EEF2FF]" : isFocused ? "bg-[#F8FAFF]" : "bg-white"}
+      `}
+    >
+      <div className="flex flex-col">
+        <span className="font-semibold text-[15px] text-[#111827]">
+          {data.label}
+        </span>
+
+        <span className="text-[12px] text-[#94A3B8] mt-1">
+          {data.description}
+        </span>
+      </div>
+    </motion.div>
+  );
+};
+
+const CategorySingleValue = ({ data }) => {
+  return (
+    <div
+      className="
+        flex
+        flex-col
+        justify-center
+        leading-tight
+      "
+    >
+      <span className="text-[15px] font-semibold text-[#111827]">
+        {data.label}
+      </span>
+
+      <span className="text-[12px] text-[#94A3B8] mt-0.5">
+        {data.description}
+      </span>
+    </div>
+  );
+};
+
 const BasicInfoStep = () => {
   const { formData, updateField, nextStep, errors, validateAndProceed } =
     useProductListing();
@@ -22,8 +72,12 @@ const BasicInfoStep = () => {
 
       return {
         ...provided,
-        minHeight: 56,
-        borderRadius: 12,
+
+        minHeight: 82,
+
+        borderRadius: 16,
+
+        borderWidth: "1.5px",
 
         borderColor: errors[fieldName]
           ? "#EF4444"
@@ -31,49 +85,106 @@ const BasicInfoStep = () => {
             ? "#4F46E5"
             : "#E5E7EB",
 
-        boxShadow: "none",
+        backgroundColor: "#F8FAFC",
 
-        paddingLeft: 6,
+        boxShadow: state.isFocused ? "0 0 0 4px rgba(79,70,229,0.08)" : "none",
 
-        backgroundColor: "#F7F8FA",
+        transition: "all 180ms ease",
 
         "&:hover": {
-          borderColor: errors[fieldName] ? "#EF4444" : "#4F46E5",
+          borderColor: "#4F46E5",
+          transform: "translateY(-1px)",
         },
       };
     },
 
+    indicatorsContainer: (provided) => ({
+      ...provided,
+
+      paddingRight: "10px",
+
+      alignSelf: "stretch",
+    }),
+
+    dropdownIndicator: (provided, state) => ({
+      ...provided,
+
+      color: state.isFocused ? "#4F46E5" : "#94A3B8",
+
+      transition: "all 200ms ease",
+
+      transform: state.selectProps.menuIsOpen
+        ? "rotate(180deg)"
+        : "rotate(0deg)",
+    }),
+
+    valueContainer: (provided) => ({
+      ...provided,
+
+      height: "100%",
+
+      display: "flex",
+
+      alignItems: "center",
+
+      paddingTop: "0",
+
+      paddingBottom: "0",
+
+      paddingLeft: "16px",
+    }),
+
+    placeholder: (provided) => ({
+      ...provided,
+      color: "#94A3B8",
+      fontSize: 15,
+      fontWeight: 500,
+    }),
+
     menu: (provided) => ({
       ...provided,
-      borderRadius: 18,
+
+      marginTop: 8,
+
+      borderRadius: 20,
+
       overflow: "hidden",
-      zIndex: 20,
+
+      border: "1px solid #E5E7EB",
+
+      boxShadow: "0 24px 60px rgba(15,23,42,0.12)",
+
+      animation: "fadeIn 180ms ease",
+
+      zIndex: 30,
     }),
 
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? "#EEF2FF" : "#FFFFFF",
+      // backgroundColor: state.isFocused ? "#EEF2FF" : "#FFFFFF",
 
-      color: "#111827",
+      // color: "#111827",
 
-      cursor: "pointer",
+      // cursor: "pointer",
     }),
   };
 
   return (
     <motion.div
-  initial={{
-    opacity: 0,
-    y: 16,
-  }}
-  animate={{
-    opacity: 1,
-    y: 0,
-  }}
-  transition={{
-    duration: 0.35,
-    ease: "easeOut",
-  }} className="w-full font-figtree rounded-xl border border-[#E1E1E1] bg-white shadow-sm p-5 sm:p-7 md:p-8 xl:p-7 dark:bg-[#1A1D20] dark:text-white dark:border-0">
+      initial={{
+        opacity: 0,
+        y: 16,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.35,
+        ease: "easeOut",
+      }}
+      className="w-full font-figtree rounded-xl border border-[#E1E1E1] bg-white shadow-sm p-5 sm:p-7 md:p-8 xl:p-7 dark:bg-[#1A1D20] dark:text-white dark:border-0"
+    >
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* LEFT */}
@@ -91,7 +202,7 @@ const BasicInfoStep = () => {
               value={formData.title}
               onChange={(e) => updateField("title", e.target.value)}
               placeholder="e.g. Macbook Air M1"
-              className={`mt-3 w-full h-[56px] rounded-xl border border-[#E5E7EB] ${
+              className={`mt-2 w-full h-[56px] rounded-xl border border-[#E5E7EB] ${
                 errors.title
                   ? "border-red-500"
                   : "border-[#E5E7EB] focus:border-[#4F46E5]"
@@ -112,13 +223,19 @@ const BasicInfoStep = () => {
               <RequiredAsterisk />
             </label>
 
-            <div className="mt-3">
+            <div className="mt-2">
               <Select
                 name="category"
+                menuPlacement="auto"
+                menuShouldScrollIntoView={false}
                 options={PRODUCT_CATEGORY_OPTIONS}
                 styles={selectStyles}
                 isSearchable={false}
                 placeholder="Select category"
+                components={{
+                  Option: CategoryOption,
+                  SingleValue: CategorySingleValue,
+                }}
                 value={
                   PRODUCT_CATEGORY_OPTIONS.find(
                     (item) => item.value === formData.category,
@@ -128,6 +245,10 @@ const BasicInfoStep = () => {
                   updateField("category", selected?.value || "")
                 }
               />
+
+              <p className="mt-2 text-sm text-[#94A3B8]">
+                Choose the category that best matches your product.
+              </p>
               <FormError error={errors.category} />
             </div>
           </div>
@@ -144,7 +265,7 @@ const BasicInfoStep = () => {
               value={formData.description}
               onChange={(e) => updateField("description", e.target.value)}
               placeholder="Describe your product..."
-              className={`mt-3 w-full h-[220px] rounded-xl border border-[#E5E7EB] ${
+              className={`mt-2 w-full h-[220px] rounded-xl border border-[#E5E7EB] ${
                 errors.description
                   ? "border-red-500"
                   : "border-[#E5E7EB] focus:border-[#4F46E5]"
@@ -173,7 +294,7 @@ const BasicInfoStep = () => {
               value={formData.brand}
               onChange={(e) => updateField("brand", e.target.value)}
               placeholder="e.g. Apple"
-              className="mt-3 w-full h-[56px] rounded-xl border border-[#E5E7EB] px-5 outline-none focus:border-[#4F46E5] bg-[#F7F8FA] dark:bg-slate-800"
+              className="mt-2 w-full h-[56px] rounded-xl border border-[#E5E7EB] px-5 outline-none focus:border-[#4F46E5] bg-[#F7F8FA] dark:bg-slate-800"
             />
           </div>
 
@@ -188,7 +309,7 @@ const BasicInfoStep = () => {
               value={formData.color}
               onChange={(e) => updateField("color", e.target.value)}
               placeholder="e.g. Space Grey"
-              className="mt-3 w-full h-[56px] rounded-xl border border-[#E5E7EB] px-5 outline-none focus:border-[#4F46E5] bg-[#F7F8FA] dark:bg-slate-800"
+              className="mt-2 w-full h-[56px] rounded-xl border border-[#E5E7EB] px-5 outline-none focus:border-[#4F46E5] bg-[#F7F8FA] dark:bg-slate-800"
             />
           </div>
 
@@ -199,7 +320,7 @@ const BasicInfoStep = () => {
               <RequiredAsterisk />
             </label>
 
-            <div className="mt-3">
+            <div className="mt-2">
               <Select
                 name="condition"
                 options={PRODUCT_CONDITION_OPTIONS}
@@ -226,7 +347,7 @@ const BasicInfoStep = () => {
               <RequiredAsterisk />
             </label>
 
-            <div className="mt-3">
+            <div className="mt-2">
               <Select
                 name="usageDuration"
                 options={PRODUCT_USAGE_OPTIONS}
@@ -259,7 +380,7 @@ const BasicInfoStep = () => {
               max={new Date().toISOString().split("T")[0]}
               value={formData.purchaseDate}
               onChange={(e) => updateField("purchaseDate", e.target.value)}
-              className={`mt-3 w-full h-[56px] rounded-xl border border-[#E5E7EB] ${
+              className={`mt-2 w-full h-[56px] rounded-xl border border-[#E5E7EB] ${
                 errors.purchaseDate
                   ? "border-red-500"
                   : "border-[#E5E7EB] focus:border-[#4F46E5]"

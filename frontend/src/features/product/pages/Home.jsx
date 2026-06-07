@@ -9,21 +9,22 @@ import { IoIosArrowForward } from "react-icons/io";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, A11y, Autoplay } from "swiper/modules";
 import { motion } from "framer-motion";
-
+import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import "swiper/css";
 import "swiper/css/pagination";
-
+import FirstListingCelebration from "../../../components/FirstListingCelebration";
 import bannerRight from "/bannerRight.png";
 
 const Home = () => {
   const sliderRef = useRef(null);
-
+  const location = useLocation();
+  const navigate = useNavigate();
   //drag state using refs (no re-render bugs)
   const isDownRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const isDraggingRef = useRef(false);
-
   const onMouseDown = (e) => {
     if (!sliderRef.current) return;
     isDownRef.current = true;
@@ -54,7 +55,7 @@ const Home = () => {
   //STATE
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
-
+  const [showCelebration, setShowCelebration] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -67,6 +68,24 @@ const Home = () => {
   useEffect(() => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
+
+  useEffect(() => {
+    const listingCreated = location.state?.listingCreated;
+    const isFirstListing = location.state?.isFirstListing;
+
+    if (!listingCreated) return;
+
+    if (isFirstListing) {
+      setShowCelebration(true);
+    } else {
+      toast.success("🎉 Listing published successfully");
+    }
+
+    navigate(location.pathname, {
+      replace: true,
+      state: {},
+    });
+  }, [location, navigate]);
 
   //FETCH
   const fetchProducts = useCallback(async (pageNumber = 1) => {
@@ -500,6 +519,10 @@ const Home = () => {
         <span>Sell</span>
         <FaPlus className="size-3" />
       </Link>
+
+      {showCelebration && (
+        <FirstListingCelebration onClose={() => setShowCelebration(false)} />
+      )}
     </motion.div>
   );
 };

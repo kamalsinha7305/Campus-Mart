@@ -1,10 +1,9 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { HiOutlineTrash } from "react-icons/hi";
 import useProductListing from "../hooks/useProductListing";
 import { RiCameraAiLine } from "react-icons/ri";
 import { IoArrowForward } from "react-icons/io5";
-import { fileToBase64 } from "../utils/imageHelpers";
 import { validateImages } from "../validations";
 
 const MAX_IMAGES = 3;
@@ -16,6 +15,16 @@ const ImagesStep = () => {
     useProductListing();
 
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      formData.imagePreviews?.forEach((item) => {
+        if (item?.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.preview);
+        }
+      });
+    };
+  }, []);
 
   // PROCESS FILES
   const processFiles = async (files) => {
@@ -36,31 +45,37 @@ const ImagesStep = () => {
     const previewItems = [];
 
     for (const file of selectedFiles) {
+      // File Validation
+      if (!(file instanceof File)) {
+        console.warn("Skipping invalid file:", file);
+        continue;
+      }
+
+      // File Type Validation
       if (
         !["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(
           file.type,
         )
       ) {
-        toast.error("Only PNG, JPG & WEBP images are allowed");
-
+        toast.error(`${file.name} is not a supported image format`);
         continue;
       }
 
-      try {
-        const base64 = await fileToBase64(file);
+      // File Size Validation
+      const MAX_SIZE = 10 * 1024 * 1024;
 
-        validFiles.push(file);
-
-        previewItems.push({
-          id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
-
-          preview: base64,
-        });
-      } catch (error) {
-        console.error(error);
-
-        toast.error("Failed to process image");
+      if (file.size > MAX_SIZE) {
+        toast.error(`${file.name} exceeds 10MB limit`);
+        continue;
       }
+
+      validFiles.push(file);
+
+      previewItems.push({
+        id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+
+        preview: URL.createObjectURL(file),
+      });
     }
 
     if (validFiles.length === 0) return;
@@ -84,6 +99,8 @@ const ImagesStep = () => {
     const updatedPreviews = [...formData.imagePreviews];
 
     updatedImages.splice(index, 1);
+
+    URL.revokeObjectURL(updatedPreviews[index].preview);
 
     updatedPreviews.splice(index, 1);
 
@@ -154,7 +171,7 @@ const ImagesStep = () => {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current.click()}
+          onClick={() => fileInputRef.current?.click()}
           className={`mt-4 rounded-[28px] border-2 bg-[#F8FAFC] border-dashed p-8 md:p-10 transition-all duration-200 cursor-pointer
         
         ${
@@ -205,7 +222,7 @@ const ImagesStep = () => {
       </div>
 
       {/* Uploaded Images */}
-      {formData.imagePreviews.length > 0 && (
+      {formData.imagePreviews?.length > 0 && (
         <div className="mt-5">
           {/* Top */}
           <div className="flex items-center justify-between">
