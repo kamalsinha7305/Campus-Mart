@@ -6,7 +6,6 @@ import {
   useState,
   useEffect,
 } from "react";
-
 import { saveDraftToLocal, getDraftFromLocal } from "../utils/draftStorage";
 
 const ProductListingContext = createContext();
@@ -42,7 +41,7 @@ const initialFormData = {
 
 export const ProductListingProvider = ({ children }) => {
   const [step, setStep] = useState(1);
-
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState(initialFormData);
@@ -69,13 +68,25 @@ export const ProductListingProvider = ({ children }) => {
     setStep(stepNumber);
   }, []);
 
-  // UPDATE FIELD
-  const updateField = useCallback((field, value) => {
-    setFormData((prev) => ({
+  const clearFieldError = useCallback((field) => {
+    setErrors((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: "",
     }));
   }, []);
+
+  // UPDATE FIELD
+  const updateField = useCallback(
+    (field, value) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+
+      clearFieldError(field);
+    },
+    [clearFieldError],
+  );
 
   // UPDATE MULTIPLE FIELDS
   const updateFormData = useCallback((values) => {
@@ -84,6 +95,30 @@ export const ProductListingProvider = ({ children }) => {
       ...values,
     }));
   }, []);
+
+  const validateAndProceed = useCallback(
+    (validator, callback) => {
+      const validationErrors = validator(formData);
+
+      setErrors(validationErrors);
+
+      if (Object.keys(validationErrors).length > 0) {
+        const firstField = Object.keys(validationErrors)[0];
+
+        const element = document.querySelector(`[data-field="${firstField}"]`);
+
+        element?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        return;
+      }
+
+      callback();
+    },
+    [formData],
+  );
 
   // RESET
   const resetForm = useCallback(() => {
@@ -109,6 +144,11 @@ export const ProductListingProvider = ({ children }) => {
       formData,
       setFormData,
 
+      errors,
+      setErrors,
+
+      validateAndProceed,
+
       nextStep,
       prevStep,
       goToStep,
@@ -122,6 +162,10 @@ export const ProductListingProvider = ({ children }) => {
       step,
       loading,
       formData,
+
+      errors,
+
+      validateAndProceed,
 
       nextStep,
       prevStep,
@@ -139,7 +183,7 @@ export const ProductListingProvider = ({ children }) => {
       {children}
     </ProductListingContext.Provider>
   );
-};;
+};
 
 export const useProductListingContext = () => {
   const context = useContext(ProductListingContext);

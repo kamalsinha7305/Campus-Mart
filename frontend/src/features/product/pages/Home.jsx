@@ -451,7 +451,7 @@ const Home = () => {
 
           {!hasMore && products.length > 0 && (
             <p className="w-full text-center mt-4 text-gray-400">
-              No more products
+              {/* No more products */}
             </p>
           )}
         </div>

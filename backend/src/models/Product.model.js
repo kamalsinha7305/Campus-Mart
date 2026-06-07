@@ -59,6 +59,7 @@ const productSchema = new Schema(
       required: function () {
         return this.status !== PRODUCT_STATUS.DRAFT;
       },
+      index: true,
     },
 
     attributes: {

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-
 import useProductListing from "../../hooks/useProductListing";
-
+import { AnimatePresence, motion } from "framer-motion";
 import BasicInfoStep from "../../steps/BasicInfoStep";
 import ImagesStep from "../../steps/ImagesStep";
 import PricingStep from "../../steps/PricingStep";
@@ -16,7 +15,7 @@ const ListingLayout = () => {
   useEffect(() => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: "instant",
     });
   }, [step]);
 
@@ -88,7 +87,29 @@ const ListingLayout = () => {
         >
           {/* LEFT */}
           <div className={`w-full ${step !== 4 ? "xl:max-w-[920px]" : ""}`}>
-            {renderStep()}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{
+                  opacity: 0,
+                  y: 12,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                transition={{
+                  duration: 0.25,
+                  ease: "easeOut",
+                }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* RIGHT */}

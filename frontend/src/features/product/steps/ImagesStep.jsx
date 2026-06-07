@@ -1,24 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { HiOutlineTrash } from "react-icons/hi";
 import useProductListing from "../hooks/useProductListing";
 import { RiCameraAiLine } from "react-icons/ri";
 import { IoArrowForward } from "react-icons/io5";
 import { fileToBase64 } from "../utils/imageHelpers";
+import { validateImages } from "../validations";
 
 const MAX_IMAGES = 3;
 
 const ImagesStep = () => {
   const fileInputRef = useRef(null);
 
-  const { formData, updateField, nextStep } = useProductListing();
+  const { formData, updateField, nextStep, errors, validateAndProceed } =
+    useProductListing();
 
   const [isDragging, setIsDragging] = useState(false);
-
-  // VALIDATION
-  const isValid = useMemo(() => {
-    return formData.images.length > 0;
-  }, [formData.images]);
 
   // PROCESS FILES
   const processFiles = async (files) => {
@@ -151,48 +148,60 @@ const ImagesStep = () => {
         </p>
       </div>
 
-      {/* Upload Area */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current.click()}
-        className={`mt-4 rounded-[28px] border-2 bg-[#F8FAFC] border-dashed p-8 md:p-10 transition-all duration-200 cursor-pointer
+      <div data-field="images">
+        {/* Upload Area */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current.click()}
+          className={`mt-4 rounded-[28px] border-2 bg-[#F8FAFC] border-dashed p-8 md:p-10 transition-all duration-200 cursor-pointer
         
-        ${isDragging ? "border-[#4F46E5] bg-[#F8FAFC]" : "border-[#D1D5DB]"}`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          hidden
-          multiple
-          accept="image/*"
-          onChange={handleInputChange}
-        />
+        ${
+          errors.images
+            ? "border-red-500"
+            : isDragging
+              ? "border-[#4F46E5]"
+              : "border-[#D1D5DB]"
+        }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            multiple
+            accept="image/*"
+            onChange={handleInputChange}
+          />
 
-        <div className="flex flex-col items-center justify-center text-center">
-          {/* Icon */}
-          <div className="w-14 h-14 rounded-3xl bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5]">
-            <RiCameraAiLine size={25} />
-          </div>
+          <div className="flex flex-col items-center justify-center text-center">
+            {/* Icon */}
+            <div className="w-14 h-14 rounded-3xl bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5]">
+              <RiCameraAiLine size={25} />
+            </div>
 
-          {/* Heading */}
-          <h3 className="mt-2 text-base xl:text-lg font-bold text-[#181C1F]">
-            Drag & drop or click to browse
-          </h3>
+            {/* Heading */}
+            <h3 className="mt-2 text-base xl:text-lg font-bold text-[#181C1F]">
+              Drag & drop or click to browse
+            </h3>
 
-          {/* Description */}
-          <p className="mt-1 max-w-md text-sm md:text-base text-[#6B7280] leading-7">
-            Supports JPG, PNG and WEBP up to 10MB
-          </p>
+            {/* Description */}
+            <p className="mt-1 max-w-md text-sm md:text-base text-[#6B7280] leading-7">
+              Supports JPG, PNG and WEBP up to 10MB
+            </p>
 
-          {/* Info */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <div className="rounded-full bg-[#EEF2FF] px-4 py-2 text-xs font-semibold text-[#4F46E5]">
-              Max {MAX_IMAGES} images
+            {/* Info */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <div className="rounded-full bg-[#EEF2FF] px-4 py-2 text-xs font-semibold text-[#4F46E5]">
+                Max {MAX_IMAGES} images
+              </div>
             </div>
           </div>
         </div>
+
+        {errors.images && (
+          <p className="mt-3 text-sm text-red-500">{errors.images}</p>
+        )}
       </div>
 
       {/* Uploaded Images */}
@@ -307,15 +316,8 @@ const ImagesStep = () => {
         <div className="flex items-center gap-2 lg:gap-3">
           {/* Continue */}
           <button
-            onClick={nextStep}
-            disabled={!isValid}
-            className={`h-[50px] lg:h-[54px] px-4 lg:px-8 rounded-xl flex justify-center items-center gap-2 font-semibold transition-all duration-200 text-base lg:text-lg
-          
-          ${
-            isValid
-              ? "bg-[#3838EC] hover:bg-[#4338CA] text-white shadow-lg shadow-indigo-200"
-              : "bg-[#3838EC] text-[#9CA3AF] cursor-not-allowed"
-          }`}
+            onClick={() => validateAndProceed(validateImages, nextStep)}
+            className="h-[50px] lg:h-[54px] px-6 lg:px-8 rounded-xl flex justify-center items-center gap-2 font-semibold transition-all duration-200 text-base lg:text-lg bg-[#3838EC] hover:bg-[#4338CA] text-white shadow-lg shadow-indigo-200"
           >
             <span>Continue</span>
             <IoArrowForward className="size-5" />

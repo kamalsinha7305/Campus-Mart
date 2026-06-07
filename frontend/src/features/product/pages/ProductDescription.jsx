@@ -13,7 +13,7 @@ import { getProductById } from "../api/productApi";
 import { HiOutlineBuildingLibrary } from "react-icons/hi2";
 import { MdLocationPin } from "react-icons/md";
 import AvatarComponent from "../../../Components/common/AvatarComponent.jsx";
-
+import { motion } from "framer-motion";
 // condition
 import { GoChecklist } from "react-icons/go";
 
@@ -46,6 +46,10 @@ const ProductDescription = () => {
   const [isContainMode, setIsContainMode] = useState(false);
   const productId = product?._id;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -213,8 +217,18 @@ const ProductDescription = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
-        Loading...
+      <div className="min-h-screen bg-[#F7F9FD] animate-pulse">
+        <div className="max-w-[1380px] mx-auto px-6 py-8">
+          <div className="h-8 w-48 bg-gray-200 rounded" />
+          <div className="mt-6 grid lg:grid-cols-[530px_1fr] gap-6">
+            <div className="aspect-square rounded-xl bg-gray-200" />
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 rounded" />
+              <div className="h-6 w-40 bg-gray-200 rounded" />
+              <div className="h-32 bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -261,8 +275,37 @@ const ProductDescription = () => {
     product?.images?.length > 0 ? product.images : [FALLBACK_IMAGE];
 
   return (
-    <div className="w-full min-h-screen bg-[#F7F9FD] font-figtree dark:bg-[#131313]">
-      <div className="pt-4 text-[#454655] mx-auto w-full max-w-[1380px] px-6 sm:px-8 md:px-11 lg:px-14 2xl:px-0">
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 16,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.35,
+        ease: "easeOut",
+      }}
+      className="w-full min-h-screen bg-[#F7F9FD] font-figtree dark:bg-[#131313]"
+    >
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 12,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.4,
+          delay: 0.1,
+          ease: "easeOut",
+        }}
+        className="pt-4 text-[#454655] mx-auto w-full max-w-[1380px] px-6 sm:px-8 md:px-11 lg:px-14 2xl:px-0"
+      >
         {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-sm text-[#454655] mb-4 overflow-x-auto whitespace-nowrap font-semibold">
           <button
@@ -296,8 +339,20 @@ const ProductDescription = () => {
             <div className="bg-[#FFFFFF] dark:bg-[#1A1D20] dark:border-0 rounded-xl border border-[#C9D1DC] p-3 md:p-4 xl:p-4">
               {/* Main Image */}
               <div className="relative overflow-hidden rounded-2xl bg-[#F8FAFC]">
-                <img
+                <motion.img
+                  key={activeImage}
                   src={activeImage}
+                  initial={{
+                    opacity: 0,
+                    scale: 1.02,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    duration: 0.25,
+                  }}
                   alt="Product"
                   className={`w-full aspect-[1/0.93] transition-all duration-300 ${
                     isContainMode ? "object-contain" : "object-cover"
@@ -642,7 +697,7 @@ const ProductDescription = () => {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div
         ref={floatingCTARef}
@@ -685,7 +740,7 @@ const ProductDescription = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

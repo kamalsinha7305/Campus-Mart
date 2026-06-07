@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 
 const Category = ({ title, imageSrc }) => {
-  console.log(title);
   const slug = title.toLowerCase().replace(/\s+/g, "_");
   return (
     <Link
