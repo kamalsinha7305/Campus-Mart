@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { FiArrowRight, FiShare2 } from "react-icons/fi";
 import { FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
@@ -81,9 +82,15 @@ const Footer = () => {
         </div>
       </div>
 
-      <h2 className="pointer-events-none select-none text-center text-[18vw] font-bold leading-none text-white/55">
+      <motion.h2
+        initial={{ y: 28, opacity: 0.85 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        viewport={{ amount: 0.45 }}
+        className="pointer-events-none select-none text-center text-[15.3vw] font-bold leading-none text-white/55"
+      >
         unideals
-      </h2>
+      </motion.h2>
     </footer>
   );
 };
