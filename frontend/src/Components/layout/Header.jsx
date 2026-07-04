@@ -54,6 +54,10 @@ const Header = ({ isChat }) => {
   const [showCampusDropdown, setShowCampusDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showHeader, setShowHeader] = useState(true);
+
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const storedSearches = localStorage.getItem("recentSearches");
@@ -124,7 +128,9 @@ const Header = ({ isChat }) => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
   const menuRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     if (isLoggedIn && !userDetails) {
@@ -157,6 +163,7 @@ const Header = ({ isChat }) => {
         const res = await searchProducts(debouncedQuery);
 
         setResults(res.data?.products || []);
+        setSelectedIndex(-1);
         setHasSearched(true);
       } catch (err) {
         console.error(err);
@@ -230,6 +237,87 @@ const Header = ({ isChat }) => {
     };
   }, [showMobileSearch]);
 
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const difference = currentScrollY - lastScrollY.current;
+
+          // Always show at top
+          if (currentScrollY < 100) {
+            setShowHeader(true);
+          }
+
+          // Scrolling down
+          else if (difference > 8) {
+            setShowHeader(false);
+
+            setShowmenu(false);
+            setShowCampusDropdown(false);
+            setShowDropdown(false);
+          }
+
+          // Scrolling up
+          else if (difference < -8) {
+            setShowHeader(true);
+          }
+
+          lastScrollY.current = currentScrollY;
+
+          ticking = false;
+        });
+
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      // Don't trigger while typing in another input
+      const tag = e.target.tagName;
+
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) {
+        return;
+      }
+
+      const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+
+      const pressed =
+        (isMac && e.metaKey && e.key.toLowerCase() === "k") ||
+        (!isMac && e.ctrlKey && e.key.toLowerCase() === "k");
+
+      if (!pressed) return;
+
+      e.preventDefault();
+
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+
+      setShowDropdown(true);
+    };
+
+    document.addEventListener("keydown", handleShortcut);
+
+    return () => {
+      document.removeEventListener("keydown", handleShortcut);
+    };
+  }, []);
+
   const handleMenu = () => {
     setShowmenu((prev) => !prev);
   };
@@ -278,7 +366,24 @@ const Header = ({ isChat }) => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 border-b border-neutral-200 bg-white/80 backdrop-blur-xl dark:border-neutral-800 dark:bg-[#131313] font-figtree">
+      <nav
+        className={`
+    sticky
+    top-0
+    z-50
+    border-b
+    border-neutral-200
+    bg-white/80
+    backdrop-blur-xl
+    dark:border-neutral-800
+    dark:bg-[#131313]
+    font-figtree
+    transition-transform
+    duration-500
+    ease-[cubic-bezier(0.22,1,0.36,1)]
+    ${showHeader ? "translate-y-0" : "-translate-y-full"}
+  `}
+      >
         <div className="mx-auto flex h-14 sm:h-16 w-full max-w-[1380px] items-center justify-between px-6 sm:px-8 md:px-11 lg:px-14 2xl:px-0">
           {/* Mobile Navbar */}
           <div className="flex w-full items-center justify-between sm:hidden">
@@ -652,7 +757,6 @@ const Header = ({ isChat }) => {
   "
                       placeholder="Search products..."
                     />
-
                     <CiSearch
                       size={18}
                       className="
@@ -674,9 +778,7 @@ const Header = ({ isChat }) => {
                       loading={searchLoading}
                       query={query}
                       hasSearched={hasSearched}
-                      mobile
                       onSelect={() => {
-                        setShowMobileSearch(false);
                         setShowDropdown(false);
                       }}
                     />
@@ -899,13 +1001,50 @@ const Header = ({ isChat }) => {
             )}
 
             {/* Search */}
-            <div className="relative mx-3 xl:mx-6 xl:mr-80 flex-1 max-w-md items-center">
+            <div className="data-search-dropdown relative mx-3 xl:mx-6 xl:mr-80 flex-1 max-w-md items-center">
               <input
+                ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={handleSearchBar}
                 onKeyDown={(e) => {
+                  const visibleResults = results.slice(0, 5);
+
+                  if (e.key === "ArrowDown") {
+                    setShowDropdown(true);
+                    e.preventDefault();
+
+                    if (!visibleResults.length) return;
+
+                    setSelectedIndex((prev) =>
+                      prev < visibleResults.length - 1 ? prev + 1 : prev,
+                    );
+
+                    return;
+                  }
+
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+
+                    if (!visibleResults.length) return;
+
+                    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+
+                    return;
+                  }
+
                   if (e.key === "Enter") {
+                    e.preventDefault();
+
+                    if (
+                      selectedIndex >= 0 &&
+                      selectedIndex < visibleResults.length
+                    ) {
+                      navigate(`/product/${visibleResults[selectedIndex]._id}`);
+                      setShowDropdown(false);
+                      return;
+                    }
+
                     const trimmedQuery = query.trim();
 
                     if (!trimmedQuery) {
@@ -915,17 +1054,25 @@ const Header = ({ isChat }) => {
                     }
 
                     saveRecentSearch(trimmedQuery);
+
                     navigate(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+
                     setShowDropdown(false);
                   }
                 }}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                onBlur={(e) => {
+                  if (e.relatedTarget?.closest("[data-search-dropdown]")) {
+                    return;
+                  }
+
+                  setTimeout(() => setShowDropdown(false), 150);
+                }}
                 onFocus={() => {
                   if (query.trim()) {
                     setShowDropdown(true);
                   }
                 }}
-                className="h-10 w-full rounded-xl border border-[#EEF1F5] bg-slate-100 pl-9 pr-14 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-5 focus:ring-blue-100 dark:border-neutral-700 dark:bg-[#1A1D20] dark:text-white dark:focus:ring-blue-950"
+                className="h-10 w-full rounded-xl border border-[#EEF1F5] bg-slate-100 pl-9 pr-28 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-5 focus:ring-blue-100 dark:border-neutral-700 dark:bg-[#1A1D20] dark:text-white dark:focus:ring-blue-950"
               />
 
               {search === "" && (
@@ -944,6 +1091,30 @@ const Header = ({ isChat }) => {
                 </span>
               )}
 
+              {search === "" && (
+                <div className="absolute right-12 xl:right-16 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                  {isMac ? (
+                    <>
+                      <kbd className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:border-neutral-600 dark:bg-[#232323] dark:text-neutral-400">
+                        ⌘
+                      </kbd>
+                      <kbd className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:border-neutral-600 dark:bg-[#232323] dark:text-neutral-400">
+                        K
+                      </kbd>
+                    </>
+                  ) : (
+                    <>
+                      <kbd className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:border-neutral-600 dark:bg-[#232323] dark:text-neutral-400">
+                        Ctrl
+                      </kbd>
+                      <kbd className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:border-neutral-600 dark:bg-[#232323] dark:text-neutral-400">
+                        K
+                      </kbd>
+                    </>
+                  )}
+                </div>
+              )}
+
               <CiSearch
                 size={22}
                 className="absolute right-3 xl:right-7 top-1/2 -translate-y-1/2 text-[#090A0B] dark:text-neutral-400"
@@ -955,6 +1126,8 @@ const Header = ({ isChat }) => {
                   loading={searchLoading}
                   query={query}
                   hasSearched={hasSearched}
+                  selectedIndex={selectedIndex}
+                  setSelectedIndex={setSelectedIndex}
                   onSelect={() => {
                     setShowDropdown(false);
                   }}
