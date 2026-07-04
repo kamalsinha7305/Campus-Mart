@@ -30,7 +30,8 @@ const initialNotifications = [
     id: 2,
     type: "ORDER UPDATE",
     title: "Order Completed Successfully",
-    description: "Your Dell XPS 15 has been delivered to Anurag. Check your balance.",
+    description:
+      "Your Dell XPS 15 has been delivered to Anurag. Check your balance.",
     time: "Yesterday",
     icon: Package,
     iconColor: "text-[#10B981]",
