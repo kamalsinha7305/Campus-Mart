@@ -1,5 +1,5 @@
 import { upload } from "@imagekit/javascript";
-import instance from "../services/axiosInstance";
+import instance from "../axiosInstance";
 
 export const uploadImage = async (file) => {
   const { data } = await instance.get("/api/imagekit/auth");
