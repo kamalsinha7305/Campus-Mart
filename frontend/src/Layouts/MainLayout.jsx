@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Header from "../Components/layout/Header.jsx";
 import Footer from "../Components/layout/Footer";
+import FloatingAssistant from "../features/chat/components/FloatingAssistant.jsx";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const MainLayout = () => {
       </main>
 
       {shouldShowFooter && <Footer />}
+      <FloatingAssistant />
     </div>
   );
 };

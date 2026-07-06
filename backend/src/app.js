@@ -15,6 +15,7 @@ import imagekitRouter from "./routes/imagekit.routes.js";
 import wishlistRouter from "./routes/wishlist.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import boostRouter from "./routes/boost.routes.js";
+import chatRouter from "./routes/chat.routes.js";
 
 // import errorMiddleware from "./middlewares/error.middleware.js";
 const app = express();
@@ -22,6 +23,10 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_FRONTEND_URL,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
   "http://192.168.0.104:5173",
 ]
   .filter(Boolean)
@@ -123,6 +128,7 @@ app.use("/api/imagekit", imagekitRouter);
 app.use("/api/wishlist", wishlistRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/boost", boostRouter);
+app.use("/api/chat", chatRouter);
 
 // If no route matches
 app.use((req, res) => {
