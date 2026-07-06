@@ -13,7 +13,6 @@ import toast from "react-hot-toast";
 import "swiper/css";
 import "swiper/css/pagination";
 import FirstListingCelebration from "../../../Components/FirstListingCelebration.jsx";
-import bannerRight from "/bannerRight.png";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { CATEGORY_ITEMS } from "../constants/categories";
 
