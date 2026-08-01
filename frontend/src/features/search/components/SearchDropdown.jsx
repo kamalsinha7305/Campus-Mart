@@ -113,7 +113,7 @@ ${mobile ? "px-4 py-4" : "px-3 py-3"}
 `}
             >
               <img
-                src={item.images?.[0] || "/placeholder.png"}
+                src={item.images?.[0]?.url || "/placeholder.png"}
                 alt={item.title}
                 className={
                   mobile
@@ -127,7 +127,7 @@ ${mobile ? "px-4 py-4" : "px-3 py-3"}
                   {highlightText(item.title, query)}
                 </span>
 
-                <span className="text-xs text-gray-500 dark:text-neutral-400">
+                <span className="text-xs text-gray-500 capitalize dark:text-neutral-400">
                   {highlightText(item.category, query)}
                 </span>
               </div>

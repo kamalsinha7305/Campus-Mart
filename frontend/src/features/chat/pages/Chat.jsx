@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import ChatCard from "../components/ChatCard.jsx";
+import userdp from "/userdp.webp";
+
 import {
   Bot,
   ChevronLeft,
@@ -10,15 +12,14 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
-import AssistantMessageText from "../components/AssistantMessageText.jsx";
 import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
 import userdp from "/userdp.png";
 
 const supportChat = {
   id: "support",
-  name: "UniDeals",
-  url: "/logo.png",
+  name: "Unideals Support",
+  url: "/logo.svg",
 };
 
 const quickPrompts = [
@@ -29,12 +30,12 @@ const quickPrompts = [
   "How does boosting work?",
 ];
 
-const users = [
-  { id: 1, name: "Sarthak", url: "/userdp2.png" },
-  { id: 2, name: "Arnav Sharma" },
-  { id: 3, name: "Piyush Srinivasan" },
-  { id: 4, name: "Anvesha Shoumya" },
-];
+  const users = [
+    { id: 1, name: "Sarthak", url: "/userdp2.webp" },
+    { id: 2, name: "Arnav Sharma" },
+    { id: 3, name: "Piyush Srinivasan" },
+    { id: 4, name: "Anvesha Shoumya" },
+  ];
 
 const initialSupportMessage = {
   text: "Hi! I am your UniDeals assistant. I can search listings, recommend deals, estimate prices, answer marketplace questions, and help write product listings.",
@@ -398,7 +399,7 @@ const Chat = () => {
           ) : (
             <div className="hidden flex-1 flex-col items-center justify-center gap-3 p-8 lg:flex">
               <img
-                src="/logo.png"
+                src="/logo.svg"
                 alt="image"
                 className="size-12 object-contain drop-shadow-md"
               />

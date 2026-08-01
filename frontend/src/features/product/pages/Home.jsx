@@ -15,6 +15,7 @@ import "swiper/css/pagination";
 import FirstListingCelebration from "../../../Components/FirstListingCelebration.jsx";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { CATEGORY_ITEMS } from "../constants/categories";
+import { FiArrowRight } from "react-icons/fi";
 
 const bannerRight = "/assets/Group_116.png";
 const bannerShape = "/assets/Group_114.png";
@@ -52,7 +53,7 @@ const Home = () => {
     if (isFirstListing) {
       setShowCelebration(true);
     } else {
-      toast.success("🎉 Listing published successfully");
+      toast.success("Listing published successfully");
     }
 
     navigate(location.pathname, {
@@ -242,169 +243,91 @@ const Home = () => {
     xl:h-[44vh]
     2xl:min-h-[40vh]
     shadow-[0_8px_20px_rgba(0,0,0,0.15)]
-  "
+    overflow-hidden
+    bg-cover
+    bg-center
+    bg-no-repeat"
+          style={{
+            backgroundImage: "url('/banner_bg.webp')",
+          }}
         >
-          <Swiper
-            modules={[Pagination, A11y, Autoplay]}
-            spaceBetween={30}
-            slidesPerView={1}
-            pagination={{ clickable: true }}
-            autoplay={{
-              delay: 4000,
-              disableOnInteraction: false,
-            }}
-            loop={true}
-            speed={900}
-            className="dark:bg-zinc-900 rounded-md md:rounded-xl"
+          {/* Black Overlay for text */}
+          {/* <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-black/10 z-0" /> */}
+
+          {/* <img
+            width={170}
+            src="\assets\circle.png"
+            alt="image"
+            className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block "
+          /> */}
+
+          {/* Left Image */}
+          <div
+            className="absolute left-6 lg:left-12 xl:left-20 top-72 -translate-y-1/2
+   w-24 md:w-36 lg:w-44 xl:w-80
+   z-10 pointer-events-none -scale-x-100 -rotate-12"
           >
-            {/* Slide 1 */}
-            <SwiperSlide>
-              <img
-                width={170}
-                src={bannerShape}
-                alt="image"
-                className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block "
-              />
-              <div className="flex h-full w-full items-center justify-between xl:px-20 lg:px-14 md:px-10 px-5 relative">
-                {/* Left Content */}
-                <motion.div className="text-white w-[70%]">
-                  <h1 className="hidden md:block lg:text-[2.5vw] xl:text-[2.2vw] md:text-[2.7vw] text-[0.85rem] font-extrabold leading-tight font-figtree">
-                    Unlock Deals, Share Essentials,{" "}
-                    <br className="hidden md:block" />
-                    Simplify Campus Living!
-                  </h1>
-                  <h1 className="md:hidden lg:text-[2.5vw] xl:text-[2.2vw] md:text-[2.7vw] text-[0.85rem] font-extrabold leading-tight font-figtree">
-                    Unlock Deals, Essentials, <br className="hidden md:block" />
-                    Simplify Campus Living!
-                  </h1>
+            <motion.img
+              src="/fan.webp"
+              alt="Left Decoration"
+              className="w-full h-auto block"
+              animate={{ y: [0, -14, 0] }}
+              transition={{
+                duration: 4,
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "loop",
+              }}
+            />
+          </div>
 
-                  <p className="hidden md:block lg:text-[1.7vw] xl:text-[1.4vw] md:text-[2vw] text-[0.7rem] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-2 font-figtree">
-                    Your trusted platform to simplify student life
-                    <br className="hidden sm:block" /> Buy, sell & connect
-                    easily.
-                  </p>
-                  <p className="md:hidden text-[clamp(0.7rem,1.5vw,1.2rem)] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-2 font-figtree">
-                    Your trusted platform to simplify
-                    <br className="hidden sm:block" /> Buying, selling & connect
-                    easily.
-                  </p>
-                  <Link
-                    to="/upload"
-                    className="bg-white text-[#364EF2] font-bold rounded-md md:py-2 xl:py-2 lg:py-[0.5vh] xl:px-11 lg:px-7 xl:text-xl lg:text-lg md:text-base text-xs inline-flex lg:mt-4 xl:mt-6 md:mt-4 mt-3 shadow-md transition-transform transform lg:hover:scale-105 py-[0.7vh] px-4 font-figtree duration-500 ease-in-out dark:bg-gradient-to-r from-blue-600 to-indigo-600 dark:text-white"
-                  >
-                    Sell Now
-                  </Link>
-                </motion.div>
+          {/* Right Image */}
+          <div
+            className="absolute right-6 lg:right-12 xl:right-20 top-72 -translate-y-1/2
+   w-24 md:w-36 lg:w-44 xl:w-96
+   z-10 pointer-events-none -rotate-12"
+          >
+            <motion.img
+              src="/bag_banner.webp"
+              alt="Right Decoration"
+              className="w-full h-auto block"
+              animate={{ y: [0, -16, 0] }}
+              transition={{
+                duration: 4.6,
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 0.6,
+              }}
+            />
+          </div>
 
-                {/* Right Image Section */}
-                <div className="relative w-[50%] flex justify-center items-center">
-                  <motion.img
-                    src={bannerShape}
-                    alt="Background Shape"
-                    className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
-                  />
-                  <motion.img
-                    src={bannerRight}
-                    alt="Main Visual"
-                    className="absolute xl:size-[26vw] lg:size-[33vw] md:size-[35vw] xl:mt-20 lg:mt-16 size-[45vw] z-10 mt-10"
-                  />
-                </div>
-              </div>
-            </SwiperSlide>
+          <div className="relative z-10 flex h-full w-full items-center justify-center px-5">
+            {/* Left Content */}
+            <div className="text-white max-w-4xl text-center flex flex-col items-center font-figtree">
+              <h1 className="hidden md:block lg:text-[2.5vw] xl:text-4xl md:text-[2.7vw] text-[0.85rem] font-extrabold leading-tight font-figtree tracking-wider">
+                Unlock Deals, Share Essentials,{" "}
+                <br className="hidden md:block" />
+                Simplify Campus Living!
+              </h1>
+              <h1 className="md:hidden lg:text-[2.5vw] xl:text-[2.2vw] md:text-[2.7vw] text-[0.85rem] font-extrabold leading-tight font-figtree">
+                Unlock Deals, Essentials, <br className="hidden md:block" />
+                Simplify Campus Living!
+              </h1>
 
-            {/* Slide 2 */}
-            <SwiperSlide>
-              <img
-                width={170}
-                src={bannerShape}
-                alt="image"
-                className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block"
-              />
-
-              <div className="flex h-full w-full items-center justify-between xl:px-20 lg:px-14 md:px-10 px-5 relative">
-                {/* Left Content */}
-                <motion.div className="text-white w-1/2">
-                  <h1 className="lg:text-[2.5vw] xl:text-[2.2vw] md:text-[2.7vw] text-[0.85rem] font-bold leading-tight font-figtree">
-                    Find What You Need, <br />
-                    Sell What You Dont!
-                  </h1>
-                  <p className="hidden md:block lg:text-[1.7vw] xl:text-[1.4vw] md:text-[2vw] text-[0.7rem] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-2 font-figtree">
-                    The perfect place to buy, sell, and discover
-                    <br className="hidden sm:block" /> amazing deals all in one
-                    spot!
-                  </p>
-                  <p className="md:hidden lg:text-[1.7vw] xl:text-[1.4vw] md:text-[2vw] text-[0.7rem] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-2 font-figtree">
-                    One place to buy, sell, and discover
-                    <br className="hidden sm:block" /> great deals.
-                  </p>
-                  <Link
-                    to="/upload"
-                    className="bg-white text-[#364EF2] font-bold rounded-md md:py-2 xl:py-2 lg:py-[0.5vh] xl:px-11 lg:px-7 xl:text-xl lg:text-lg md:text-base text-xs inline-flex lg:mt-4 xl:mt-6 md:mt-4 mt-3 shadow-md transition-transform transform lg:hover:scale-105 py-[0.8vh] px-5 font-figtree duration-500 ease-in-out dark:bg-gradient-to-r from-blue-600 to-indigo-600 dark:text-white"
-                  >
-                    Explore Now
-                  </Link>
-                </motion.div>
-
-                {/* Right Image Section */}
-                <div className="relative w-[50%] flex justify-center items-center">
-                  <motion.img
-                    src={bannerShape}
-                    alt="Background Shape"
-                    className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
-                  />
-                  <motion.img
-                    src={bannerRight}
-                    alt="Main Visual"
-                    className="absolute xl:size-[26vw] lg:size-[33vw] md:size-[35vw] xl:mt-20 lg:mt-16 size-[45vw] z-10 mt-10"
-                  />
-                </div>
-              </div>
-            </SwiperSlide>
-
-            {/* Slide 3 */}
-            <SwiperSlide>
-              <img
-                width={170}
-                src={bannerShape}
-                alt="image"
-                className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block"
-              />
-
-              <div className="flex h-full w-full items-center justify-between xl:px-20 lg:px-14 md:px-10 px-5 relative">
-                {/* Left Content */}
-                <motion.div className="text-white w-1/2">
-                  <h1 className="lg:text-[2.5vw] xl:text-[2.2vw] md:text-[2.7vw] text-[0.8rem] font-bold leading-tight font-figtree">
-                    Buy Smart, Share Freely <br />
-                    Simplified Campus Life!
-                  </h1>
-                  <p className="lg:text-[1.7vw] xl:text-[1.4vw] md:text-[2vw] text-[0.7rem] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-2 font-figtree">
-                    Where Students Connect
-                    <br className="hidden sm:block" /> Trade & Save Together
-                  </p>
-                  <Link
-                    to="/upload"
-                    className="bg-white text-[#364EF2] font-bold rounded-md md:py-2 xl:py-2 lg:py-[0.5vh] xl:px-11 lg:px-7 xl:text-xl lg:text-lg md:text-base text-xs inline-flex lg:mt-4 xl:mt-6 md:mt-4 mt-3 shadow-md transition-transform transform lg:hover:scale-105 py-[0.8vh] px-5 font-figtree duration-500 ease-in-out dark:bg-gradient-to-r from-blue-600 to-indigo-600 dark:text-white"
-                  >
-                    Trade Now
-                  </Link>
-                </motion.div>
-
-                {/* Right Image Section */}
-                <div className="relative w-[50%] flex justify-center items-center">
-                  <motion.img
-                    src={bannerShape}
-                    alt="Background Shape"
-                    className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
-                  />
-                  <motion.img
-                    src={bannerRight}
-                    alt="Main Visual"
-                    className="absolute xl:size-[26vw] lg:size-[33vw] md:size-[35vw] xl:mt-20 lg:mt-16 size-[45vw] z-10 mt-10"
-                  />
-                </div>
-              </div>
-            </SwiperSlide>
-          </Swiper>
+              <p className="hidden text-center md:block lg:text-[1.7vw] tracking-wide xl:text-lg md:text-[2vw] text-[0.7rem] lg:leading-7 md:leading-5  text-gray-200 font-medium mt-4 font-figtree">
+                Your trusted platform to simplify student life
+                <br className="hidden sm:block" /> Buy, sell and connect easily!
+              </p>
+              <Link
+                to="/upload"
+                className="bg-white text-[#2D3339] font-bold rounded-md md:py-2 xl:py-2 lg:py-[0.5vh] xl:px-7 lg:px-7 xl:text-lg lg:text-lg md:text-base text-xs lg:mt-4 xl:mt-8 md:mt-4 mt-3 shadow-md py-[0.7vh] px-4 font-figtree duration-500 ease-in-out flex items-center justify-center gap-2"
+              >
+                <span>Sell Now</span>
+                <FiArrowRight />
+              </Link>
+            </div>
+          </div>
         </motion.div>
 
         {/* White banner*/}
@@ -501,26 +424,9 @@ const Home = () => {
             hover:shadow-xl
         "
               >
-                <FiChevronLeft className="text-xl" />
+                <FiChevronLeft className="text-xl text-black dark:text-white" />
               </button>
             )}
-            {/* <div
-              className="
-        hidden
-        lg:block
-        absolute
-        left-0
-        top-0
-        bottom-0
-        w-12
-        bg-gradient-to-r
-        from-white
-        dark:from-[#131313]
-        to-transparent
-        pointer-events-none
-        z-10
-    "
-            /> */}
             <div
               ref={sliderRef}
               className="
@@ -572,7 +478,7 @@ const Home = () => {
             hover:shadow-xl
         "
               >
-                <FiChevronRight className="text-xl" />
+                <FiChevronRight className="text-xl text-black dark:text-white" />
               </button>
             )}
             <div
