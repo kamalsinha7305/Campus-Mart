@@ -11,21 +11,32 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import axiosInstance from "../../../services/axiosInstance.js";
+import AssistantMessageText from "./AssistantMessageText.jsx";
 
 const quickPrompts = [
   "Find a cycle under 3000",
   "Recommend electronics",
   "Help me sell my books",
-  "Estimate price for my calculator",
+  "How do I report a scam?",
+  "How does boosting work?",
 ];
 
 const initialMessage = {
-  text: "Hi! I am your UniDeals assistant. I can search listings, recommend deals, estimate prices, answer marketplace questions, and help write product listings.",
+  text: "Hi! I am your UniDeals assistant. I can search listings, recommend deals, estimate fair prices, write product listings, and answer platform questions.",
   sender: "assistant",
   suggestions: quickPrompts,
+  sources: ["Unideals knowledge base"],
 };
 
-const hiddenRoutes = ["/chat", "/login", "/signup", "/forgot-password"];
+const hiddenRoutes = [
+  "/chat",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/checkEmail",
+];
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(
@@ -33,7 +44,7 @@ const formatPrice = (price) =>
   );
 
 const ProductResult = ({ product }) => {
-  const image = product.images?.[0] || "/image10.png";
+  const image = product.images?.[0] || "/default-avatar.png";
   const category = product.categoryLabel || product.category?.replaceAll("_", " ");
 
   return (
@@ -46,7 +57,7 @@ const ProductResult = ({ product }) => {
         alt={product.title}
         className="h-16 w-16 shrink-0 rounded-md object-cover"
         onError={(event) => {
-          event.currentTarget.src = "/image10.png";
+          event.currentTarget.src = "/default-avatar.png";
         }}
       />
       <div className="min-w-0 flex-1">
@@ -126,6 +137,7 @@ const FloatingAssistant = () => {
           intent: assistantData.intent,
           products: assistantData.products || [],
           suggestions: assistantData.suggestions || [],
+          sources: assistantData.sources || [],
         },
       ]);
     } catch (error) {
@@ -159,18 +171,21 @@ const FloatingAssistant = () => {
   return (
     <div className="fixed bottom-4 right-4 z-[70] sm:bottom-6 sm:right-6">
       {isOpen && !isMinimized && (
-        <section className="mb-3 flex h-[min(620px,calc(100vh-110px))] w-[calc(100vw-32px)] max-w-[390px] flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#15171B]">
-          <header className="flex items-center justify-between border-b border-zinc-200 bg-[#394ff1] px-4 py-3 text-white dark:border-zinc-800">
+        <section className="mb-4 flex h-[min(680px,calc(100vh-112px))] w-[calc(100vw-32px)] max-w-[410px] flex-col overflow-hidden rounded-lg border border-white/50 bg-white/90 shadow-[0_28px_80px_rgba(18,24,40,0.28)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#15171B]/92">
+          <header className="relative flex items-center justify-between overflow-hidden border-b border-white/20 bg-[linear-gradient(135deg,#394ff1_0%,#7c3aed_55%,#12b5e5_100%)] px-4 py-3 text-white">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 shadow-inner">
+                <span className="absolute inset-0 rounded-lg bg-white/20 blur-md" />
                 <Bot className="h-5 w-5" />
               </div>
               <div>
                 <h2 className="text-sm font-bold leading-tight">
-                  UniDeals
+                  UniDeals Assistant
                 </h2>
-                <p className="text-[11px] font-medium text-white/75">
-                  Shopping assistant
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-white/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+                  Live marketplace guide
                 </p>
               </div>
             </div>
@@ -195,7 +210,7 @@ const FloatingAssistant = () => {
             </div>
           </header>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-[#F7F8FC] p-3 dark:bg-[#101114]">
+          <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.12),transparent_34%),linear-gradient(180deg,#F7F8FC_0%,#EEF4FF_100%)] p-3 dark:bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.18),transparent_34%),linear-gradient(180deg,#101114_0%,#171A20_100%)]">
             {messages.map((message, index) => (
               <div
                 key={`${message.sender}-${index}`}
@@ -204,7 +219,7 @@ const FloatingAssistant = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[88%] whitespace-pre-line rounded-lg px-3 py-2 text-sm leading-relaxed shadow-sm ${
+                  className={`max-w-[88%] rounded-lg px-3 py-2 text-sm leading-relaxed shadow-sm ${
                     message.sender === "user"
                       ? "rounded-tr-none bg-[#394ff1] text-white"
                       : message.isError
@@ -218,8 +233,21 @@ const FloatingAssistant = () => {
                       Assistant
                     </div>
                   )}
-                  {message.text}
+                  <AssistantMessageText text={message.text} />
                 </div>
+
+                {!!message.sources?.length && (
+                  <div className="mt-1.5 flex max-w-[88%] flex-wrap gap-1.5">
+                    {message.sources.map((source) => (
+                      <span
+                        key={source}
+                        className="rounded-full border border-indigo-100 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
+                      >
+                        {source}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {!!message.products?.length && (
                   <div className="mt-2 grid w-full gap-2">
@@ -272,7 +300,7 @@ const FloatingAssistant = () => {
 
             <form
               onSubmit={handleSubmit}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-[#F8F9FF] p-1.5 dark:border-zinc-800 dark:bg-[#202122]"
+              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-[#F8F9FF] p-1.5 shadow-inner dark:border-zinc-800 dark:bg-[#202122]"
             >
               <input
                 value={input}
@@ -296,7 +324,7 @@ const FloatingAssistant = () => {
       {isOpen && isMinimized && (
         <button
           onClick={() => setIsMinimized(false)}
-          className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20] dark:text-white"
+          className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/95 px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl backdrop-blur transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20]/95 dark:text-white"
         >
           <Bot className="h-4 w-4 text-[#394ff1]" />
           UniDeals
@@ -304,19 +332,23 @@ const FloatingAssistant = () => {
         </button>
       )}
 
-      <div className="relative flex h-16 w-16 items-center justify-center">
-        <span className="absolute inset-0 rounded-full bg-[#394ff1]/30 blur-xl transition group-hover:bg-[#394ff1]/40" />
-        <span className="absolute inset-1 rounded-full bg-cyan-300/25 blur-lg" />
-        <span className="absolute h-14 w-14 animate-ping rounded-full bg-[#394ff1]/20 sm:h-16 sm:w-16" />
+      <div className="floating-assistant-orb group relative flex h-[76px] w-[76px] items-center justify-center">
+        <span className="assistant-aura assistant-aura-primary" />
+        <span className="assistant-aura assistant-aura-secondary" />
+        <span className="assistant-aura assistant-aura-ring" />
+        <span className="assistant-particle left-2 top-3 h-1.5 w-1.5" />
+        <span className="assistant-particle right-3 top-5 h-1 w-1" />
+        <span className="assistant-particle bottom-4 left-5 h-1 w-1" />
         <button
           onClick={() => {
             setIsOpen((prev) => !prev);
             setIsMinimized(false);
           }}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-white/35 bg-[#394ff1] text-white shadow-[0_0_28px_rgba(57,79,241,0.75),0_14px_34px_rgba(57,79,241,0.35)] transition hover:-translate-y-1 hover:bg-[#2d3ec9] hover:shadow-[0_0_38px_rgba(57,79,241,0.95),0_18px_42px_rgba(57,79,241,0.45)] focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-950 sm:h-16 sm:w-16"
+          className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-[linear-gradient(135deg,#394ff1_0%,#6d28d9_58%,#14b8d6_100%)] text-white shadow-[0_0_34px_rgba(57,79,241,0.82),0_18px_40px_rgba(57,79,241,0.36)] transition hover:-translate-y-1 hover:shadow-[0_0_48px_rgba(124,58,237,0.95),0_22px_48px_rgba(57,79,241,0.48)] focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-950"
           aria-label={isOpen ? "Close UniDeals" : "Open UniDeals"}
           title="UniDeals"
         >
+          <span className="absolute inset-2 rounded-full bg-white/10 blur-sm" />
           {isOpen ? (
             <X className="h-6 w-6" />
           ) : (

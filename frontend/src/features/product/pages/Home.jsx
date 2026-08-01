@@ -16,6 +16,9 @@ import FirstListingCelebration from "../../../Components/FirstListingCelebration
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { CATEGORY_ITEMS } from "../constants/categories";
 
+const bannerRight = "/assets/Group_116.png";
+const bannerShape = "/assets/Group_114.png";
+
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -258,7 +261,7 @@ const Home = () => {
             <SwiperSlide>
               <img
                 width={170}
-                src="\assets\circle.png"
+                src={bannerShape}
                 alt="image"
                 className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block "
               />
@@ -296,7 +299,7 @@ const Home = () => {
                 {/* Right Image Section */}
                 <div className="relative w-[50%] flex justify-center items-center">
                   <motion.img
-                    src="/assets/Group_115.png"
+                    src={bannerShape}
                     alt="Background Shape"
                     className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
                   />
@@ -313,7 +316,7 @@ const Home = () => {
             <SwiperSlide>
               <img
                 width={170}
-                src="\assets\circle.png"
+                src={bannerShape}
                 alt="image"
                 className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block"
               />
@@ -345,7 +348,7 @@ const Home = () => {
                 {/* Right Image Section */}
                 <div className="relative w-[50%] flex justify-center items-center">
                   <motion.img
-                    src="/assets/Group_115.png"
+                    src={bannerShape}
                     alt="Background Shape"
                     className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
                   />
@@ -362,7 +365,7 @@ const Home = () => {
             <SwiperSlide>
               <img
                 width={170}
-                src="\assets\circle.png"
+                src={bannerShape}
                 alt="image"
                 className="absolute bottom-0 xl:left-72 lg:left-48 md:left-40 md:bottom-[-1.3vh] lg:bottom-0 hidden md:block"
               />
@@ -389,7 +392,7 @@ const Home = () => {
                 {/* Right Image Section */}
                 <div className="relative w-[50%] flex justify-center items-center">
                   <motion.img
-                    src="/assets/Group_115.png"
+                    src={bannerShape}
                     alt="Background Shape"
                     className="absolute md:size-[32vw] xl:size-[25vw] lg:size-[25vw] size-[30vw] md:h-80 lg:h-[28vh] h-56 z-0"
                   />

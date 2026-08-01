@@ -53,6 +53,110 @@
   cursor: grabbing;
 }
 
+.floating-assistant-orb {
+  animation: assistant-float 4.8s ease-in-out infinite;
+}
+
+.assistant-aura {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.assistant-aura-primary {
+  inset: 4px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, transparent 35%),
+    conic-gradient(from 120deg, rgba(57, 79, 241, 0.75), rgba(124, 58, 237, 0.7), rgba(20, 184, 166, 0.65), rgba(57, 79, 241, 0.75));
+  filter: blur(18px);
+  opacity: 0.88;
+  animation: assistant-aura-breathe 2.6s ease-in-out infinite;
+}
+
+.assistant-aura-secondary {
+  inset: -8px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.34), rgba(57, 79, 241, 0.18) 48%, transparent 70%);
+  filter: blur(16px);
+  animation: assistant-aura-spin 7s linear infinite;
+}
+
+.assistant-aura-ring {
+  inset: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow:
+    0 0 20px rgba(57, 79, 241, 0.62),
+    0 0 42px rgba(124, 58, 237, 0.38);
+  animation: assistant-ring-pulse 2.1s ease-out infinite;
+}
+
+.assistant-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.9);
+  animation: assistant-particle-drift 3.8s ease-in-out infinite;
+}
+
+.assistant-particle:nth-of-type(5) {
+  animation-delay: 0.65s;
+}
+
+.assistant-particle:nth-of-type(6) {
+  animation-delay: 1.25s;
+}
+
+@keyframes assistant-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -7px, 0);
+  }
+}
+
+@keyframes assistant-aura-breathe {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes assistant-aura-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes assistant-ring-pulse {
+  0% {
+    opacity: 0.86;
+    transform: scale(0.9);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.32);
+  }
+}
+
+@keyframes assistant-particle-drift {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(5px, -8px, 0) scale(1.15);
+  }
+}
+
 .swiper-pagination {
   display: flex;
   justify-content: center;

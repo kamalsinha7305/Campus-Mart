@@ -10,21 +10,23 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
-import ChatUser from "../components/ChatUser";
+import AssistantMessageText from "../components/AssistantMessageText.jsx";
+import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
 import userdp from "/userdp.png";
 
 const supportChat = {
   id: "support",
   name: "UniDeals",
-  url: "/bag.webp",
+  url: "/logo.png",
 };
 
 const quickPrompts = [
   "Find a cycle under 3000",
   "Recommend electronics",
   "Help me sell my books",
-  "Estimate price for my calculator",
+  "How do I report a scam?",
+  "How does boosting work?",
 ];
 
 const users = [
@@ -43,6 +45,7 @@ const initialSupportMessage = {
   }),
   isInitial: true,
   suggestions: quickPrompts,
+  sources: ["Unideals knowledge base"],
 };
 
 const formatPrice = (price) =>
@@ -51,7 +54,7 @@ const formatPrice = (price) =>
   );
 
 const ProductResult = ({ product }) => {
-  const image = product.images?.[0] || "/image10.png";
+  const image = product.images?.[0] || "/default-avatar.png";
   const category = product.categoryLabel || product.category?.replaceAll("_", " ");
 
   return (
@@ -64,7 +67,7 @@ const ProductResult = ({ product }) => {
         alt={product.title}
         className="h-20 w-20 shrink-0 rounded-md object-cover"
         onError={(event) => {
-          event.currentTarget.src = "/image10.png";
+          event.currentTarget.src = "/default-avatar.png";
         }}
       />
       <div className="min-w-0 flex-1">
@@ -160,6 +163,7 @@ const Chat = () => {
         estimate: assistantData.estimate,
         draft: assistantData.draft,
         suggestions: assistantData.suggestions || [],
+        sources: assistantData.sources || [],
       });
     } catch (error) {
       addMessage(
@@ -298,7 +302,7 @@ const Chat = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-[88%] whitespace-pre-line rounded-lg px-4 py-3 text-[14px] leading-relaxed shadow-sm lg:max-w-[72%] ${
+                      className={`max-w-[88%] rounded-lg px-4 py-3 text-[14px] leading-relaxed shadow-sm lg:max-w-[72%] ${
                         msg.sender === "user"
                           ? "rounded-tr-none bg-[#394ff1] text-white"
                           : msg.isError
@@ -312,8 +316,21 @@ const Chat = () => {
                           Assistant
                         </div>
                       )}
-                      {msg.text}
+                      <AssistantMessageText text={msg.text} />
                     </div>
+
+                    {!!msg.sources?.length && (
+                      <div className="mt-2 flex max-w-[760px] flex-wrap gap-1.5">
+                        {msg.sources.map((source) => (
+                          <span
+                            key={source}
+                            className="rounded-full border border-indigo-100 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
+                          >
+                            {source}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {!!msg.products?.length && (
                       <div className="mt-3 grid w-full max-w-[760px] gap-2 sm:grid-cols-2">
