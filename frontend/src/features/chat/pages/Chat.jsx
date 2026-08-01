@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
-import ChatUser from "../components/ChatUser";
+import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
 import userdp from "/userdp.png";
 
