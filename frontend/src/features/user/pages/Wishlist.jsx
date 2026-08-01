@@ -1,29 +1,16 @@
 import Profile_left_part from "../components/Profile_left_part.jsx";
 import ProductCard from "../../product/components/ProductCard.jsx";
 import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
-import { useWishlist } from "../../../context/useWishlist.js";
+import { useWishlist } from "../../../context/WishlistContext";
 
 function Wishlist() {
-  const { wishlist, fetchWishlist } = useWishlist();
+  const { wishlist } = useWishlist();
   const [visibleWishlist, setVisibleWishlist] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        setIsLoading(true);
-        await fetchWishlist();
-      } catch (error) {
-        console.error("Error loading wishlist:", error);
-        toast.error("Failed to load wishlist");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadWishlist();
-  }, [fetchWishlist]);
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     setVisibleWishlist(wishlist || []);
@@ -44,11 +31,11 @@ function Wishlist() {
       <div className="w-full h-screen overflow-hidden dark:bg-[#131313] bg-[#F7F9FD] font-figtree">
         <div className="flex h-[calc(100vh-70px)] ">
           {/* LEFT PANEL */}
-          <div className="hidden md:block md:w-[22.5%] lg:w-[21%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
+          <div className="hidden md:block md:w-auto md:shrink-0 bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
             <Profile_left_part />
           </div>
 
-          <div className="h-full md:w-[77.5%] lg:w-[79%] xl:w-[79.5%] 2xl:w-[79.5%] overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[5.7rem] xl:py-6">
+          <div className="h-full md:flex-1 overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[5.7rem] xl:py-6">
             <div className="max-w-4xl mx-auto">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -67,7 +54,7 @@ function Wishlist() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                 </div>
               ) : visibleWishlist && visibleWishlist.length > 0 ? (
-                <div className="w-full grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-5 2xl:gap-x-12  gap-y-7 dark:bg-[#131313]">
+                <div className="w-full grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-5 2xl:gap-x-4 gap-y-7 dark:bg-[#131313]">
                   {visibleWishlist.map((product) => (
                     <ProductCard
                       key={product._id}
@@ -97,3 +84,4 @@ function Wishlist() {
 }
 
 export default Wishlist;
+

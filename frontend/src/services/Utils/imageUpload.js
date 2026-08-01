@@ -1,7 +1,8 @@
 import { upload } from "@imagekit/javascript";
-import instance from "../axiosInstance";
+import instance from "../services/axiosInstance";
+import { compressImage } from "../features/product/utils/imageCompression.js";
 
-export const uploadImage = async (file) => {
+export const uploadImage = async (file, folder = "Products") => {
   const { data } = await instance.get("/api/imagekit/auth");
 
   const toBase64 = (file) =>
@@ -23,13 +24,22 @@ export const uploadImage = async (file) => {
 
       reader.readAsDataURL(file);
     });
+  
+  const compressedFile =
+      folder === "Avatars"
+        ? await compressImage(file, {
+            maxSizeMB: 0.3,
+            maxWidthOrHeight: 512,
+            initialQuality: 0.85,
+          })
+        : await compressImage(file);
 
-  const base64 = await toBase64(file);
+  const base64 = await toBase64(compressedFile);
 
   const result = await upload({
     file: base64,
-    fileName: `${Date.now()}_${file.name}`,
-    folder: `Products`,
+    fileName: `${Date.now()}_${compressedFile.name}`,
+    folder, // <-- Use the parameter instead of hardcoding
     signature: data.signature,
     expire: data.expire,
     token: data.token,

@@ -204,11 +204,11 @@ function ContactUs() {
   };
 
   return (
-    <div className="h-screen w-full dark:bg-[#131313] flex flex-col bg-[#F7F9FD] font-figtree">
+    <div className="h-screen w-full dark:bg-[#131313] flex flex-col bg-[#F7F9FD] font-figtree text-black dark:text-white">
       <div className="flex-1 lg:flex md:flex overflow-hidden">
         {/* LEFT PANEL */}
         {userDetails?._id ? (
-          <div className="hidden md:block md:w-[22.5%] lg:w-[21%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2 xl:pb-0">
+          <div className="hidden md:block md:w-auto md:shrink-0 bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2 xl:pb-0">
             <Profile_left_part />
           </div>
         ) : null}
@@ -217,7 +217,7 @@ function ContactUs() {
         <div
           className={`h-full overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-4 xl:px-[5.7rem] xl:py-6 ${
             userDetails?._id
-              ? "w-full md:w-[77.5%] lg:w-[79%] xl:w-[73.5%]"
+              ? "w-full md:flex-1"
               : "mx-auto w-full max-w-5xl"
           }`}
         >
@@ -243,7 +243,7 @@ function ContactUs() {
               <input
                 type="text"
                 placeholder="Search help articles..."
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:bg-[#1f1f1f] dark:border-gray-700 dark:text-white transition-all"
+                className="w-full pl-9 pr-4 py-2 text-sm border bg-white border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:bg-[#1f1f1f] dark:border-gray-700 dark:text-white transition-all"
               />
             </motion.div>
 
@@ -745,3 +745,4 @@ function ContactUs() {
 }
 
 export default ContactUs;
+

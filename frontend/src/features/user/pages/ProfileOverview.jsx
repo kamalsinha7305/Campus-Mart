@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Profile_left_part from "../components/Profile_left_part.jsx";
 import AvatarComponent from "../../../Components/common/AvatarComponent.jsx";
 import { useUser } from "../../../context/useUserContext.jsx";
-import { useWishlist } from "../../../context/useWishlist.js";
+import { useWishlist } from "../../../context/WishlistContext";
 import { getUserProducts } from "../../product/api/productApi.js";
 
 // React Icons Imports
@@ -27,13 +27,11 @@ import { FaStar, FaBolt } from "react-icons/fa";
 
 function ProfileOverview() {
   const { userDetails, fetchUserProfile } = useUser();
-  const { wishlist, fetchWishlist } = useWishlist();
+  const { wishlist } = useWishlist();
   const [userProducts, setUserProducts] = useState([]);
 
   useEffect(() => {
     fetchUserProfile();
-    fetchWishlist();
-
     const loadUserProducts = async () => {
       try {
         const res = await getUserProducts();
@@ -46,7 +44,7 @@ function ProfileOverview() {
     };
 
     loadUserProducts();
-  }, [fetchUserProfile, fetchWishlist]);
+  }, [fetchUserProfile]);
 
   const stats = useMemo(() => {
     const activeListings = userProducts.filter((product) =>
@@ -78,7 +76,10 @@ function ProfileOverview() {
     : "October 2022";
 
   const campus = userDetails?.college || userDetails?.campus || "VIT Vellore";
-  const savedItems = (wishlist || []).filter(Boolean).slice(0, 3);
+  const savedItems = useMemo(
+    () => (wishlist ?? []).filter(Boolean).slice(0, 3),
+    [wishlist],
+  );
   const formatPrice = (price) => {
     if (price === undefined || price === null || price === "") return "";
     return `\u20B9${Number(price).toLocaleString("en-IN")}`;
@@ -88,12 +89,12 @@ function ProfileOverview() {
     <div className="w-full h-screen overflow-hidden dark:bg-[#131313] bg-[#F7F9FD] font-figtree">
       <div className="flex h-[calc(100vh-70px)] ">
         {/* LEFT PANEL */}
-        <div className="hidden md:block md:w-[22.5%] lg:w-[21%] xl:w-[20.5%] 2xl:w-[20.5%] bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
+        <div className="hidden md:block md:w-auto md:shrink-0 bg-[#FFFFFF] dark:bg-[#131313] xl:pt-2  xl:pb-0   ">
           <Profile_left_part />
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="h-full md:w-[77.5%] lg:w-[79%] xl:w-[79.5%] 2xl:w-[79.5%] overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[5.7rem] xl:py-6 ">
+        <div className="h-full md:flex-1 overflow-y-auto no-scrollbar bg-[#F7F9FD] dark:bg-[#131313] p-6 lg:p-8 xl:px-[5.7rem] xl:py-6 ">
           <div className="max-w-5xl mx-auto space-y-7 pb-2">
             {/* 1. PROFILE HEADER CARD */}
             <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-800 grid grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto] gap-x-4 md:gap-x-6 items-center">
@@ -101,7 +102,7 @@ function ProfileOverview() {
               <div className="relative shrink-0 col-span-1 md:row-span-2 self-start md:self-center">
                 <AvatarComponent
                   name={userDetails?.name || "User"}
-                  imageUrl={userDetails?.avatar}
+                  imageUrl={userDetails?.avatar?.url}
                   plan={userDetails?.subscription}
                   size="xlarge"
                   className="rounded-2xl"
@@ -476,7 +477,7 @@ function ProfileOverview() {
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <img
-                              src={item.images?.[0] || "/default-avatar.png"}
+                              src={item.images?.[0] || "/default-avatar.webp"}
                               alt={item.title || "Saved item"}
                               className="w-10 h-10 rounded-lg object-cover bg-gray-100 shrink-0"
                             />
@@ -515,3 +516,4 @@ function ProfileOverview() {
 }
 
 export default ProfileOverview;
+

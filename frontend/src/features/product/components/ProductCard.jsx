@@ -1,18 +1,12 @@
-import {
-  memo,
-  forwardRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import { memo, forwardRef, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FaStar, FaHeart, FaRegHeart, FaCrown } from "react-icons/fa";
-import { useWishlist } from "../../../context/useWishlist.js";
+import { useWishlist } from "../../../context/WishlistContext.jsx";
 import toast from "react-hot-toast";
 import { IoLocationOutline } from "react-icons/io5";
 import AvatarComponent from "../../../Components/common/AvatarComponent.jsx";
 import { MdOutlineChatBubbleOutline } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 
 const FALLBACK_IMAGE = "/image10.png";
 const INR_FORMATTER = new Intl.NumberFormat("en-IN");
@@ -55,29 +49,10 @@ const getTierStyles = (tier) => {
 const ProductCard = memo(
   forwardRef(
     ({ product, showRemoveButton = false, onRemove, onRemoveError }, ref) => {
-      const { toggleWishlist, removeFromWishlist, checkProductInWishlist } =
+      const { toggleWishlist, removeFromWishlist, isInWishlist } =
         useWishlist();
-      const [inWishlist, setInWishlist] = useState(false);
       const [loading, setLoading] = useState(false);
-
-      const productId = product?._id;
-
-      useEffect(() => {
-        let isMounted = true;
-        const checkWishlist = async () => {
-          if (!productId) return;
-          try {
-            const inWish = await checkProductInWishlist(productId);
-            if (isMounted) setInWishlist(inWish);
-          } catch (error) {
-            console.error("Wishlist check failed:", error);
-          }
-        };
-        checkWishlist();
-        return () => {
-          isMounted = false;
-        };
-      }, [productId, checkProductInWishlist]);
+      const navigate = useNavigate();
 
       if (!product) return null;
 
@@ -93,17 +68,29 @@ const ProductCard = memo(
         seller,
       } = product;
 
+      console.log(product);
+
+      const inWishlist = isInWishlist(_id);
+
       const isBoosted =
         product.is_boosted &&
         (!product.boost_expires_at ||
           new Date(product.boost_expires_at) > new Date());
 
-      const sellerInfo = seller_id || seller;
+      const sellerInfo =
+        typeof seller_id === "object" && seller_id !== null
+          ? seller_id
+          : seller;
 
       const currentTier = isBoosted ? product.boost_tier || "pro" : "regular";
+
       const tierStyles = getTierStyles(currentTier);
+
       const sellerAvatarUrl =
-        sellerInfo?.avatar || sellerInfo?.profile_image || sellerInfo?.image;
+        sellerInfo?.avatar?.url ||
+        sellerInfo?.profile_image ||
+        sellerInfo?.image;
+
       const sellerPlan =
         sellerInfo?.subscription ||
         (currentTier === "regular" ? "base_user" : currentTier);
@@ -113,7 +100,15 @@ const ProductCard = memo(
 
       const imageUrl = useMemo(() => {
         if (!images?.length) return FALLBACK_IMAGE;
-        return images[0];
+
+        const firstImage = images[0];
+
+        // Support both old and new schema during migration
+        if (typeof firstImage === "string") {
+          return firstImage;
+        }
+
+        return firstImage?.url || FALLBACK_IMAGE;
       }, [images]);
 
       const savings = useMemo(
@@ -144,12 +139,12 @@ const ProductCard = memo(
         setLoading(true);
         try {
           const updatedWishlist = await toggleWishlist(_id, product);
-          setInWishlist(updatedWishlist);
+
           toast.success(
             updatedWishlist ? "Added to Wishlist" : "Removed from Wishlist",
           );
         } catch (error) {
-          toast.error("Failed to update wishlist");
+          toast.error("Please login to add wishlist");
         } finally {
           setLoading(false);
         }
@@ -159,7 +154,6 @@ const ProductCard = memo(
         e.preventDefault();
         e.stopPropagation();
 
-        setInWishlist(false);
         onRemove?.(_id);
         toast.success("Removed from Wishlist", {
           id: "wishlist-remove",
@@ -168,7 +162,6 @@ const ProductCard = memo(
         try {
           await removeFromWishlist(_id);
         } catch (error) {
-          setInWishlist(true);
           onRemoveError?.(_id);
           toast.error("Failed to remove from wishlist", {
             id: "wishlist-error",
@@ -254,8 +247,12 @@ group-hover:scale-100
 group-hover:pointer-events-auto
 "
               >
-                <Link
-                  to={"/chat"}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate("/chat");
+                  }}
                   className="
       rounded-lg
       bg-[#3838EC]
@@ -277,7 +274,7 @@ group-hover:pointer-events-auto
                 >
                   <MdOutlineChatBubbleOutline size={18} />
                   <span>Chat Now</span>
-                </Link>
+                </button>
               </div>
 
               {/* DYNAMIC BOOSTED BADGE (Retained functionality, subtly styled) */}
