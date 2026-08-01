@@ -1,7 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import ChatCard from "../components/ChatCard.jsx";
-import userdp from "/userdp.webp";
-
+import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   ChevronLeft,
@@ -14,7 +11,7 @@ import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
 import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
-import userdp from "/userdp.png";
+import userdp from "/userdp.webp";
 
 const supportChat = {
   id: "support",
