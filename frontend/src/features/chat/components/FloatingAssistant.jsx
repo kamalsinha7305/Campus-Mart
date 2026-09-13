@@ -86,6 +86,7 @@ const FloatingAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([initialMessage]);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const shouldHide = hiddenRoutes.some((route) =>
     location.pathname.startsWith(route),
@@ -94,6 +95,7 @@ const FloatingAssistant = () => {
   useEffect(() => {
     if (isOpen && !isMinimized) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => inputRef.current?.focus(), 120);
     }
   }, [messages, isOpen, isMinimized, isTyping]);
 
@@ -161,6 +163,13 @@ const FloatingAssistant = () => {
     sendMessage(input);
   };
 
+  const handleInputKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage(input);
+    }
+  };
+
   const resetChat = () => {
     setMessages([initialMessage]);
     setInput("");
@@ -169,23 +178,24 @@ const FloatingAssistant = () => {
   if (shouldHide) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[70] sm:bottom-6 sm:right-6">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[70] sm:bottom-6 sm:right-6">
       {isOpen && !isMinimized && (
-        <section className="mb-4 flex h-[min(680px,calc(100vh-112px))] w-[calc(100vw-32px)] max-w-[410px] flex-col overflow-hidden rounded-lg border border-white/50 bg-white/90 shadow-[0_28px_80px_rgba(18,24,40,0.28)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#15171B]/92">
-          <header className="relative flex items-center justify-between overflow-hidden border-b border-white/20 bg-[linear-gradient(135deg,#394ff1_0%,#7c3aed_55%,#12b5e5_100%)] px-4 py-3 text-white">
-            <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
+        <section className="pointer-events-auto mb-4 flex h-[min(680px,calc(100vh-112px))] w-[calc(100vw-32px)] max-w-[430px] flex-col overflow-hidden rounded-[22px] border border-white/70 bg-white/92 shadow-[0_28px_90px_rgba(17,24,39,0.24)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111318]/95">
+          <header className="relative flex items-center justify-between overflow-hidden border-b border-white/15 bg-[linear-gradient(135deg,#2637d9_0%,#7748ed_52%,#11a7e8_100%)] px-4 py-4 text-white">
+            <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-16 left-10 h-28 w-28 rounded-full bg-cyan-300/20 blur-2xl" />
             <div className="flex items-center gap-3">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 shadow-inner">
-                <span className="absolute inset-0 rounded-lg bg-white/20 blur-md" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/16 shadow-inner">
+                <span className="absolute inset-0 rounded-2xl bg-white/15 blur-md" />
                 <Bot className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold leading-tight">
+                <h2 className="text-base font-extrabold leading-tight">
                   UniDeals Assistant
                 </h2>
-                <p className="flex items-center gap-1.5 text-[11px] font-medium text-white/80">
+                <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/82">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
-                  Live marketplace guide
+                  Gemini powered marketplace guide
                 </p>
               </div>
             </div>
@@ -193,7 +203,7 @@ const FloatingAssistant = () => {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsMinimized(true)}
-                className="rounded-md p-2 transition hover:bg-white/15"
+                className="rounded-xl p-2 transition hover:bg-white/15"
                 aria-label="Minimize assistant"
                 title="Minimize"
               >
@@ -201,7 +211,7 @@ const FloatingAssistant = () => {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded-md p-2 transition hover:bg-white/15"
+                className="rounded-xl p-2 transition hover:bg-white/15"
                 aria-label="Close assistant"
                 title="Close"
               >
@@ -210,7 +220,7 @@ const FloatingAssistant = () => {
             </div>
           </header>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.12),transparent_34%),linear-gradient(180deg,#F7F8FC_0%,#EEF4FF_100%)] p-3 dark:bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.18),transparent_34%),linear-gradient(180deg,#101114_0%,#171A20_100%)]">
+          <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.12),transparent_34%),linear-gradient(180deg,#F8FAFF_0%,#EEF4FF_100%)] px-4 py-4 dark:bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.18),transparent_34%),linear-gradient(180deg,#101114_0%,#171A20_100%)]">
             {messages.map((message, index) => (
               <div
                 key={`${message.sender}-${index}`}
@@ -219,16 +229,16 @@ const FloatingAssistant = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[88%] rounded-lg px-3 py-2 text-sm leading-relaxed shadow-sm ${
+                  className={`max-w-[88%] rounded-2xl px-3.5 py-3 text-sm leading-relaxed shadow-sm ${
                     message.sender === "user"
-                      ? "rounded-tr-none bg-[#394ff1] text-white"
+                      ? "rounded-tr-md bg-[linear-gradient(135deg,#394ff1,#7357f4)] text-white shadow-[0_10px_24px_rgba(57,79,241,0.22)]"
                       : message.isError
-                        ? "rounded-tl-none border border-red-100 bg-red-50 text-red-700"
-                        : "rounded-tl-none border border-zinc-200 bg-white text-zinc-800 dark:border-zinc-800 dark:bg-[#1E2025] dark:text-white"
+                        ? "rounded-tl-md border border-red-100 bg-red-50 text-red-700"
+                        : "rounded-tl-md border border-white/80 bg-white text-zinc-800 shadow-[0_12px_30px_rgba(30,41,59,0.08)] dark:border-zinc-800 dark:bg-[#1E2025] dark:text-white"
                   }`}
                 >
                   {message.sender === "assistant" && (
-                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#394ff1]">
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#394ff1]">
                       <Sparkles className="h-3 w-3" />
                       Assistant
                     </div>
@@ -241,7 +251,7 @@ const FloatingAssistant = () => {
                     {message.sources.map((source) => (
                       <span
                         key={source}
-                        className="rounded-full border border-indigo-100 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
+                        className="rounded-full border border-indigo-100 bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
                       >
                         {source}
                       </span>
@@ -263,7 +273,7 @@ const FloatingAssistant = () => {
                       <button
                         key={suggestion}
                         onClick={() => sendMessage(suggestion)}
-                        className="rounded-md border border-indigo-100 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#394ff1] shadow-sm transition hover:bg-[#394ff1] hover:text-white dark:border-zinc-800 dark:bg-[#1A1D20]"
+                        className="rounded-xl border border-indigo-100 bg-white/90 px-3 py-2 text-[11px] font-bold text-[#394ff1] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#394ff1] hover:text-white dark:border-zinc-800 dark:bg-[#1A1D20]"
                       >
                         {suggestion}
                       </button>
@@ -282,17 +292,17 @@ const FloatingAssistant = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-[#15171B]">
-            <div className="mb-2 flex items-center justify-between">
+          <div className="border-t border-zinc-200/80 bg-white/95 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-[#15171B]/95">
+            <div className="mb-3 flex items-center justify-between">
               <button
                 onClick={resetChat}
-                className="text-[11px] font-bold text-zinc-500 transition hover:text-[#394ff1] dark:text-zinc-400"
+                className="rounded-lg px-2 py-1 text-[11px] font-bold text-zinc-500 transition hover:bg-zinc-100 hover:text-[#394ff1] dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 Restart
               </button>
               <Link
                 to="/chat"
-                className="text-[11px] font-bold text-[#394ff1] transition hover:text-[#2d3ec9]"
+                className="rounded-lg px-2 py-1 text-[11px] font-bold text-[#394ff1] transition hover:bg-indigo-50 hover:text-[#2d3ec9] dark:hover:bg-zinc-800"
               >
                 Open full chat
               </Link>
@@ -300,21 +310,24 @@ const FloatingAssistant = () => {
 
             <form
               onSubmit={handleSubmit}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-[#F8F9FF] p-1.5 shadow-inner dark:border-zinc-800 dark:bg-[#202122]"
+              className="relative z-20 flex items-end gap-2 rounded-2xl border border-zinc-200 bg-[#F8F9FF] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.08)] focus-within:border-[#394ff1]/55 focus-within:ring-4 focus-within:ring-[#394ff1]/10 dark:border-zinc-800 dark:bg-[#202122]"
             >
-              <input
+              <textarea
+                ref={inputRef}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleInputKeyDown}
                 placeholder="Ask UniDeals..."
-                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none dark:text-white"
+                rows={1}
+                className="max-h-24 min-h-10 min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm leading-5 text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isTyping}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#394ff1] text-white transition hover:bg-[#2d3ec9] disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#394ff1,#8b7cf6)] text-white shadow-[0_10px_22px_rgba(57,79,241,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(57,79,241,0.36)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Send message"
               >
-                <IoSend size={18} />
+                <IoSend size={20} />
               </button>
             </form>
           </div>
@@ -324,7 +337,7 @@ const FloatingAssistant = () => {
       {isOpen && isMinimized && (
         <button
           onClick={() => setIsMinimized(false)}
-          className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/95 px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl backdrop-blur transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20]/95 dark:text-white"
+          className="pointer-events-auto mb-3 flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white/95 px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl backdrop-blur transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20]/95 dark:text-white"
         >
           <Bot className="h-4 w-4 text-[#394ff1]" />
           UniDeals
@@ -332,7 +345,7 @@ const FloatingAssistant = () => {
         </button>
       )}
 
-      <div className="floating-assistant-orb group relative flex h-[76px] w-[76px] items-center justify-center">
+      <div className="floating-assistant-orb pointer-events-auto group relative flex h-[76px] w-[76px] items-center justify-center">
         <span className="assistant-aura assistant-aura-primary" />
         <span className="assistant-aura assistant-aura-secondary" />
         <span className="assistant-aura assistant-aura-ring" />
