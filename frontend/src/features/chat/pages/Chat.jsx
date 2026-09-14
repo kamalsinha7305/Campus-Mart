@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import ChatCard from "../components/ChatCard.jsx";
+import PriceEstimateCard from "../components/PriceEstimateCard.jsx";
+import ComparisonCard from "../components/ComparisonCard.jsx";
+import ListingDraftCard from "../components/ListingDraftCard.jsx";
+import ChecklistCard from "../components/ChecklistCard.jsx";
+import BudgetBundleCard from "../components/BudgetBundleCard.jsx";
+import SafetyTipCard from "../components/SafetyTipCard.jsx";
 import userdp from "/userdp.webp";
 
 import {
@@ -12,9 +19,7 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
-import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
-import userdp from "/userdp.png";
 
 const supportChat = {
   id: "support",
@@ -51,6 +56,14 @@ const formatPrice = (price) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(
     price || 0,
   );
+
+const renderAssistantText = (text = "") =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
 
 const ProductResult = ({ product }) => {
   const image = product.images?.[0] || "/image10.png";
@@ -159,9 +172,13 @@ const Chat = () => {
       addMessage(supportChat.id, assistantData.reply, "support", {
         intent: assistantData.intent,
         products: assistantData.products || [],
-        estimate: assistantData.estimate,
-        draft: assistantData.draft,
         suggestions: assistantData.suggestions || [],
+        estimate: assistantData.estimate || null,
+        comparison: assistantData.comparison || null,
+        draft: assistantData.draft || null,
+        checklist: assistantData.checklist || null,
+        bundle: assistantData.bundle || null,
+        safetyTips: assistantData.safetyTips || null,
       });
     } catch (error) {
       addMessage(
@@ -314,16 +331,25 @@ const Chat = () => {
                           Assistant
                         </div>
                       )}
-                      {msg.text}
+                      {renderAssistantText(msg.text)}
                     </div>
 
-                    {!!msg.products?.length && (
+                    {!!(msg.productCards || msg.products)?.length && (
                       <div className="mt-3 grid w-full max-w-[760px] gap-2 sm:grid-cols-2">
-                        {msg.products.map((product) => (
-                          <ProductResult key={product._id} product={product} />
+                        {(msg.productCards || msg.products).map((product) => (
+                          <ProductResult key={product._id || `${product.title}-${product.category}`} product={product} />
                         ))}
                       </div>
                     )}
+
+                    <div className="w-full max-w-[760px]">
+                      {msg.estimate && <PriceEstimateCard estimate={msg.estimate} />}
+                      {msg.comparison && <ComparisonCard comparison={msg.comparison} />}
+                      {msg.draft && <ListingDraftCard draft={msg.draft} />}
+                      {msg.checklist && <ChecklistCard checklist={msg.checklist} category={msg.intent === "inspection" ? msg.category : ""} />}
+                      {msg.bundle && <BudgetBundleCard bundle={msg.bundle} />}
+                      {msg.safetyTips && <SafetyTipCard safetyTips={msg.safetyTips} />}
+                    </div>
 
                     {!!msg.suggestions?.length && (
                       <div className="mt-3 flex max-w-[760px] flex-wrap gap-2">

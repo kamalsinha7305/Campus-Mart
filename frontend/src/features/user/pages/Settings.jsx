@@ -18,7 +18,7 @@ import {
   Loader2,
   Zap,
 } from "lucide-react";
-import { uploadImage } from "../../../Utils/imageUpload.js";
+import { uploadImage } from "../../../services/Utils/imageUpload.js";
 import AvatarComponent from "../../../Components/common/AvatarComponent.jsx";
 import Loader from "../../../Components/ui/Loader.jsx";
 import { useUser } from "../../../context/useUserContext.jsx";
@@ -875,4 +875,3 @@ function AddressCard({ address, index, onEdit, onDelete, onSetDefault }) {
 }
 
 export default Settings;
-

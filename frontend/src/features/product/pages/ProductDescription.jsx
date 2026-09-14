@@ -1,11 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProducts } from "../api/productApi";
-import { Share2, MessageSquare, Eye, ShieldCheck, Clock3 } from "lucide-react";
+import { Share2, MessageSquare, Eye, ShieldCheck, Clock3, Bot, Sparkles, Expand, Minimize2 } from "lucide-react";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import ProductCard from "../../../features/product/components/ProductCard.jsx";
 import toast from "react-hot-toast";
-import { Expand, Minimize2 } from "lucide-react";
 import { LuMessageSquareText } from "react-icons/lu";
 import { useParams, Link } from "react-router-dom";
 import { IoIosArrowForward } from "react-icons/io";
@@ -729,6 +728,24 @@ ${shareUrl}`;
                   Chat with Seller
                 </Link>
               </div>
+
+              {/* Ask AI About Deal */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("open-unideals-assistant", {
+                      detail: {
+                        message: `Is ₹${product?.selling_price} a fair price for "${product?.title}"? What should I inspect before buying?`,
+                      },
+                    })
+                  );
+                }}
+                className="mt-3 w-full h-[48px] rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center justify-center gap-2 text-[#394ff1] dark:text-indigo-400 font-semibold text-sm transition-all duration-300 shadow-sm"
+              >
+                <Sparkles size={16} className="text-[#394ff1] dark:text-indigo-400" />
+                Ask AI: Fair Price & Inspection Tips
+              </button>
             </div>
 
             {/* Pickup & Safety */}

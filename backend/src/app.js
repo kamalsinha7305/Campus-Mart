@@ -100,7 +100,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "10kb" })); // To prevent large payload attacks
+app.use(express.json({ limit: "12mb" })); // Supports compressed assistant image/audio questions
 app.use(express.urlencoded({ extended: true })); // Handles form data from frontend
 app.use(cookieParser());
 
