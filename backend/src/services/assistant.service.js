@@ -377,34 +377,41 @@ Always respond naturally and concisely in the user's language (support Hindi/Hin
 Use ₹ for all prices, format with Indian number system.
 Available categories: ${Object.values(PRODUCT_CATEGORY_LABELS || {}).join(", ")}.
 Available conditions: ${Object.values(PRODUCT_CONDITION_LABELS || {}).join(", ")}.
-NEVER share personal information or contact details.
+NEVER share personal information or contact details of specific users.
 Always recommend meeting in public campus locations.
 Be encouraging about the campus marketplace community.
 
 CRITICAL RULES:
 - You are ONLY a UniDeals assistant. NEVER answer questions unrelated to UniDeals, campus buying/selling, or student marketplace topics.
 - NEVER answer from your general training knowledge. Use ONLY the platform knowledge, tools, and Knowledge Base Context provided below.
-- If a user asks something outside your scope, politely redirect: "I'm the UniDeals assistant — I can help with buying, selling, pricing, safety, and navigating the platform!"
-- If a Knowledge Base Context is provided below, treat it as the ABSOLUTE source of truth and answer from it first.
+- If a user asks something outside your scope, politely redirect: "I'm the UniDeals assistant — I can help with buying, selling, pricing, safety, platform policies, and navigating the platform!"
+- If a Knowledge Base Context is provided below, treat it as the ABSOLUTE source of truth and answer from it first before calling tools.
 - For terms, privacy, website navigation, account, upload, wishlist, chat, report, address, and boosting questions, use the Knowledge Base Context BEFORE calling any tools.
+- NEVER invent, guess, or hallucinate policies, rules, prices, timelines, penalties, features, or procedures. ONLY state what is explicitly in the knowledge base or tool results.
+- CRITICAL NO-HALLUCINATION RULE: If a user asks a policy or procedure question that is NOT covered in the Knowledge Base Context or tool results, DO NOT make up an answer. Instead respond with: "That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but our team is continuously expanding my knowledge and I'll soon be able to answer it! Please reach out to support@campusmart.in or visit /contact for direct assistance." Then provide suggestions from the platform.
 
 MANDATORY TOOL USAGE:
-- For ANY question about how to use the website, features, steps, or navigation → ALWAYS call getPlatformGuide
-- For ANY question about rules, terms, policies, prohibited items → ALWAYS call getTermsAndPolicies
-- When user asks about products → ALWAYS call searchProducts or getTrendingProducts
-- When user asks about pricing → ALWAYS call estimateFairPrice
-- When user wants to sell something → ALWAYS call generateListingDraft
-- When user asks to compare → ALWAYS call compareTwoProducts
-- When user has a budget → ALWAYS call getBudgetBundle
-- For safety questions → ALWAYS call getSafetyTips
-- For inspection advice → ALWAYS call getInspectionChecklist
+- For ANY question about how to use the website, features, steps, or navigation → call getPlatformGuide
+- For ANY question about rules, terms, policies, prohibited items, eligibility → call getTermsAndPolicies
+- For ANY question about returns, refunds, reviews, privacy, data deletion, subscription rules, boost rules, moderation, account security, content/photo rules, deal lifecycle, payment safety, listing price rules → call getPolicyOrProcedure with the matching topic
+- When user asks about products → call searchProducts or getTrendingProducts
+- When user asks about pricing → call estimateFairPrice
+- When user wants to sell something → call generateListingDraft
+- When user asks to compare → call compareTwoProducts
+- When user has a budget → call getBudgetBundle
+- For safety questions → call getSafetyTips
+- For inspection advice → call getInspectionChecklist
+
+GRACEFUL FALLBACK RULE:
+If after exhausting all knowledge base context and tool results you still cannot provide a confident, grounded answer to a policy or procedure question, ALWAYS respond with:
+"That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but don't worry, our team is continuously expanding my knowledge and I'll soon be able to answer it fully! In the meantime: 📧 Email us at support@campusmart.in (24-48h response) or 🎫 Submit a ticket at /contact. Thanks for your patience! 🙌"
 
 RESPONSE FORMAT:
 Always suggest 3-4 relevant follow-up prompts.
 Return ONLY a valid JSON object with this structure:
 {
   "reply": "Direct, polished answer. Use numbered steps if the user asks how to do something.",
-  "intent": "knowledge_base | marketplace_overview | product_search | price_estimation | listing_creation | comparison | budget_planning | advice | conversation",
+  "intent": "knowledge_base | marketplace_overview | product_search | price_estimation | listing_creation | comparison | budget_planning | advice | policy | conversation",
   "suggestions": ["short follow-up", "short follow-up", "short follow-up"]
 }
 
@@ -446,8 +453,31 @@ const parseJsonResponse = (text = "") => {
   try {
     return JSON.parse(text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
   } catch {
-    return null;
+    const objectMatch = text.match(/\{[\s\S]*\}/);
+    if (!objectMatch) return null;
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch {
+      return null;
+    }
   }
+};
+
+const buildMediaSearchQueries = (value = "") => {
+  const cleaned = value
+    .replace(/\b(search|find|show|recommend|identify|this|image|picture|photo|product|item|please|i want|i need|can you|give me|under|below|within)\b/gi, " ")
+    .replace(/₹?\s*\d[\d,]*/g, " ")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = cleaned.split(" ").filter((word) => word.length > 2);
+  const queries = new Set([cleaned]);
+
+  for (let index = 0; index < words.length - 1; index += 1) {
+    queries.add(`${words[index]} ${words[index + 1]}`);
+  }
+  words.forEach((word) => queries.add(word));
+  return [...queries].filter((query) => query.length >= 2).slice(0, 8);
 };
 
 const buildMediaReply = async ({ message, attachments = [] }) => {
@@ -482,8 +512,13 @@ const buildMediaReply = async ({ message, attachments = [] }) => {
     },
   });
 
-  const extracted = parseJsonResponse(response.text || "") || {};
-  const searchQuery = String(extracted.searchQuery || extracted.query || extracted.transcript || "").trim();
+  const responseText = typeof response.text === "function" ? response.text() : response.text;
+  const extracted = parseJsonResponse(responseText || "") || {};
+  const rawMediaText = String(
+    extracted.searchQuery || extracted.query || extracted.transcript || responseText || ""
+  ).trim();
+  const searchQueries = buildMediaSearchQueries(rawMediaText);
+  const searchQuery = searchQueries[0] || rawMediaText;
   if (!searchQuery) {
     return {
       reply: isAudio
@@ -497,16 +532,28 @@ const buildMediaReply = async ({ message, attachments = [] }) => {
     };
   }
 
-  const searchResult = await buildAvailabilityResponse(searchQuery);
+  const productPool = [];
+  for (const query of searchQueries) {
+    try {
+      const result = await toolHandlers.searchProducts({ query, limit: 4 });
+      productPool.push(...(result?.products || []));
+    } catch {
+      // Continue with shorter candidate queries when one search fails.
+    }
+  }
+  const uniqueProducts = [...new Map(productPool.map((product) => [
+    product._id || `${product.title}-${product.category}`,
+    product,
+  ])).values()];
   const products = rankRecommendations(
-    searchResult?.products || [],
+    uniqueProducts,
     searchQuery,
-    detectCategoryFromMessage(searchQuery)
-  );
+    detectCategoryFromMessage(rawMediaText)
+  ).slice(0, 8);
 
   return {
     reply: isAudio
-      ? `I heard: "${extracted.transcript || searchQuery}". Here are the closest UniDeals listings:`
+      ? `I heard: "${extracted.transcript || rawMediaText}". Here are the closest UniDeals listings:`
       : `I identified "${searchQuery}" in the image. Here are the closest UniDeals listings:`,
     intent: products.length ? "product_search" : "product_recommendation",
     products,
@@ -514,7 +561,7 @@ const buildMediaReply = async ({ message, attachments = [] }) => {
     recommendations: products,
     missingItems: products.length ? [] : [searchQuery],
     detectedQuery: searchQuery,
-    transcript: isAudio ? extracted.transcript || searchQuery : undefined,
+    transcript: isAudio ? extracted.transcript || rawMediaText : undefined,
     suggestions: ["Show similar items", "Find a cheaper option", "Search another product"],
     aiPowered: true,
   };
@@ -527,6 +574,7 @@ const inferIntentFromTools = (toolsUsed) => {
   if (toolsUsed.has("compareTwoProducts")) return "comparison";
   if (toolsUsed.has("getBudgetBundle")) return "budget_planning";
   if (toolsUsed.has("getInspectionChecklist") || toolsUsed.has("getSafetyTips")) return "advice";
+  if (toolsUsed.has("getTermsAndPolicies") || toolsUsed.has("getPolicyOrProcedure") || toolsUsed.has("getPlatformGuide")) return "policy";
   return "conversation";
 };
 
@@ -643,7 +691,25 @@ const fallbackLocalSearch = async (message) => {
       };
     }
 
-    // 6. Product Search / Default
+    // 6. Policy / Procedure question detection — return graceful fallback if no KB match
+    const isPolicyQuestion = /\b(policy|rule|rules|allowed|prohibited|banned|illegal|can i|is it allowed|what happens|procedure|legal|return|refund|moderation|suspension|ban|account ban|penalty|terms|conditions|privacy|gdpr|dpdp|data|subscription|upgrade|boost|credits|rollover|review policy|dispute|liability|governing law|section 79|intermediary|eligible|eligibility|age limit|minor|18|college required|verification required|who can use|can i sell|what is not allowed)\b/i.test(text);
+
+    if (isPolicyQuestion && !knowledgeMatch) {
+      return {
+        reply: "That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but don't worry, our team is continuously expanding my knowledge and I'll soon be able to answer it fully!\n\nIn the meantime, here's what you can do:\n📧 Email us directly at **support@campusmart.in** — our team will reply within 24-48 hours.\n🎫 Submit a support ticket at **/contact** and a campus team member will assist you.\n📚 Browse our Terms & Conditions at **/termscondition** or Privacy Policy at **/privacy-policy**.\n\nThanks for your patience — we're always improving! 🙌",
+        intent: "policy",
+        route: "/contact",
+        suggestions: [
+          "What are the platform rules?",
+          "Is advance UPI payment safe?",
+          "How do I report a suspicious seller?",
+          "Contact support",
+        ],
+        aiPowered: false,
+      };
+    }
+
+    // 7. Product Search / Default
     const cleanedQuery = text.replace(/\b(find|show|search|need|want|buy|looking|for|me|please|best|cheap|affordable|recommend|suggest|are|there|any)\b/gi, "").trim();
     const searchRes = await toolHandlers.searchProducts({ query: cleanedQuery || text, limit: 4 });
     const products = searchRes.products?.length ? searchRes.products : (await toolHandlers.getTrendingProducts({ limit: 4 })).products;
@@ -663,7 +729,7 @@ const fallbackLocalSearch = async (message) => {
     };
   } catch (err) {
     return {
-      reply: "I'm UniDeals AI — I can help you find products, estimate fair prices, write listings, compare deals, plan budgets, check safety tips, and navigate the platform. What would you like help with?",
+      reply: "I'm UniDeals AI — I can help you find products, estimate fair prices, write listings, compare deals, plan budgets, check safety tips, navigate the platform, and answer policy questions. What would you like help with?",
       intent: "conversation",
       suggestions: [
         "Find a cycle under ₹3000",

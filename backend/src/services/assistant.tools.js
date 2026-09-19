@@ -10,6 +10,10 @@ import {
   TERMS_AND_CONDITIONS,
   SUBSCRIPTION_PLANS,
   STEP_BY_STEP_GUIDES,
+  PRIVACY_POLICY,
+  REVIEW_RATING_POLICY,
+  UNKNOWN_QUESTION_FALLBACK,
+  FAQ_SECTION_LIBRARY,
 } from "../config/knowledgeBase.js";
 
 const compactProduct = (product) => {
@@ -171,9 +175,23 @@ export const toolDeclarations = [
       properties: {
         section: { 
           type: Type.STRING, 
-          description: "Specific section id (eligibility, role, prohibited_items, safety_payments, listings_ownership, liability_disputes, all)" 
+          description: "Specific section id (eligibility, role, prohibited_items, safety_payments, listings_ownership, deal_workflow, liability_disputes, moderation_penalties, intellectual_property, governing_law, all)" 
         }
       }
+    }
+  },
+  {
+    name: "getPolicyOrProcedure",
+    description: "Get detailed policy or procedure information for any UniDeals topic. Use for questions about returns, refunds, reviews, privacy, data rights, subscription rules, boost policies, moderation, disputes, account security, content rules, and any platform policy.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        topic: {
+          type: Type.STRING,
+          description: "Policy topic to retrieve. Options: returns_refunds, reviews_ratings, privacy_data, subscription_rules, boost_rules, moderation_penalties, dispute_resolution, account_security, content_photo_rules, deal_lifecycle, payment_safety, listing_price_rules, prohibited_items, eligibility, platform_liability, governing_law, subscription_upgrade_policy, founder_offer"
+        }
+      },
+      required: ["topic"]
     }
   }
 ];
@@ -364,14 +382,16 @@ export const toolHandlers = {
     if (guide) {
       return { guide };
     }
+    // Fallback: return all guide topics so Gemini can pick the right one
     return { 
+      availableTopics: STEP_BY_STEP_GUIDES.map(g => ({ topic: g.topic, title: g.title })),
       guide: {
         title: "UniDeals Platform Guide",
         steps: [
           "Explore listings from the Home page.",
           "Use the Search bar or Categories to find student deals.",
-          "Click 'Sell' at `/upload` to post your own item.",
-          "Chat with sellers in-app to arrange a safe public meetup on campus!"
+          "Click 'Sell' at /upload to post your own item.",
+          "Chat with sellers in-app to arrange a safe public meetup on campus!",
         ]
       }
     };
@@ -392,5 +412,166 @@ export const toolHandlers = {
       summary: TERMS_AND_CONDITIONS.summary,
       sections: TERMS_AND_CONDITIONS.sections
     };
-  }
+  },
+
+  getPolicyOrProcedure: async (args) => {
+    const { topic } = args;
+
+    const policies = {
+      returns_refunds: {
+        title: "Returns and Refunds Policy",
+        summary: "UniDeals does NOT process returns, refunds, or exchanges — it is a peer-to-peer marketplace.",
+        details: [
+          "UniDeals does NOT process returns, refunds, or exchanges between students.",
+          "ALWAYS inspect the item thoroughly BEFORE making payment — this is your only protection.",
+          "Test electronics (power on, check all ports, test battery) before paying.",
+          "If item doesn't match the listing: do NOT pay — walk away.",
+          "Report fraudulent sellers via the in-app report/flag button.",
+          "For serious fraud (theft, criminal scam): contact campus security or local police first.",
+          "Email support@campusmart.in with full evidence for platform action against the seller.",
+          "UniDeals can suspend/ban fraudulent sellers but cannot recover funds.",
+        ]
+      },
+      reviews_ratings: {
+        title: "Reviews and Ratings Policy",
+        summary: "Reviews are available only after a deal is marked 'Completed'. They must be honest and cannot be edited.",
+        details: REVIEW_RATING_POLICY.rules,
+      },
+      privacy_data: {
+        title: "Privacy Policy and Data Rights",
+        summary: PRIVACY_POLICY.summary,
+        sections: PRIVACY_POLICY.sections,
+      },
+      subscription_rules: {
+        title: "Subscription Plans — Full Details",
+        summary: SUBSCRIPTION_PLANS.philosophy,
+        plans: SUBSCRIPTION_PLANS.plans,
+        boostAddons: SUBSCRIPTION_PLANS.boostAddons,
+        upgradePolicy: SUBSCRIPTION_PLANS.upgradePolicy,
+        founderOffer: SUBSCRIPTION_PLANS.founderOffer,
+      },
+      boost_rules: {
+        title: "Boost Rules — Credits, Limits, Stacking, Rollover",
+        summary: "Boosting places your listing at the top of campus search with a 'Boosted' badge for ~3x more views.",
+        rules: SUBSCRIPTION_PLANS.boostRules,
+        addons: SUBSCRIPTION_PLANS.boostAddons,
+        planCredits: {
+          free: "0 monthly credits — can purchase add-ons (₹29/3-day, ₹49/7-day).",
+          pro: "2 boost credits/month (3-day each). Max 1 active boost at a time.",
+          pro_plus: "5 boost credits/month (7-day each). Up to 3 active boosts simultaneously.",
+        }
+      },
+      moderation_penalties: {
+        title: "Moderation and Account Penalty Policy",
+        summary: "Moderation team reviews flagged content within 2 hours.",
+        penaltyLadder: [
+          "1st violation: Warning issued + listing removed.",
+          "2nd violation: Temporary suspension (7-30 days depending on severity).",
+          "3rd violation or any serious offense: Permanent account ban.",
+          "Permanently banned users cannot create new accounts.",
+          "Appeals: email support@campusmart.in with evidence.",
+          "Banned accounts forfeit subscription benefits — no refunds.",
+        ],
+        sectionRef: TERMS_AND_CONDITIONS.sections.find(s => s.id === "moderation_penalties"),
+      },
+      dispute_resolution: {
+        title: "Dispute Resolution and Liability",
+        summary: "UniDeals is a Section 79 IT Act intermediary — platform liability is capped at ₹1,000.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "liability_disputes")?.rules || [],
+      },
+      account_security: {
+        title: "Account Security — Password, OAuth, Verification",
+        summary: "UniDeals uses email/password and Google OAuth2 for secure sign-in.",
+        details: [
+          "Password reset: Login page → Forgot Password → email reset link → set new password.",
+          "Google OAuth users: no separate password — sign in with Google account.",
+          "Email verification required for full access (listing, chat, wishlist, etc.).",
+          "If verification email not received: check spam or request resend from login page.",
+          "Account hacking/unauthorized access: contact support@campusmart.in immediately.",
+          "Password change: Settings → Security (only for email-based accounts).",
+          "Google users manage passwords via Google account settings.",
+        ]
+      },
+      content_photo_rules: {
+        title: "Content and Photo Rules for Listings",
+        summary: "Listings must use real photos of the actual item. Stock images and internet photos are strictly prohibited.",
+        details: [
+          "Upload 1-3 REAL, clear photos of your ACTUAL item — no stock images or internet screenshots.",
+          "Photos must clearly show the item's actual condition.",
+          "Recommended: Front view, back/alternate angle, close-up of any wear/damage/accessories.",
+          "For electronics: show the screen powered ON to prove functionality.",
+          "For books: show cover, spine, and any highlighting or notes inside.",
+          "Use natural daylight for best image quality.",
+          "Maximum 3 images per listing.",
+          "Listings with misleading or stock photos are removed by moderation.",
+        ]
+      },
+      deal_lifecycle: {
+        title: "Deal Lifecycle and Status System",
+        summary: "Deals follow a structured lifecycle from negotiation to completion.",
+        stages: TERMS_AND_CONDITIONS.sections.find(s => s.id === "deal_workflow")?.rules || [],
+      },
+      payment_safety: {
+        title: "Payment Safety Rules",
+        summary: "All payments must be made IN PERSON at the meetup, AFTER inspecting the item.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "safety_payments")?.rules || [],
+      },
+      listing_price_rules: {
+        title: "Listing Price Rules — Selling Price Cannot Exceed Original Price",
+        summary: "Selling price on UniDeals CANNOT exceed the original MRP or purchase price.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "listings_ownership")?.rules || [],
+      },
+      prohibited_items: {
+        title: "Prohibited Items and Banned Activities",
+        summary: "UniDeals strictly prohibits certain items and activities on the platform.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "prohibited_items")?.rules || [],
+      },
+      eligibility: {
+        title: "Eligibility Requirements — Who Can Use UniDeals",
+        summary: "UniDeals is exclusively for students 18+ currently enrolled at recognized Indian colleges.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "eligibility")?.rules || [],
+      },
+      platform_liability: {
+        title: "Platform Liability and Legal Status",
+        summary: "UniDeals is a Section 79 IT Act intermediary. Platform liability is capped at ₹1,000.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "liability_disputes")?.rules || [],
+        legalSection: TERMS_AND_CONDITIONS.sections.find(s => s.id === "governing_law")?.rules || [],
+      },
+      governing_law: {
+        title: "Governing Law and Jurisdiction",
+        summary: "UniDeals is governed by the laws of India. Disputes are subject to Indian courts.",
+        details: TERMS_AND_CONDITIONS.sections.find(s => s.id === "governing_law")?.rules || [],
+      },
+      subscription_upgrade_policy: {
+        title: "Subscription Upgrade and Billing Policy",
+        summary: "Upgrades take effect immediately. Subscriptions are non-refundable. No downgrades.",
+        details: SUBSCRIPTION_PLANS.upgradePolicy,
+      },
+      founder_offer: {
+        title: "Founder Offer — Lifetime Access Details",
+        summary: SUBSCRIPTION_PLANS.founderOffer,
+        details: [
+          "Founder pricing: one-time payment, no recurring fees, ever.",
+          "Pro Founder: ₹99 for permanent lifetime access to all Pro features.",
+          "Pro+ Founder: ₹199 for permanent lifetime access to all Pro+ features.",
+          "Available only during the launch/founder phase.",
+          "After founder phase: new users pay ₹149/semester (Plus) or ₹249/semester (Premium).",
+          "Existing founders KEEP their lifetime benefits regardless of future pricing changes.",
+          SUBSCRIPTION_PLANS.regularPricing?.foundersKeepLifetime ? "Founders keep lifetime access forever — guaranteed." : "",
+        ].filter(Boolean),
+      },
+    };
+
+    const policy = policies[topic];
+    if (policy) {
+      return { topic, policy };
+    }
+
+    // Unknown topic — return graceful fallback
+    return {
+      topic,
+      policy: null,
+      fallback: UNKNOWN_QUESTION_FALLBACK,
+    };
+  },
 };
