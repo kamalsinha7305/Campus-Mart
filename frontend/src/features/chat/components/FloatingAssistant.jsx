@@ -2,77 +2,95 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Bot,
+  Camera,
   ChevronDown,
   ExternalLink,
+  Mic,
   MessageCircle,
   Minus,
+  RotateCcw,
   Sparkles,
   X,
 } from "lucide-react";
-import { IoSend } from "react-icons/io5";
 import axiosInstance from "../../../services/axiosInstance.js";
-import AssistantMessageText from "./AssistantMessageText.jsx";
+import PriceEstimateCard from "./PriceEstimateCard.jsx";
+import ComparisonCard from "./ComparisonCard.jsx";
+import ListingDraftCard from "./ListingDraftCard.jsx";
+import ChecklistCard from "./ChecklistCard.jsx";
+import BudgetBundleCard from "./BudgetBundleCard.jsx";
+import SafetyTipCard from "./SafetyTipCard.jsx";
 
 const quickPrompts = [
-  "Find a cycle under 3000",
-  "Recommend electronics",
-  "Help me sell my books",
-  "How do I report a scam?",
-  "How does boosting work?",
+  "Cycles under ₹3,000",
+  "Electronics",
+  "Sell textbook",
+  "Price check",
+  "Safety tips",
 ];
 
 const initialMessage = {
-  text: "Hi! I am your UniDeals assistant. I can search listings, recommend deals, estimate fair prices, write product listings, and answer platform questions.",
+  text: "Hey there! 👋 I can instantly find campus deals, benchmark fair prices for your pre-owned items, draft counter-offers, and verify peer safety.",
   sender: "assistant",
   suggestions: quickPrompts,
-  sources: ["Unideals knowledge base"],
 };
 
-const hiddenRoutes = [
-  "/chat",
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-  "/checkEmail",
-];
+const hiddenRoutes = ["/chat", "/login", "/signup", "/forgot-password"];
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(
     price || 0,
   );
 
+const renderAssistantText = (text = "") =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+
 const ProductResult = ({ product }) => {
-  const image = product.images?.[0] || "/default-avatar.png";
+  const image = product.images?.[0] || "/image10.png";
   const category = product.categoryLabel || product.category?.replaceAll("_", " ");
 
   return (
     <Link
       to={`/product/${product._id}`}
-      className="flex gap-2 rounded-lg border border-zinc-200 bg-white p-2 transition hover:border-[#394ff1]/50 dark:border-zinc-800 dark:bg-[#181A1E]"
+      className="rounded-[22px] border border-black/[0.07] bg-white/95 p-3 shadow-sm transition hover:border-blue-400/40 hover:shadow-md dark:border-zinc-800 dark:bg-[#181A1E]"
     >
-      <img
-        src={image}
-        alt={product.title}
-        className="h-16 w-16 shrink-0 rounded-md object-cover"
-        onError={(event) => {
-          event.currentTarget.src = "/default-avatar.png";
-        }}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-xs font-bold text-zinc-900 dark:text-white">
-            {product.title}
-          </h3>
-          <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-zinc-400" />
+      <div className="flex items-center gap-3">
+        <img
+          src={image}
+          alt={product.title}
+          className="h-[52px] w-[52px] shrink-0 rounded-2xl border border-black/[0.05] bg-slate-100 object-cover"
+          onError={(event) => {
+            event.currentTarget.src = "/image10.png";
+          }}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center rounded-full border border-emerald-200/60 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <span className="mr-1 h-1.5 w-1.5 rounded-full bg-emerald-500" /> Verified Student
+            </span>
+            <span className="text-[10.5px] font-medium text-slate-400">Campus listing</span>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate text-[13.5px] font-semibold tracking-tight text-[#1C1C1E] dark:text-white">
+              {product.title}
+            </h3>
+            <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-1.5">
+            <span className="text-[14.5px] font-bold tracking-tight text-[#1D4ED8]">₹{formatPrice(product.selling_price)}</span>
+            {product.original_price > product.selling_price && (
+              <span className="text-[11px] text-slate-400 line-through">₹{formatPrice(product.original_price)}</span>
+            )}
+          </div>
         </div>
-        <p className="mt-1 text-[11px] capitalize text-zinc-500 dark:text-zinc-400">
-          {category}
-        </p>
-        <p className="mt-1 text-sm font-black text-[#394ff1]">
-          Rs {formatPrice(product.selling_price)}
-        </p>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-black/[0.04] pt-2.5">
+        <span className="truncate text-[11px] font-medium text-slate-500">{category || "Campus marketplace"}</span>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#1D4ED8] px-3.5 py-1.5 text-xs font-semibold text-white">View <span aria-hidden>›</span></span>
       </div>
     </Link>
   );
@@ -84,9 +102,19 @@ const FloatingAssistant = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState(null);
   const [messages, setMessages] = useState([initialMessage]);
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const uploadInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const cameraVideoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
+  const recorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const recordingStreamRef = useRef(null);
 
   const shouldHide = hiddenRoutes.some((route) =>
     location.pathname.startsWith(route),
@@ -95,7 +123,6 @@ const FloatingAssistant = () => {
   useEffect(() => {
     if (isOpen && !isMinimized) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      setTimeout(() => inputRef.current?.focus(), 120);
     }
   }, [messages, isOpen, isMinimized, isTyping]);
 
@@ -104,8 +131,25 @@ const FloatingAssistant = () => {
     setIsMinimized(false);
   }, [location.pathname]);
 
-  const sendMessage = async (text) => {
-    const messageText = text.trim();
+  useEffect(() => {
+    const handleOpenAssistant = (event) => {
+      setIsOpen(true);
+      setIsMinimized(false);
+      if (event.detail?.message) {
+        sendMessage(event.detail.message);
+      }
+    };
+
+    window.addEventListener("open-unideals-assistant", handleOpenAssistant);
+    return () => {
+      window.removeEventListener("open-unideals-assistant", handleOpenAssistant);
+    };
+  }, [messages, isTyping]);
+
+  const sendMessage = async (text, attachments = []) => {
+    const messageText = text.trim() || (attachments.length
+      ? "Please identify this image and recommend relevant UniDeals products."
+      : "");
     if (!messageText || isTyping) return;
 
     const history = messages.slice(-8).map((message) => ({
@@ -118,6 +162,7 @@ const FloatingAssistant = () => {
       {
         text: messageText,
         sender: "user",
+        mediaPreview: attachments[0]?.preview || null,
       },
     ]);
     setInput("");
@@ -127,6 +172,7 @@ const FloatingAssistant = () => {
       const { data } = await axiosInstance.post("/api/chat/assistant", {
         message: messageText,
         history,
+        attachments: attachments.map(({ preview, ...attachment }) => attachment),
       });
 
       const assistantData = data?.data;
@@ -139,7 +185,12 @@ const FloatingAssistant = () => {
           intent: assistantData.intent,
           products: assistantData.products || [],
           suggestions: assistantData.suggestions || [],
-          sources: assistantData.sources || [],
+          estimate: assistantData.estimate || null,
+          comparison: assistantData.comparison || null,
+          draft: assistantData.draft || null,
+          checklist: assistantData.checklist || null,
+          bundle: assistantData.bundle || null,
+          safetyTips: assistantData.safetyTips || null,
         },
       ]);
     } catch (error) {
@@ -158,44 +209,159 @@ const FloatingAssistant = () => {
     }
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    sendMessage(input);
+  const imageToDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      };
+      image.onerror = reject;
+      image.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleImageSelected = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    setCameraMenuOpen(false);
+    if (!file) return;
+
+    try {
+      const data = await imageToDataUrl(file);
+      setMediaPreview({ data, mimeType: "image/jpeg", preview: data });
+    } catch {
+      setMessages((prev) => [...prev, { text: "I could not read that image. Please try another photo.", sender: "assistant", isError: true }]);
+    }
   };
 
-  const handleInputKeyDown = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage(input);
+  const closeCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    setCameraOpen(false);
+  };
+
+  const openCamera = async () => {
+    setCameraMenuOpen(false);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraInputRef.current?.click();
+      return;
     }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setCameraOpen(true);
+      requestAnimationFrame(() => {
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream;
+          cameraVideoRef.current.play();
+        }
+      });
+    } catch {
+      setMessages((prev) => [...prev, { text: "Camera access was blocked. Allow camera permission or upload a picture from your device.", sender: "assistant", isError: true }]);
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const captureCameraImage = () => {
+    const video = cameraVideoRef.current;
+    if (!video?.videoWidth || !video?.videoHeight) return;
+
+    const canvas = document.createElement("canvas");
+    const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL("image/jpeg", 0.8);
+    closeCamera();
+    setMediaPreview({ data, mimeType: "image/jpeg", preview: data });
+  };
+
+  useEffect(() => () => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      recorderRef.current?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setMessages((prev) => [...prev, { text: "Audio recording is not supported in this browser.", sender: "assistant", isError: true }]);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recordingStreamRef.current = stream;
+      recordingChunksRef.current = [];
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => recordingChunksRef.current.push(event.data);
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => sendMessage("Please transcribe this audio and search UniDeals for what I said.", [{ mimeType: blob.type, data: reader.result }]);
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+        recorderRef.current = null;
+        setIsRecording(false);
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setMessages((prev) => [...prev, { text: "Microphone access was blocked. Allow microphone permission and try again.", sender: "assistant", isError: true }]);
+    }
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const attachment = mediaPreview;
+    setMediaPreview(null);
+    sendMessage(input, attachment ? [attachment] : []);
   };
 
   const resetChat = () => {
     setMessages([initialMessage]);
     setInput("");
+    setMediaPreview(null);
+    setCameraMenuOpen(false);
   };
 
   if (shouldHide) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[70] sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-3 right-3 z-[70] font-sans sm:bottom-6 sm:right-6">
       {isOpen && !isMinimized && (
-        <section className="pointer-events-auto mb-4 flex h-[min(680px,calc(100vh-112px))] w-[calc(100vw-32px)] max-w-[430px] flex-col overflow-hidden rounded-[22px] border border-white/70 bg-white/92 shadow-[0_28px_90px_rgba(17,24,39,0.24)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111318]/95">
-          <header className="relative flex items-center justify-between overflow-hidden border-b border-white/15 bg-[linear-gradient(135deg,#2637d9_0%,#7748ed_52%,#11a7e8_100%)] px-4 py-4 text-white">
-            <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-16 left-10 h-28 w-28 rounded-full bg-cyan-300/20 blur-2xl" />
+        <section className="relative mb-3 flex h-[min(700px,86vh)] w-[calc(100vw-24px)] max-w-[420px] flex-col overflow-hidden rounded-[32px] border border-black/[0.07] bg-white/85 shadow-[0_24px_60px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(0,0,0,0.05)] ring-1 ring-white/70 backdrop-blur-2xl dark:border-zinc-800 dark:bg-[#15171B]">
+          <header className="relative z-10 flex items-center justify-between border-b border-black/[0.05] bg-white/70 px-5 py-4 backdrop-blur-xl dark:bg-[#15171B]/80">
             <div className="flex items-center gap-3">
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/16 shadow-inner">
-                <span className="absolute inset-0 rounded-2xl bg-white/15 blur-md" />
-                <Bot className="h-5 w-5" />
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 text-white shadow-sm ring-2 ring-white/80">
+                <div className="absolute -inset-0.5 rounded-2xl bg-blue-500/25 blur-sm" />
+                <MessageCircle className="relative h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-base font-extrabold leading-tight">
-                  UniDeals Assistant
-                </h2>
-                <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/82">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
-                  Gemini powered marketplace guide
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-[15px] font-bold leading-tight tracking-[-0.3px] text-[#1C1C1E] dark:text-white">UniDeals Copilot</h2>
+                  <span className="rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[9.5px] font-semibold tracking-wide text-blue-700">AI</span>
+                </div>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] font-medium tracking-tight text-slate-500">
+                  <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" /></span>
+                  Live campus inventory active
                 </p>
               </div>
             </div>
@@ -203,7 +369,7 @@ const FloatingAssistant = () => {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsMinimized(true)}
-                className="rounded-xl p-2 transition hover:bg-white/15"
+                className="flex h-8 w-8 items-center justify-center rounded-full p-2 text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
                 aria-label="Minimize assistant"
                 title="Minimize"
               >
@@ -211,7 +377,7 @@ const FloatingAssistant = () => {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded-xl p-2 transition hover:bg-white/15"
+                className="flex h-8 w-8 items-center justify-center rounded-full p-2 text-red-500 transition hover:bg-red-50 hover:text-red-600"
                 aria-label="Close assistant"
                 title="Close"
               >
@@ -220,7 +386,8 @@ const FloatingAssistant = () => {
             </div>
           </header>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.12),transparent_34%),linear-gradient(180deg,#F8FAFF_0%,#EEF4FF_100%)] px-4 py-4 dark:bg-[radial-gradient(circle_at_top_left,rgba(57,79,241,0.18),transparent_34%),linear-gradient(180deg,#101114_0%,#171A20_100%)]">
+          <div className="no-scrollbar flex-1 space-y-4 overflow-y-auto bg-slate-50/60 px-4 py-4 dark:bg-[#101114]">
+            <div className="my-1 flex justify-center"><span className="rounded-full border border-black/[0.03] bg-white/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-slate-400">Today · Campus Marketplace</span></div>
             {messages.map((message, index) => (
               <div
                 key={`${message.sender}-${index}`}
@@ -229,43 +396,37 @@ const FloatingAssistant = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[88%] rounded-2xl px-3.5 py-3 text-sm leading-relaxed shadow-sm ${
+                  className={`max-w-[90%] whitespace-pre-line rounded-[22px] px-4 py-3 text-[14.5px] leading-relaxed tracking-[-0.2px] shadow-sm ${
                     message.sender === "user"
-                      ? "rounded-tr-md bg-[linear-gradient(135deg,#394ff1,#7357f4)] text-white shadow-[0_10px_24px_rgba(57,79,241,0.22)]"
+                      ? "rounded-tr-[6px] bg-gradient-to-br from-blue-700 to-blue-800 text-white"
                       : message.isError
-                        ? "rounded-tl-md border border-red-100 bg-red-50 text-red-700"
-                        : "rounded-tl-md border border-white/80 bg-white text-zinc-800 shadow-[0_12px_30px_rgba(30,41,59,0.08)] dark:border-zinc-800 dark:bg-[#1E2025] dark:text-white"
+                        ? "rounded-tl-[6px] border border-red-100 bg-red-50 text-red-700"
+                        : "rounded-tl-[6px] border border-black/[0.03] bg-[#E9E9EB] text-[#1C1C1E] dark:border-zinc-800 dark:bg-[#1E2025] dark:text-white"
                   }`}
                 >
-                  {message.sender === "assistant" && (
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#394ff1]">
-                      <Sparkles className="h-3 w-3" />
-                      Assistant
-                    </div>
+                  {message.mediaPreview && (
+                    <img src={message.mediaPreview} alt="Uploaded for assistant" className="mb-2 max-h-40 rounded-2xl object-cover" />
                   )}
-                  <AssistantMessageText text={message.text} />
+                  {message.sender === "assistant" && (
+                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-blue-700"><Sparkles className="h-3 w-3" /> Assistant</div>
+                  )}
+                  {renderAssistantText(message.text)}
                 </div>
 
-                {!!message.sources?.length && (
-                  <div className="mt-1.5 flex max-w-[88%] flex-wrap gap-1.5">
-                    {message.sources.map((source) => (
-                      <span
-                        key={source}
-                        className="rounded-full border border-indigo-100 bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
-                      >
-                        {source}
-                      </span>
+                {!!(message.productCards || message.products)?.length && (
+                  <div className="mt-2 grid w-full gap-2">
+                    {(message.productCards || message.products).slice(0, 4).map((product) => (
+                      <ProductResult key={product._id || `${product.title}-${product.category}`} product={product} />
                     ))}
                   </div>
                 )}
 
-                {!!message.products?.length && (
-                  <div className="mt-2 grid w-full gap-2">
-                    {message.products.slice(0, 4).map((product) => (
-                      <ProductResult key={product._id} product={product} />
-                    ))}
-                  </div>
-                )}
+                {message.estimate && <PriceEstimateCard estimate={message.estimate} />}
+                {message.comparison && <ComparisonCard comparison={message.comparison} />}
+                {message.draft && <ListingDraftCard draft={message.draft} />}
+                {message.checklist && <ChecklistCard checklist={message.checklist} category={message.intent === "inspection" ? message.category : ""} />}
+                {message.bundle && <BudgetBundleCard bundle={message.bundle} />}
+                {message.safetyTips && <SafetyTipCard safetyTips={message.safetyTips} />}
 
                 {!!message.suggestions?.length && (
                   <div className="mt-2 flex max-w-full flex-wrap gap-2">
@@ -273,7 +434,7 @@ const FloatingAssistant = () => {
                       <button
                         key={suggestion}
                         onClick={() => sendMessage(suggestion)}
-                        className="rounded-xl border border-indigo-100 bg-white/90 px-3 py-2 text-[11px] font-bold text-[#394ff1] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#394ff1] hover:text-white dark:border-zinc-800 dark:bg-[#1A1D20]"
+                        className="rounded-full border border-black/[0.07] bg-white/80 px-3 py-1.5 text-[12px] font-medium text-[#1C1C1E] shadow-sm transition hover:bg-white hover:text-blue-700 dark:border-zinc-800 dark:bg-[#1A1D20] dark:text-white"
                       >
                         {suggestion}
                       </button>
@@ -292,52 +453,73 @@ const FloatingAssistant = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-zinc-200/80 bg-white/95 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-[#15171B]/95">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="space-y-2 border-t border-black/[0.05] bg-white/80 p-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-[#15171B]">
+            <div className="mb-2 flex items-center justify-between">
               <button
                 onClick={resetChat}
-                className="rounded-lg px-2 py-1 text-[11px] font-bold text-zinc-500 transition hover:bg-zinc-100 hover:text-[#394ff1] dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="flex items-center gap-1 text-[11.5px] font-medium text-slate-500 transition hover:text-blue-700"
               >
-                Restart
+                <RotateCcw className="h-3.5 w-3.5" /> Reset chat
               </button>
               <Link
                 to="/chat"
-                className="rounded-lg px-2 py-1 text-[11px] font-bold text-[#394ff1] transition hover:bg-indigo-50 hover:text-[#2d3ec9] dark:hover:bg-zinc-800"
+                className="flex items-center gap-1 text-[11.5px] font-semibold text-blue-700 transition hover:text-blue-800"
               >
                 Open full chat
               </Link>
             </div>
 
+            {cameraMenuOpen && (
+              <div className="mb-2 flex gap-2 rounded-2xl border border-black/[0.06] bg-white p-2 shadow-sm">
+                <button type="button" onClick={() => uploadInputRef.current?.click()} className="flex-1 rounded-xl bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700">Upload from device</button>
+                <button type="button" onClick={openCamera} className="flex-1 rounded-xl bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700">Take a picture</button>
+              </div>
+            )}
+            {mediaPreview && (
+              <div className="mb-2 flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-2 text-xs text-blue-800">
+                <img src={mediaPreview.preview} alt="Selected upload" className="h-10 w-10 rounded-xl object-cover" />
+                <span className="flex-1">Ask a question about this image</span>
+                <button type="button" onClick={() => setMediaPreview(null)} className="font-bold text-blue-600" aria-label="Remove selected image">×</button>
+              </div>
+            )}
+            {isRecording && <div className="mb-2 rounded-2xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">Recording audio... click the microphone to search</div>}
+            <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelected} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSelected} />
             <form
               onSubmit={handleSubmit}
-              className="relative z-20 flex items-end gap-2 rounded-2xl border border-zinc-200 bg-[#F8F9FF] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.08)] focus-within:border-[#394ff1]/55 focus-within:ring-4 focus-within:ring-[#394ff1]/10 dark:border-zinc-800 dark:bg-[#202122]"
+              className="flex items-center gap-1 rounded-full border border-black/[0.07] bg-[#E9E9EB]/70 px-2 py-1 shadow-inner transition focus-within:border-blue-400/40 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-zinc-800 dark:bg-[#202122]"
             >
-              <textarea
-                ref={inputRef}
+              <button type="button" aria-label="Upload or take a picture" onClick={() => setCameraMenuOpen((open) => !open)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#8E8E93] transition hover:text-blue-700"><Camera className="h-5 w-5" /></button>
+              <input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Ask UniDeals..."
-                rows={1}
-                className="max-h-24 min-h-10 min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm leading-5 text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
+                placeholder="Ask anything on campus..."
+                className="min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[14.5px] tracking-[-0.2px] text-[#1C1C1E] outline-none placeholder:text-[#8E8E93] dark:text-white"
               />
-              <button
-                type="submit"
-                disabled={!input.trim() || isTyping}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#394ff1,#8b7cf6)] text-white shadow-[0_10px_22px_rgba(57,79,241,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(57,79,241,0.36)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
-                aria-label="Send message"
-              >
-                <IoSend size={20} />
-              </button>
+              <button type="button" aria-label={isRecording ? "Stop recording" : "Record voice search"} onClick={handleMicClick} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${isRecording ? "text-red-600" : "text-[#8E8E93] hover:text-blue-700"}`}><Mic className="h-4 w-4" /></button>
+              <button type="submit" disabled={(!input.trim() && !mediaPreview) || isTyping} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-700 text-white shadow-[0_4px_14px_rgba(29,78,216,0.39)] transition hover:bg-blue-800 disabled:opacity-50" aria-label="Send message"><span className="text-lg leading-none">↑</span></button>
             </form>
           </div>
+
+          {cameraOpen && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white p-3 shadow-2xl">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <h3 className="text-sm font-bold text-slate-800">Take a picture</h3>
+                  <button type="button" onClick={closeCamera} className="text-sm font-semibold text-red-600">Cancel</button>
+                </div>
+                <video ref={cameraVideoRef} muted playsInline className="aspect-[4/3] w-full rounded-2xl bg-black object-cover" />
+                <button type="button" onClick={captureCameraImage} className="mt-3 w-full rounded-2xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-blue-800">Capture and use photo</button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
       {isOpen && isMinimized && (
         <button
           onClick={() => setIsMinimized(false)}
-          className="pointer-events-auto mb-3 flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white/95 px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl backdrop-blur transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20]/95 dark:text-white"
+          className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-800 shadow-xl transition hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-[#1A1D20] dark:text-white"
         >
           <Bot className="h-4 w-4 text-[#394ff1]" />
           UniDeals
@@ -345,30 +527,22 @@ const FloatingAssistant = () => {
         </button>
       )}
 
-      <div className="floating-assistant-orb pointer-events-auto group relative flex h-[76px] w-[76px] items-center justify-center">
-        <span className="assistant-aura assistant-aura-primary" />
-        <span className="assistant-aura assistant-aura-secondary" />
-        <span className="assistant-aura assistant-aura-ring" />
-        <span className="assistant-particle left-2 top-3 h-1.5 w-1.5" />
-        <span className="assistant-particle right-3 top-5 h-1 w-1" />
-        <span className="assistant-particle bottom-4 left-5 h-1 w-1" />
-        <button
-          onClick={() => {
-            setIsOpen((prev) => !prev);
-            setIsMinimized(false);
-          }}
-          className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-[linear-gradient(135deg,#394ff1_0%,#6d28d9_58%,#14b8d6_100%)] text-white shadow-[0_0_34px_rgba(57,79,241,0.82),0_18px_40px_rgba(57,79,241,0.36)] transition hover:-translate-y-1 hover:shadow-[0_0_48px_rgba(124,58,237,0.95),0_22px_48px_rgba(57,79,241,0.48)] focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-950"
-          aria-label={isOpen ? "Close UniDeals" : "Open UniDeals"}
-          title="UniDeals"
-        >
-          <span className="absolute inset-2 rounded-full bg-white/10 blur-sm" />
-          {isOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
+      {!isOpen && (
+        <div className="relative flex h-16 w-16 items-center justify-center">
+          <span className="absolute inset-0 rounded-full bg-blue-600/30 blur-xl" />
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setIsMinimized(false);
+            }}
+            className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-white/60 bg-gradient-to-tr from-blue-800 via-blue-700 to-blue-600 text-white shadow-[0_16px_36px_-6px_rgba(29,78,216,0.5)] transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:h-16 sm:w-16"
+            aria-label="Open UniDeals"
+            title="UniDeals"
+          >
             <MessageCircle className="h-6 w-6 transition group-hover:scale-110" />
-          )}
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

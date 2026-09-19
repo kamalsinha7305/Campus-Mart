@@ -1,647 +1,1184 @@
-import { GoogleGenAI } from "@google/genai";
-import Product from "../models/Product.model.js";
+import ai, { GEMINI_MODEL } from "../config/gemini.js";
+import { toolDeclarations, toolHandlers } from "./assistant.tools.js";
 import {
-  PRODUCT_CATEGORIES,
-  PRODUCT_CATEGORY_LABELS,
-  PRODUCT_CONDITION_LABELS,
-  PRODUCT_STATUS,
-} from "../config/constants.js";
+  findKnowledgeBaseAnswer,
+  formatKnowledgeReply,
+  getFullKnowledgeText,
+} from "./assistant.knowledge.js";
+import { PRODUCT_CATEGORY_LABELS, PRODUCT_CONDITION_LABELS, USER_TIER } from "../config/constants.js";
 
-const INR_FORMATTER = new Intl.NumberFormat("en-IN", {
-  maximumFractionDigits: 0,
-});
+// ── In-memory LRU reply cache for instant repeated-question responses ──
+const CACHE_MAX = 120;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const _replyCache = new Map();
 
-const FAQS = [
-  {
-    keywords: ["safe", "safety", "scam", "fraud", "meet", "pickup"],
-    answer:
-      "For safer campus deals, meet in a public campus spot, inspect the item before paying, use UPI or cash only after verification, and report suspicious listings from the product page.",
-  },
-  {
-    keywords: ["refund", "return", "cancel", "payment"],
-    answer:
-      "CampusMart connects student buyers and sellers, so refunds or returns should be agreed between both parties before pickup. If a payment issue looks suspicious, contact support with screenshots.",
-  },
-  {
-    keywords: ["listing", "sell", "post", "upload"],
-    answer:
-      "To create a strong listing, add clear photos, a specific title, honest condition, original price, fair selling price, pickup details, and whether the price is negotiable.",
-  },
-  {
-    keywords: ["boost", "promote", "visibility"],
-    answer:
-      "Boosting helps a listing appear more prominently. Use it for high-demand or time-sensitive items, and keep the title, price, and first image sharp before boosting.",
-  },
-  {
-    keywords: ["wishlist", "favorite", "save"],
-    answer:
-      "Use the heart button on product cards to save items to your wishlist. Your wishlist is useful for comparing prices and tracking items you may buy later.",
-  },
-];
+const cacheKey = (msg) => msg.trim().toLowerCase().replace(/\s+/g, " ");
 
-const SOURCE_KB = "Unideals knowledge base";
-const SOURCE_LIVE = "Live product database";
-const SOURCE_GEMINI = "Gemini";
-const normalizeGeminiModel = (model) => {
-  const normalized = String(model || "gemini-flash-latest").replace(/^models\//, "");
-
-  if (normalized === "gemini-2.5-flash") {
-    return "gemini-flash-latest";
-  }
-
-  return normalized;
+const getCachedReply = (msg) => {
+  const key = cacheKey(msg);
+  const entry = _replyCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { _replyCache.delete(key); return null; }
+  // Move to end (LRU)
+  _replyCache.delete(key);
+  _replyCache.set(key, entry);
+  return entry.data;
 };
 
-const GEMINI_MODEL = normalizeGeminiModel(process.env.GEMINI_MODEL);
-const GEMINI_MODEL_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 30000);
-const GEMINI_FALLBACK_MODELS = [];
+const setCachedReply = (msg, data) => {
+  const key = cacheKey(msg);
+  if (_replyCache.size >= CACHE_MAX) {
+    const oldest = _replyCache.keys().next().value;
+    _replyCache.delete(oldest);
+  }
+  _replyCache.set(key, { data, ts: Date.now() });
+};
 
-const KNOWLEDGE_ANSWERS = [
-  {
-    intent: "marketplace_overview",
-    keywords: ["what is unideals", "what is campusmart", "what is campus mart", "about unideals", "who can use"],
-    answer:
-      "UniDeals is a campus-focused peer-to-peer marketplace for students. Guests can browse public listings, while verified students can list products, wishlist items, manage profile/address details, report issues, contact support, and boost eligible listings.",
-    suggestions: ["How do I sell something?", "Show product categories", "How do I stay safe?"],
+const TRIP_ITEM_LIBRARY = {
+  beach_trip: {
+    label: "Beach / weekend trip essentials",
+    items: ["sunscreen", "water bottle", "towel", "flip flops", "swimwear", "beach bag", "cap", "power bank", "dry bag", "mosquito repellent"],
   },
-  {
-    intent: "account_help",
-    keywords: ["signup", "sign up", "register", "login", "verify email", "verification", "forgot password", "reset password", "google oauth", "blocked account"],
-    answer:
-      "Create an account at /signup, then verify your email through the verification flow. Password reset starts at /forgot-password and continues from the reset link. Google sign-in is supported when configured. If your account is blocked or restricted, contact support from /contact.",
-    suggestions: ["How do I delete my account?", "Open support", "What can guests do?"],
+  trekking: {
+    label: "Trekking / hiking essentials",
+    items: ["water bottle", "trekking shoes", "backpack", "power bank", "poncho", "first aid kit", "sunglasses", "lightweight towel", "cap", "camping torch"],
   },
-  {
-    intent: "listing_rules",
-    keywords: ["sell something", "sell my", "how do i sell", "create listing", "upload product", "product photos", "draft", "list item", "remove listing", "unlist", "relist"],
-    answer:
-      "To sell, go to /upload and add a title, description, category, condition, usage details, purchase date, 1-3 images, selling/original price, payment preference, and pickup address. Drafts can be incomplete. You can unlist, relist, or soft-delete your own listings later.",
-    suggestions: ["Help me write a listing", "Estimate a fair price", "What categories are available?"],
+  road_trip: {
+    label: "Road trip essentials",
+    items: ["car charger", "travel pillow", "water bottle", "power bank", "phone mount", "towel", "first aid kit", "backpack", "sunglasses", "tissue box"],
   },
-  {
-    intent: "categories",
-    keywords: ["category", "categories", "types of products", "what can i sell"],
-    answer:
-      "UniDeals categories are Electronics, Study Material, Hostel Essentials, Clothing, Accessories, Lab Equipment, Sports, Fitness, Vehicles, Event Passes, and Others.",
-    suggestions: ["Find electronics", "Help me sell books", "Find a cycle under 3000"],
+  business_trip: {
+    label: "Business trip essentials",
+    items: ["laptop sleeve", "power bank", "travel bag", "water bottle", "portable charger", "notebook", "usb cable", "bluetooth speaker", "headphones", "watch"],
   },
-  {
-    intent: "payment_policy",
-    keywords: ["payment", "upi", "cash", "refund", "return", "escrow", "buyer protection"],
-    answer:
-      "Listings can support cash, UPI, or both. UniDeals does not hold funds, provide escrow, or run a platform-level return system. Buyers and sellers should agree payment, refund, and pickup terms directly before completing a deal.",
-    suggestions: ["How do I stay safe?", "How do I report a scam?", "Find products"],
+  college_trip: {
+    label: "College / study trip essentials",
+    items: ["water bottle", "notebook", "backpack", "adapter", "power bank", "pen drive", "sunglasses", "laptop sleeve", "towel", "small umbrella"],
   },
-  {
-    intent: "safety_report",
-    keywords: ["report", "scam", "fraud", "unsafe", "safety", "harassment", "fake listing", "prohibited"],
-    answer:
-      "For safer deals, meet in a public, well-lit campus spot, inspect the item before paying, and avoid sharing private home details. To report a product or user, use the report flow or /contact. For immediate physical danger, contact campus security or local authorities first, then report in UniDeals.",
-    suggestions: ["Report reasons", "Contact support", "What payment methods work?"],
+  backpacking: {
+    label: "Backpacking essentials",
+    items: ["backpack", "water bottle", "towel", "power bank", "socks", "sunglasses", "travel pouch", "small umbrella", "portable charger", "sleeping mat"],
   },
-  {
-    intent: "boosting",
-    keywords: ["boost", "boosting", "promote", "visibility", "subscription", "pro plus"],
-    answer:
-      "Boosting makes a listing more visible. Base users get 2 boosts per month for 1 hour with 1 active boost. Pro gets 10 per month for 3 hours with 1 active boost. Pro Plus gets 30 per month for 3 hours with up to 3 active boosts.",
-    suggestions: ["Help improve my listing", "Estimate a fair price", "Recommend products"],
+  hill_trip: {
+    label: "Hill trip essentials",
+    items: ["warm jacket", "water bottle", "backpack", "power bank", "woolen cap", "sunglasses", "umbrella", "trekking shoes", "blanket", "portable charger"],
   },
-  {
-    intent: "support",
-    keywords: ["support", "contact", "help", "feature request", "bug", "issue", "email"],
-    answer:
-      "Use /contact for support, issue reports, or feature suggestions. The displayed support email is hi@unideals.in, and the support UI mentions responses under 2 hours during campus hours, 9 AM - 9 PM.",
-    suggestions: ["How do I report a scam?", "Account help", "Privacy questions"],
+  exam_trip: {
+    label: "Exam / study trip essentials",
+    items: ["notebook", "pen", "water bottle", "backpack", "power bank", "exam pad", "calculator", "small umbrella", "towel", "headphones"],
   },
-  {
-    intent: "privacy_terms",
-    keywords: ["privacy", "data", "delete account", "terms", "personal data", "sell my data"],
-    answer:
-      "The privacy policy says UniDeals does not sell, rent, or trade personal data. Users can request access, correction, deletion, portability, or objection by emailing privacy@campusmart.in. Account deletion is permanent from the user's perspective, so review it carefully before confirming.",
-    suggestions: ["Account help", "Contact support", "Safety guidance"],
+  office_trip: {
+    label: "Office / work trip essentials",
+    items: ["laptop sleeve", "power bank", "notebook", "file folder", "water bottle", "travel bag", "charger", "mouse", "earbuds", "umbrella"],
   },
-  {
-    intent: "routes_help",
-    keywords: ["route", "page", "where do i go", "open", "navigation", "/upload", "/wishlist", "/chat", "/contact"],
-    answer:
-      "Useful pages: / for the product feed, /search for search results, /product/:id for product details, /upload for listing an item, /wishlist for saved products, /chat for messages and the assistant, /contact for support, and /settings for account settings.",
-    suggestions: ["How do I sell something?", "How does wishlist work?", "Contact support"],
+  festival_trip: {
+    label: "Festival trip essentials",
+    items: ["water bottle", "small backpack", "power bank", "sunglasses", "portable speaker", "lightweight jacket", "cap", "travel pouch", "earbuds", "umbrellas"],
   },
-];
+  general_trip: {
+    label: "General trip essentials",
+    items: ["water bottle", "power bank", "backpack", "towel", "sunglasses", "travel pouch", "portable charger", "umbrella", "small toiletries kit", "phone charger"],
+  },
+};
 
-const CATEGORY_SYNONYMS = [
-  ["electronics", ["phone", "laptop", "charger", "earphone", "headphone", "tablet", "keyboard", "mouse", "calculator"]],
-  ["study_material", ["book", "books", "notes", "guide", "textbook", "study", "material"]],
-  ["hostel_essentials", ["mattress", "bucket", "kettle", "lamp", "hostel", "bedsheet", "pillow"]],
-  ["clothing", ["shirt", "jeans", "jacket", "hoodie", "dress", "clothes", "clothing"]],
-  ["accessories", ["watch", "bag", "wallet", "accessory", "accessories"]],
-  ["lab_equipment", ["lab", "coat", "equipment", "apron", "goggles"]],
-  ["sports", ["bat", "football", "basketball", "racket", "sports"]],
-  ["fitness", ["dumbbell", "yoga", "fitness", "gym"]],
-  ["vehicles", ["cycle", "bike", "scooter", "vehicle", "bicycle"]],
-  ["event_passes", ["ticket", "pass", "event", "concert"]],
-];
+const CATEGORY_RECOMMENDATION_LIBRARY = {
+  books: {
+    label: "Books and study essentials",
+    queries: ["engineering books", "textbooks", "study notes", "reference book", "books for students", "novel", "exam notes"],
+    keywords: ["book", "books", "textbook", "notes", "reference book", "study material", "lab manual", "novel", "exam notes"],
+  },
+  electronics: {
+    label: "Electronics essentials",
+    queries: ["power bank", "earbuds", "laptop", "mouse", "keyboard", "charger", "usb cable", "speaker", "monitor", "mobile stand"],
+    keywords: ["electronics", "laptop", "phone", "charger", "power bank", "earbuds", "headphones", "speaker", "keyboard", "mouse", "monitor", "adapter"],
+  },
+  hostel: {
+    label: "Hostel items",
+    queries: ["hostel essentials", "mattress", "water bottle", "bucket", "towel", "study lamp", "fan", "portable cooler", "waste bin", "blanket"],
+    keywords: ["hostel", "hostel essentials", "mattress", "blanket", "bucket", "towel", "study lamp", "fan", "bedside lamp", "water bottle", "cooler"],
+  },
+  bikes: {
+    label: "Bikes and commuting items",
+    queries: ["cycle", "bicycle", "helmet", "cycle lock", "bike lock", "helmet for cycling", "bike accessories", "bicycle basket"],
+    keywords: ["bike", "bicycle", "cycle", "helmet", "bike lock", "cycle lock", "commuter bike", "helmet for bike", "bike accessories"],
+  },
+};
 
-const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const compactProduct = (product) => ({
-  _id: product._id,
-  title: product.title,
-  description: product.description,
-  category: product.category,
-  categoryLabel: PRODUCT_CATEGORY_LABELS[product.category] || product.category,
-  condition: product.condition,
-  conditionLabel: PRODUCT_CONDITION_LABELS[product.condition] || product.condition,
-  selling_price: product.selling_price,
-  original_price: product.original_price,
-  images: product.images || [],
-  slug: product.slug,
-});
-
-const inferCategory = (message) => {
+const detectTripType = (message = "") => {
   const text = message.toLowerCase();
+  if (/\b(beach|goa|coast|sea|pool|resort|sun|sand)\b/.test(text)) return "beach_trip";
+  if (/\b(trek|trekking|hike|hiking|camp|camping|mountain|forest|adventure)\b/.test(text)) return "trekking";
+  if (/\b(road trip|drive|bike trip|car trip|long drive|travel by car|road journey)\b/.test(text)) return "road_trip";
+  if (/\b(business|official|conference|work trip|seminar|client visit)\b/.test(text)) return "business_trip";
+  if (/\b(college trip|study trip|fest trip|industrial visit|campus trip|event trip|excursion)\b/.test(text)) return "college_trip";
+  if (/\b(backpacking|tour|vacation|journey|travel|trip\b)\b/.test(text)) return "backpacking";
+  return "general_trip";
+};
 
-  for (const category of Object.values(PRODUCT_CATEGORIES)) {
-    if (text.includes(category.replaceAll("_", " "))) return category;
+const normalizeProductQuestion = (message = "") => {
+  const text = message.toLowerCase();
+  return text
+    .replace(/\b(do you have|is there|are there|show me|find me|recommend me|recommend|suggest|look for|want|need|i need|i am looking for|can you show|can you find|present on the website|available on website|on the app|on the website)\b/gi, " ")
+    .replace(/\b(product|item|things|stuff|on website|website|app|here|right now)\b/gi, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const getSynonymsForQuery = (query = "") => {
+  const q = query.toLowerCase().trim();
+  const synonyms = new Set([q]);
+
+  if (/\bpower bank\b/.test(q) || /\bportable charger\b/.test(q) || /\bcharger\b/.test(q)) {
+    synonyms.add("power bank");
+    synonyms.add("portable charger");
+    synonyms.add("battery pack");
+  }
+  if (/\bwater bottle\b/.test(q) || /\bbottle\b/.test(q)) {
+    synonyms.add("water bottle");
+    synonyms.add("steel bottle");
+    synonyms.add("hydration bottle");
+  }
+  if (/\bbackpack\b/.test(q) || /\btravel bag\b/.test(q) || /\bbag\b/.test(q)) {
+    synonyms.add("backpack");
+    synonyms.add("travel bag");
+    synonyms.add("daypack");
+  }
+  if (/\bheadphones\b/.test(q) || /\bearbuds\b/.test(q)) {
+    synonyms.add("headphones");
+    synonyms.add("earbuds");
+    synonyms.add("bluetooth headphones");
+  }
+  if (/\bnotebook\b/.test(q) || /\bcopy\b/.test(q) || /\bregister\b/.test(q)) {
+    synonyms.add("notebook");
+    synonyms.add("study notebook");
+    synonyms.add("copybook");
+  }
+  if (/\bshoes\b/.test(q) || /\bwalking shoes\b/.test(q) || /\btrekking shoes\b/.test(q)) {
+    synonyms.add("trekking shoes");
+    synonyms.add("sports shoes");
+    synonyms.add("walking shoes");
+  }
+  if (/\bumbrella\b/.test(q) || /\bsmall umbrella\b/.test(q)) {
+    synonyms.add("umbrella");
+    synonyms.add("compact umbrella");
+  }
+  if (/\bcharger\b/.test(q) || /\badapter\b/.test(q)) {
+    synonyms.add("charger");
+    synonyms.add("usb charger");
+    synonyms.add("travel adapter");
+  }
+  if (/\bcycle\b/.test(q) || /\bbicycle\b/.test(q)) {
+    synonyms.add("cycle");
+    synonyms.add("bicycle");
+    synonyms.add("bike");
+  }
+  if (/\bhostel\b/.test(q) || /\broom essentials\b/.test(q)) {
+    synonyms.add("hostel essentials");
+    synonyms.add("room essentials");
+    synonyms.add("hostel items");
   }
 
-  for (const [category, terms] of CATEGORY_SYNONYMS) {
-    if (terms.some((term) => text.includes(term))) return category;
-  }
+  return [...synonyms].filter(Boolean);
+};
 
+const detectCategoryFromMessage = (message = "") => {
+  const text = message.toLowerCase();
+  if (/\b(book|books|textbook|notes|reference book|study material|exam notes|novel)\b/.test(text)) return "books";
+  if (/\b(electronics|laptop|power bank|charger|headphones|earbuds|speaker|monitor|keyboard|mouse|adapter|phone)\b/.test(text)) return "electronics";
+  if (/\b(hostel|room essentials|mattress|water bottle|bucket|towel|lamp|fan|cooler|blanket|study lamp)\b/.test(text)) return "hostel";
+  if (/\b(bike|bicycle|cycle|helmet|cycle lock|bike lock|commuter bike|ride)\b/.test(text)) return "bikes";
   return null;
 };
 
-const inferBudget = (message) => {
-  const budgetPattern = new RegExp(
-    "(?:under|below|less than|max|budget|around|upto|up to)\\s*(?:rs\\.?|inr|\\u20b9)?\\s*(\\d{2,7})",
-    "gi",
-  );
-  const matches = [...message.matchAll(budgetPattern)];
-  if (matches.length) return Number(matches[matches.length - 1][1]);
+const rankRecommendations = (items = [], query = "", categoryHint = null) => {
+  const normalizedQuery = (query || "").toLowerCase();
+  const tokens = new Set(normalizedQuery.split(/\s+/).filter(Boolean));
 
-  const rupeeMatch = message.match(
-    new RegExp("(?:rs\\.?|inr|\\u20b9)\\s*(\\d{2,7})", "i"),
-  );
-  return rupeeMatch ? Number(rupeeMatch[1]) : null;
-};
+  return [...items].sort((a, b) => {
+    const scoreA = (() => {
+      const titleA = (a.title || "").toLowerCase();
+      const descA = (a.description || "").toLowerCase();
+      const catA = (a.category || "").toLowerCase();
+      let score = 0;
 
-const buildSearchFilter = (message) => {
-  const category = inferCategory(message);
-  const maxPrice = inferBudget(message);
-  const cleaned = message
-    .toLowerCase()
-    .replace(
-      new RegExp(
-        "(?:under|below|less than|max|budget|around|upto|up to)\\s*(?:rs\\.?|inr|\\u20b9)?\\s*\\d{2,7}",
-        "gi",
-      ),
-      "",
-    )
-    .replace(/\b(find|show|search|need|want|buy|looking|for|me|please|best|cheap|affordable|recommend|suggest)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+      if (categoryHint && catA.includes(categoryHint)) score += 18;
+      if (titleA.includes(normalizedQuery)) score += 22;
+      if (descA.includes(normalizedQuery)) score += 12;
+      for (const token of tokens) {
+        if (titleA.includes(token)) score += 4;
+        if (descA.includes(token)) score += 2;
+      }
+      if (a.is_boosted) score += 8;
+      if (a.condition === "brand_new") score += 6;
+      if (a.condition === "like_new") score += 4;
+      if (a.condition === "gently_used") score += 2;
+      if (Number(a.selling_price) <= 2000) score += 6;
+      if (Number(a.selling_price) > 2000 && Number(a.selling_price) <= 8000) score += 4;
+      if (Number(a.views_count || 0) > 50) score += 3;
+      return score;
+    })();
 
-  return { category, maxPrice, query: cleaned };
-};
+    const scoreB = (() => {
+      const titleB = (b.title || "").toLowerCase();
+      const descB = (b.description || "").toLowerCase();
+      const catB = (b.category || "").toLowerCase();
+      let score = 0;
 
-const searchProducts = async (message, limit = 5) => {
-  const { category, maxPrice, query } = buildSearchFilter(message);
-  const filter = {
-    is_deleted: false,
-    status: PRODUCT_STATUS.LISTED,
-  };
+      if (categoryHint && catB.includes(categoryHint)) score += 18;
+      if (titleB.includes(normalizedQuery)) score += 22;
+      if (descB.includes(normalizedQuery)) score += 12;
+      for (const token of tokens) {
+        if (titleB.includes(token)) score += 4;
+        if (descB.includes(token)) score += 2;
+      }
+      if (b.is_boosted) score += 8;
+      if (b.condition === "brand_new") score += 6;
+      if (b.condition === "like_new") score += 4;
+      if (b.condition === "gently_used") score += 2;
+      if (Number(b.selling_price) <= 2000) score += 6;
+      if (Number(b.selling_price) > 2000 && Number(b.selling_price) <= 8000) score += 4;
+      if (Number(b.views_count || 0) > 50) score += 3;
+      return score;
+    })();
 
-  if (category) filter.category = category;
-  if (maxPrice) filter.selling_price = { $lte: maxPrice };
-
-  if (query.length >= 2) {
-    const safeQuery = escapeRegex(query);
-    filter.$or = [
-      { title: { $regex: safeQuery, $options: "i" } },
-      { description: { $regex: safeQuery, $options: "i" } },
-      { category: { $regex: safeQuery, $options: "i" } },
-    ];
-  }
-
-  let products = await Product.find(filter)
-    .sort({ is_boosted: -1, views_count: -1, createdAt: -1 })
-    .limit(limit)
-    .select("title description category condition images selling_price original_price slug createdAt views_count")
-    .lean();
-
-  if (products.length === 0 && (category || query.length >= 2)) {
-    products = await Product.find({
-      is_deleted: false,
-      status: PRODUCT_STATUS.LISTED,
-      ...(category ? { category } : {}),
-      ...(maxPrice ? { selling_price: { $lte: maxPrice } } : {}),
-    })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .select("title description category condition images selling_price original_price slug createdAt views_count")
-      .lean();
-  }
-
-  return products.map(compactProduct);
-};
-
-const getRecommendations = async (message, user) => {
-  const products = await searchProducts(message, 6);
-
-  if (products.length) {
-    return products;
-  }
-
-  return await Product.find({
-    is_deleted: false,
-    status: PRODUCT_STATUS.LISTED,
-  })
-    .sort({ is_boosted: -1, views_count: -1, createdAt: -1 })
-    .limit(6)
-    .select("title description category condition images selling_price original_price slug createdAt views_count")
-    .lean()
-    .then((items) => items.map(compactProduct));
-};
-
-const estimatePrice = async (message) => {
-  const category = inferCategory(message);
-  const filter = {
-    is_deleted: false,
-    status: PRODUCT_STATUS.LISTED,
-  };
-  if (category) filter.category = category;
-
-  const prices = await Product.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .select("selling_price")
-    .lean();
-
-  const numericPrices = prices
-    .map((item) => item.selling_price)
-    .filter((price) => Number.isFinite(price) && price > 0)
-    .sort((a, b) => a - b);
-
-  if (numericPrices.length === 0) {
-    return null;
-  }
-
-  const median = numericPrices[Math.floor(numericPrices.length / 2)];
-  return {
-    category,
-    sampleSize: numericPrices.length,
-    low: Math.max(0, Math.round(median * 0.8)),
-    fair: Math.round(median),
-    high: Math.round(median * 1.15),
-  };
-};
-
-const listingDraft = (message) => {
-  const category = inferCategory(message) || PRODUCT_CATEGORIES.OTHERS;
-  const rawName = message
-    .replace(/\b(help|create|make|write|listing|list|sell|post|for|my|a|an|the)\b/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const itemName = rawName || PRODUCT_CATEGORY_LABELS[category] || "Campus item";
-  const title = `${itemName.replace(/^./, (char) => char.toUpperCase())} - student owned, ready for pickup`;
-
-  return {
-    title,
-    category,
-    categoryLabel: PRODUCT_CATEGORY_LABELS[category],
-    description:
-      `Selling ${itemName}. Mention the exact condition, age of use, included accessories, reason for selling, and pickup location. Add 2-3 clear photos from different angles for faster trust.`,
-    tags: [
-      PRODUCT_CATEGORY_LABELS[category] || "Campus",
-      "student deal",
-      "campus pickup",
-      "negotiable",
-    ],
-  };
-};
-
-const answerFAQ = (message) => {
-  const text = message.toLowerCase();
-  return FAQS.find((faq) => faq.keywords.some((keyword) => text.includes(keyword)));
-};
-
-const answerKnowledge = (message) => {
-  const text = message.toLowerCase();
-  return KNOWLEDGE_ANSWERS.find((entry) =>
-    entry.keywords.some((keyword) => text.includes(keyword)),
-  );
-};
-
-const detectIntent = (message) => {
-  const text = message.toLowerCase();
-  const knowledge = answerKnowledge(message);
-
-  if (/\b(price|worth|estimate|fair value|how much)\b/.test(text)) return "price_estimate";
-  if (/\bhow\b/.test(text) && /\b(sell|post|upload|list)\b/.test(text)) {
-    return "listing_rules";
-  }
-  if (
-    knowledge &&
-    /\b(how|what|where|can|does|do|policy|rules|safe|support|contact|report)\b/.test(text)
-  ) {
-    return knowledge.intent;
-  }
-  if (/\b(listing|sell|post|upload|description|title)\b/.test(text)) return "listing_assistant";
-  if (/\b(recommend|suggest|best|popular|trending)\b/.test(text)) return "recommendations";
-  if (/\b(search|find|show|looking|buy|need|under|below)\b/.test(text)) return "product_search";
-  if (knowledge) return knowledge.intent;
-  if (answerFAQ(message)) return "faq";
-
-  return "conversation";
-};
-
-const summarizeProducts = (products) => {
-  if (!products.length) {
-    return "I could not find matching active listings yet. Try a broader product name, category, or budget.";
-  }
-
-  const lines = products
-    .slice(0, 3)
-    .map((product, index) => {
-      const price = INR_FORMATTER.format(product.selling_price || 0);
-      return `${index + 1}. ${product.title} - Rs ${price}`;
-    })
-    .join("\n");
-
-  return `I found these campus listings:\n${lines}\nOpen any card below to view details.`;
-};
-
-const getGeminiClient = () => {
-  if (!process.env.GEMINI_API_KEY) return null;
-
-  return new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
+    if (scoreA !== scoreB) return scoreB - scoreA;
+    return Number(a.selling_price || 0) - Number(b.selling_price || 0);
   });
 };
 
-const getGeminiModels = () => {
-  const configuredFallbacks = String(process.env.GEMINI_FALLBACK_MODELS || "")
-    .split(",")
-    .map((model) => normalizeGeminiModel(model.trim()))
-    .filter(Boolean);
+const buildCategoryRecommendation = async (message = "") => {
+  const category = detectCategoryFromMessage(message) || "electronics";
+  const library = CATEGORY_RECOMMENDATION_LIBRARY[category] || CATEGORY_RECOMMENDATION_LIBRARY.electronics;
+  const directQuery = normalizeProductQuestion(message) || library.queries[0];
 
-  return [...new Set([GEMINI_MODEL, ...configuredFallbacks, ...GEMINI_FALLBACK_MODELS])];
+  const queries = [...new Set([directQuery, ...library.queries])].filter(Boolean).slice(0, 6);
+  const productCards = [];
+
+  for (const query of queries) {
+    try {
+      const res = await toolHandlers.searchProducts({ query, limit: 2 });
+      const items = res?.products || [];
+      for (const item of items) {
+        const key = item._id || `${item.title}-${item.category}`;
+        if (!productCards.some((p) => (p._id || `${p.title}-${p.category}`) === key)) {
+          productCards.push(item);
+        }
+      }
+      if (productCards.length >= 6) break;
+    } catch (err) {
+      // ignore per-query lookup failure and continue
+    }
+  }
+
+  const ranked = rankRecommendations(productCards, directQuery, category);
+
+  return {
+    category,
+    label: library.label,
+    productCards: ranked.slice(0, 6),
+    missing: ranked.length === 0,
+    query: directQuery,
+  };
 };
 
-const withTimeout = (promise, timeoutMs, label) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
-    }),
-  ]);
+const recommendSimilarIfMissing = async (query = "") => {
+  const normalized = (query || "").trim();
+  if (!normalized) return { products: [], missing: true };
 
-const getKnowledgeContext = () =>
-  KNOWLEDGE_ANSWERS.map((entry) => ({
-    intent: entry.intent,
-    keywords: entry.keywords,
-    facts: entry.answer,
-  }));
+  const synonyms = getSynonymsForQuery(normalized);
+  let productPool = [];
+  for (const term of synonyms) {
+    const result = await toolHandlers.searchProducts({ query: term, limit: 3 });
+    const found = result?.products || [];
+    if (found.length) {
+      productPool = [...productPool, ...found];
+    }
+  }
 
-const parseGeminiJson = (text) => {
-  if (!text) return null;
+  const unique = Array.from(new Map((productPool || []).map((p) => [p._id || `${p.title}-${p.category}`, p])).values());
+  return { products: unique.slice(0, 6), missing: unique.length === 0 };
+};
+
+const buildTripPackingPlan = async (message = "") => {
+  const tripType = detectTripType(message);
+  const tripPlan = TRIP_ITEM_LIBRARY[tripType] || TRIP_ITEM_LIBRARY.general_trip;
+
+  const available = [];
+  const missing = [];
 
   try {
-    return JSON.parse(text);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
+    for (const item of tripPlan.items) {
+      const res = await toolHandlers.searchProducts({ query: item, limit: 2 });
+      const found = res?.products || [];
+      if (found.length) {
+        available.push({ item, products: found.slice(0, 2) });
+      } else {
+        missing.push(item);
+      }
+    }
+  } catch (err) {
+    // If the DB is inaccessible, still return the planned items instead of failing the whole response.
+    missing.push(...tripPlan.items);
+  }
 
+  const rankedProducts = rankRecommendations(
+    available.flatMap((entry) => entry.products),
+    message,
+    tripType
+  );
+
+  return {
+    tripType,
+    label: tripPlan.label,
+    available,
+    missing,
+    products: rankedProducts.slice(0, 8),
+  };
+};
+
+const buildAvailabilityResponse = async (message = "") => {
+  const rawQuery = normalizeProductQuestion(message);
+  if (!rawQuery) return null;
+
+  try {
+    const productResults = await toolHandlers.searchProducts({ query: rawQuery, limit: 4 });
+    const foundProducts = productResults?.products || [];
+
+    if (foundProducts.length) {
+      return {
+        status: "present",
+        query: rawQuery,
+        products: foundProducts.slice(0, 4),
+      };
+    }
+
+    const similar = await recommendSimilarIfMissing(rawQuery);
+    return {
+      status: "missing",
+      query: rawQuery,
+      products: similar.products || [],
+      missing: similar.missing,
+    };
+  } catch (err) {
+    return {
+      status: "missing",
+      query: rawQuery,
+      products: [],
+      missing: true,
+    };
+  }
+};
+
+const SYSTEM_PROMPT = `
+You are UniDeals AI, a friendly campus marketplace shopping assistant for Indian college students.
+You help users understand UniDeals, search products, estimate prices, write listings, compare products, plan budgets, follow website steps, understand terms/privacy rules, and stay safe.
+Always respond naturally and concisely in the user's language (support Hindi/Hinglish).
+Use ₹ for all prices, format with Indian number system.
+Available categories: ${Object.values(PRODUCT_CATEGORY_LABELS || {}).join(", ")}.
+Available conditions: ${Object.values(PRODUCT_CONDITION_LABELS || {}).join(", ")}.
+NEVER share personal information or contact details of specific users.
+Always recommend meeting in public campus locations.
+Be encouraging about the campus marketplace community.
+
+CRITICAL RULES:
+- You are ONLY a UniDeals assistant. NEVER answer questions unrelated to UniDeals, campus buying/selling, or student marketplace topics.
+- NEVER answer from your general training knowledge. Use ONLY the platform knowledge, tools, and Knowledge Base Context provided below.
+- If a user asks something outside your scope, politely redirect: "I'm the UniDeals assistant — I can help with buying, selling, pricing, safety, platform policies, and navigating the platform!"
+- If a Knowledge Base Context is provided below, treat it as the ABSOLUTE source of truth and answer from it first before calling tools.
+- For terms, privacy, website navigation, account, upload, wishlist, chat, report, address, and boosting questions, use the Knowledge Base Context BEFORE calling any tools.
+- NEVER invent, guess, or hallucinate policies, rules, prices, timelines, penalties, features, or procedures. ONLY state what is explicitly in the knowledge base or tool results.
+- CRITICAL NO-HALLUCINATION RULE: If a user asks a policy or procedure question that is NOT covered in the Knowledge Base Context or tool results, DO NOT make up an answer. Instead respond with: "That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but our team is continuously expanding my knowledge and I'll soon be able to answer it! Please reach out to support@campusmart.in or visit /contact for direct assistance." Then provide suggestions from the platform.
+
+MANDATORY TOOL USAGE:
+- For ANY question about how to use the website, features, steps, or navigation → call getPlatformGuide
+- For ANY question about rules, terms, policies, prohibited items, eligibility → call getTermsAndPolicies
+- For ANY question about returns, refunds, reviews, privacy, data deletion, subscription rules, boost rules, moderation, account security, content/photo rules, deal lifecycle, payment safety, listing price rules → call getPolicyOrProcedure with the matching topic
+- When user asks about products → call searchProducts or getTrendingProducts
+- When user asks about pricing → call estimateFairPrice
+- When user wants to sell something → call generateListingDraft
+- When user asks to compare → call compareTwoProducts
+- When user has a budget → call getBudgetBundle
+- For safety questions → call getSafetyTips
+- For inspection advice → call getInspectionChecklist
+
+GRACEFUL FALLBACK RULE:
+If after exhausting all knowledge base context and tool results you still cannot provide a confident, grounded answer to a policy or procedure question, ALWAYS respond with:
+"That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but don't worry, our team is continuously expanding my knowledge and I'll soon be able to answer it fully! In the meantime: 📧 Email us at support@campusmart.in (24-48h response) or 🎫 Submit a ticket at /contact. Thanks for your patience! 🙌"
+
+PLATFORM CORE GROUNDING:
+- Eligibility: 18+ currently enrolled Indian university students with verified college email. Strict 1 account per person.
+- Role: Intermediary under Section 79 IT Act. UniDeals does NOT hold funds, manage escrow, or arrange delivery. Liability capped at ₹1,000.
+- Safety: Meet in public campus spots during daylight (Library Gate, Canteen). Inspect before paying. UPI or cash only at meetup. NEVER pay advance or token money. Beware reverse QR scams.
+- Listing Rules: Selling price cannot exceed original MRP. Max 3 real photos (no stock images). Condition disclosed honestly.
+- Plans: Free (10 listings, 25 wishlist), Pro (₹99 lifetime, 25 listings, 2 boosts/month), Pro+ (₹199 lifetime, unlimited listings, 5 boosts/month). Boost add-ons: ₹29 (3-day), ₹49 (7-day). No boost stacking, no credit rollover.
+
+RESPONSE FORMAT:
+Always suggest 3-4 relevant follow-up prompts.
+Return ONLY a valid JSON object with this structure:
+{
+  "reply": "Direct, polished answer. Use numbered steps if the user asks how to do something.",
+  "intent": "knowledge_base | marketplace_overview | product_search | price_estimation | listing_creation | comparison | budget_planning | advice | policy | conversation",
+  "suggestions": ["short follow-up", "short follow-up", "short follow-up"]
+}
+`;
+
+const CANDIDATE_MODELS = [
+  GEMINI_MODEL || "gemini-flash-latest",
+].filter(Boolean);
+
+let geminiRateLimitedUntil = 0;
+
+export const isGeminiAvailable = () => {
+  return Boolean(process.env.GEMINI_API_KEY) && Date.now() > geminiRateLimitedUntil;
+};
+
+const withTimeout = (promise, timeoutMs = 6000, label = "Gemini API") =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+
+const callGeminiWithFallback = async (params) => {
+  if (!isGeminiAvailable()) {
+    throw new Error("Gemini API is temporarily in cooldown due to rate limit.");
+  }
+
+  let lastError = null;
+  const uniqueModels = [...new Set(CANDIDATE_MODELS)];
+
+  for (const model of uniqueModels) {
     try {
-      return JSON.parse(match[0]);
+      const response = await withTimeout(
+        ai.models.generateContent({
+          ...params,
+          model,
+        }),
+        6000,
+        `Model ${model}`
+      );
+      return { response, model };
+    } catch (err) {
+      lastError = err;
+      const status = err.status || err.statusCode;
+      const isRateLimited =
+        status === 429 ||
+        err.code === 429 ||
+        status === "RESOURCE_EXHAUSTED" ||
+        String(err.message || "").includes("429") ||
+        String(err.message || "").includes("RESOURCE_EXHAUSTED");
+
+      // If quota exceeded (429), activate circuit breaker for 60 seconds and stop retrying immediately
+      if (isRateLimited) {
+        geminiRateLimitedUntil = Date.now() + 60000;
+        console.warn("[Assistant] Gemini quota/rate limit detected (429). Circuit breaker enabled for 60s.");
+        break;
+      }
+
+      // If client-side error (bad request, auth), do not retry
+      if (status === 400 || status === 401 || status === 403) {
+        break;
+      }
+    }
+  }
+  throw lastError;
+};
+
+const parseJsonResponse = (text = "") => {
+  try {
+    return JSON.parse(text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
+  } catch {
+    const objectMatch = text.match(/\{[\s\S]*\}/);
+    if (!objectMatch) return null;
+    try {
+      return JSON.parse(objectMatch[0]);
     } catch {
       return null;
     }
   }
 };
 
-const buildGeminiPrompt = ({ message, history, baseReply }) =>
-  JSON.stringify(
-    {
-      userMessage: message,
-      recentHistory: history
-        .slice(-8)
-        .map((item) => ({
-          sender: item.sender,
-          text: item.text,
-        }))
-        .filter((item) => item.text),
-      detectedIntent: baseReply.intent,
-      groundingContext: {
-        fallbackAnswerForEmergencyOnly: baseReply.reply,
-        liveProducts: baseReply.products || [],
-        priceEstimate: baseReply.estimate || null,
-        listingDraft: baseReply.draft || null,
-        platformKnowledge: getKnowledgeContext(),
-      },
-      currentSuggestions: baseReply.suggestions || [],
-      responseRules: [
-        "Answer the user's exact question in a natural, student-friendly tone. Sound helpful and specific, not like a copied policy block.",
-        "Start with the useful answer immediately. Avoid filler like 'Sure', 'I can help', or long introductions.",
-        "Choose the structure that fits the question: one short paragraph for simple answers, numbered steps for processes, bullets for options or comparisons.",
-        "Use bold labels sparingly for scanability, for example '**Price:**' or '**Next step:**'. Do not bold every sentence.",
-        "Keep most answers between 40 and 120 words. If the user asks for detail, provide enough detail but keep it organized.",
-        "For product searches or recommendations, summarize the best matches briefly and point to the product cards below. Do not invent products that are not in liveProducts.",
-        "For listing help, give practical steps and concrete wording the seller can use. If listingDraft is present, improve it instead of copying it blindly.",
-        "For price estimates, explain the range clearly and mention that it is based on available active listings when a priceEstimate exists.",
-        "For platform rules, payments, refunds, boosts, reports, privacy, and safety, stay strictly within platformKnowledge and groundingContext.",
-        "Never promise inventory availability, refunds, escrow, buyer protection, legal outcomes, account state, or private user data unless supplied in groundingContext.",
-        "If there is immediate physical danger, tell the user to contact campus security or local authorities first, then report it in UniDeals.",
-        "Return 2-4 relevant suggestion prompts that continue the conversation naturally.",
-      ],
-    },
-    null,
-    2,
-  );
+const buildMediaSearchQueries = (value = "") => {
+  const cleaned = value
+    .replace(/\b(search|find|show|recommend|identify|this|image|picture|photo|product|item|please|i want|i need|can you|give me|under|below|within)\b/gi, " ")
+    .replace(/₹?\s*\d[\d,]*/g, " ")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = cleaned.split(" ").filter((word) => word.length > 2);
+  const queries = new Set([cleaned]);
 
-const refineWithGemini = async ({ message, history, baseReply }) => {
-  const ai = getGeminiClient();
-  if (!ai) {
-    return {
-      ...baseReply,
-      aiPowered: false,
-    };
+  for (let index = 0; index < words.length - 1; index += 1) {
+    queries.add(`${words[index]} ${words[index + 1]}`);
   }
-
-  try {
-    let response = null;
-    let usedModel = GEMINI_MODEL;
-    let lastModelError = null;
-
-    for (const model of getGeminiModels()) {
-      try {
-        response = await withTimeout(
-          ai.models.generateContent({
-            model,
-            contents: buildGeminiPrompt({ message, history, baseReply }),
-            config: {
-              maxOutputTokens: 700,
-              responseMimeType: "application/json",
-              systemInstruction:
-                "You are UniDeals Assistant, a Gemini-powered assistant for a campus student marketplace. Give direct, natural, well-structured answers using only the supplied grounding context, live product data, price estimate, listing draft, platform knowledge, and conversation history. Be concise but not robotic. Prefer practical wording, clear next steps, and short markdown lists when useful. Do not start with a capability pitch. Do not add unsupported facts. Return valid JSON only with keys: reply string, suggestions string array.",
-            },
-          }),
-          GEMINI_MODEL_TIMEOUT_MS,
-          model,
-        );
-        usedModel = model;
-        break;
-      } catch (error) {
-        lastModelError = error;
-        console.error(`Gemini model fallback (${model}):`, error.message);
-      }
-    }
-
-    if (!response) {
-      throw lastModelError || new Error("No Gemini model returned a response.");
-    }
-
-    const parsed = parseGeminiJson(response.text);
-    const reply = typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
-    const suggestions = Array.isArray(parsed?.suggestions)
-      ? parsed.suggestions.filter((item) => typeof item === "string").slice(0, 4)
-      : baseReply.suggestions;
-
-    if (!reply) return baseReply;
-
-    return {
-      ...baseReply,
-      reply,
-      suggestions: suggestions?.length ? suggestions : baseReply.suggestions,
-      sources: [...new Set([SOURCE_GEMINI, ...(baseReply.sources || [])])],
-      aiPowered: true,
-      model: usedModel,
-    };
-  } catch (error) {
-    console.error("Gemini assistant fallback:", error);
-    return {
-      ...baseReply,
-      aiPowered: false,
-      aiError:
-        process.env.NODE_ENV === "production"
-          ? "Gemini unavailable; used local assistant fallback."
-          : `Gemini unavailable: ${error.message}`,
-    };
-  }
+  words.forEach((word) => queries.add(word));
+  return [...queries].filter((query) => query.length >= 2).slice(0, 8);
 };
 
-const buildRuleBasedAssistantReply = async ({ message, history = [], user = null }) => {
-  const text = String(message || "").trim();
+const buildMediaReply = async ({ message, attachments = [] }) => {
+  const attachment = attachments.find((item) => item?.data && item?.mimeType);
+  if (!attachment) return null;
 
-  if (!text) {
-    throw new Error("Message is required");
-  }
+  const isAudio = attachment.mimeType.startsWith("audio/");
+  const mediaPrompt = isAudio
+    ? `${message}\nTranscribe the audio exactly, then convert the spoken request into a concise UniDeals marketplace search query. Return only JSON.`
+    : `${message}\nInspect this image, identify the visible product or useful product keywords, and convert them into a concise UniDeals marketplace search query. Return only JSON.`;
 
-  const intent = detectIntent(text);
+  const { response } = await callGeminiWithFallback({
+    contents: [{
+      role: "user",
+      parts: [
+        { text: mediaPrompt },
+        {
+          inlineData: {
+            mimeType: attachment.mimeType,
+            data: attachment.data.replace(/^data:[^;]+;base64,/, ""),
+          },
+        },
+      ],
+    }],
+    config: {
+      systemInstruction: isAudio
+        ? "You transcribe user audio and turn it into a product search."
+        : "You identify products in images and turn them into a product search.",
+      responseMimeType: "application/json",
+      temperature: 0.1,
+      maxOutputTokens: 300,
+    },
+  });
 
-  if (intent === "product_search") {
-    const products = await searchProducts(text);
+  const responseText = typeof response.text === "function" ? response.text() : response.text;
+  const extracted = parseJsonResponse(responseText || "") || {};
+  const rawMediaText = String(
+    extracted.searchQuery || extracted.query || extracted.transcript || responseText || ""
+  ).trim();
+  const searchQueries = buildMediaSearchQueries(rawMediaText);
+  const searchQuery = searchQueries[0] || rawMediaText;
+  if (!searchQuery) {
     return {
-      intent,
-      reply: summarizeProducts(products),
-      products,
-      suggestions: ["Show cheaper options", "Recommend similar items", "Help me compare"],
-      sources: [SOURCE_LIVE],
+      reply: isAudio
+        ? "I could not understand the audio clearly. Please record it again and mention the product you want to find."
+        : "I could not identify a searchable product in that image. Try a clearer photo with the item centered.",
+      intent: "product_search",
+      products: [],
+      productCards: [],
+      suggestions: ["Try another photo", "Say the product name", "Search campus listings"],
+      aiPowered: true,
     };
   }
 
-  if (intent === "recommendations") {
-    const products = await getRecommendations(text, user);
-    return {
-      intent,
-      reply: products.length
-        ? `Here are ${products.length} recommendations based on active listings and campus demand signals.`
-        : "I do not have enough active listings to recommend items yet.",
-      products,
-      suggestions: ["Find electronics under 5000", "Estimate a fair price", "Help me create a listing"],
-      sources: [SOURCE_LIVE],
-    };
+  const productPool = [];
+  for (const query of searchQueries) {
+    try {
+      const result = await toolHandlers.searchProducts({ query, limit: 4 });
+      productPool.push(...(result?.products || []));
+    } catch {
+      // Continue with shorter candidate queries when one search fails.
+    }
   }
-
-  if (intent === "price_estimate") {
-    const estimate = await estimatePrice(text);
-    return {
-      intent,
-      reply: estimate
-        ? `Based on ${estimate.sampleSize} recent active listings, a fair range is Rs ${INR_FORMATTER.format(estimate.low)} - Rs ${INR_FORMATTER.format(estimate.high)}. I would list near Rs ${INR_FORMATTER.format(estimate.fair)} and keep negotiation on.`
-        : "I need more similar active listings before I can estimate a reliable price. Share the original price, condition, age, and category and I can still suggest a manual range.",
-      estimate,
-      suggestions: ["Help write the listing", "Search similar products", "What photos should I add?"],
-      sources: [SOURCE_LIVE, SOURCE_KB],
-    };
-  }
-
-  if (intent === "listing_assistant") {
-    const draft = listingDraft(text);
-    return {
-      intent,
-      reply: `Here is a starter listing:\nTitle: ${draft.title}\nCategory: ${draft.categoryLabel}\nDescription: ${draft.description}\nTags: ${draft.tags.join(", ")}`,
-      draft,
-      suggestions: ["Estimate price for this", "What photos should I upload?", "Find similar listings"],
-      sources: [SOURCE_KB],
-    };
-  }
-
-  if (intent === "listing_rules") {
-    const listingHelp = KNOWLEDGE_ANSWERS.find(
-      (entry) => entry.intent === "listing_rules",
-    );
-
-    return {
-      intent,
-      reply: listingHelp.answer,
-      suggestions: listingHelp.suggestions,
-      sources: [SOURCE_KB],
-    };
-  }
-
-  const knowledge = answerKnowledge(text);
-  if (knowledge) {
-    return {
-      intent: knowledge.intent,
-      reply: knowledge.answer,
-      suggestions: knowledge.suggestions,
-      sources: [SOURCE_KB],
-    };
-  }
-
-  const faq = answerFAQ(text);
-  if (faq) {
-    return {
-      intent: "faq",
-      reply: faq.answer,
-      suggestions: ["Find products", "Create a listing", "Talk to support"],
-      sources: [SOURCE_KB],
-    };
-  }
-
-  const recentContext = history
-    .slice(-2)
-    .map((item) => item.text)
-    .filter(Boolean)
-    .join(" ");
+  const uniqueProducts = [...new Map(productPool.map((product) => [
+    product._id || `${product.title}-${product.category}`,
+    product,
+  ])).values()];
+  const products = rankRecommendations(
+    uniqueProducts,
+    searchQuery,
+    detectCategoryFromMessage(rawMediaText)
+  ).slice(0, 8);
 
   return {
-    intent: "conversation",
-    reply:
-      `Ask me a specific UniDeals question, such as "find a cycle under 3000", "write a listing for my calculator", or "how do I report a scam?".${recentContext ? "" : ""}`,
-    suggestions: ["Find a laptop under 30000", "Write a product listing", "How do I report a scam?"],
-    sources: [SOURCE_KB],
+    reply: isAudio
+      ? `I heard: "${extracted.transcript || rawMediaText}". Here are the closest UniDeals listings:`
+      : `I identified "${searchQuery}" in the image. Here are the closest UniDeals listings:`,
+    intent: products.length ? "product_search" : "product_recommendation",
+    products,
+    productCards: products,
+    recommendations: products,
+    missingItems: products.length ? [] : [searchQuery],
+    detectedQuery: searchQuery,
+    transcript: isAudio ? extracted.transcript || rawMediaText : undefined,
+    suggestions: ["Show similar items", "Find a cheaper option", "Search another product"],
+    aiPowered: true,
   };
 };
 
-export const buildAssistantReply = async ({ message, history = [], user = null }) => {
-  const baseReply = await buildRuleBasedAssistantReply({ message, history, user });
+const inferIntentFromTools = (toolsUsed) => {
+  if (toolsUsed.has("searchProducts") || toolsUsed.has("getTrendingProducts")) return "product_search";
+  if (toolsUsed.has("estimateFairPrice")) return "price_estimation";
+  if (toolsUsed.has("generateListingDraft")) return "listing_creation";
+  if (toolsUsed.has("compareTwoProducts")) return "comparison";
+  if (toolsUsed.has("getBudgetBundle")) return "budget_planning";
+  if (toolsUsed.has("getInspectionChecklist") || toolsUsed.has("getSafetyTips")) return "advice";
+  if (toolsUsed.has("getTermsAndPolicies") || toolsUsed.has("getPolicyOrProcedure") || toolsUsed.has("getPlatformGuide")) return "policy";
+  return "conversation";
+};
 
-  return refineWithGemini({
-    message: String(message || "").trim(),
-    history,
-    baseReply,
-  });
+// Intelligent local fallback if Gemini API is temporarily rate-limited or unavailable
+const fallbackLocalSearch = async (message) => {
+  try {
+    const text = message.toLowerCase();
+    const knowledgeMatch = findKnowledgeBaseAnswer(message);
+
+    if (knowledgeMatch) {
+      return {
+        reply: formatKnowledgeReply(knowledgeMatch),
+        intent: "knowledge_base",
+        suggestions: knowledgeMatch.suggestions,
+        sources: [knowledgeMatch.source],
+        route: knowledgeMatch.route,
+        aiPowered: false,
+      };
+    }
+
+    // 1. Safety / Scam / Meetup / UPI questions
+    if (/\b(safe|safety|scam|scams|fraud|frauds|fake|cheat|cheats|meet|meetup|meetups|upi|advance|spot|location|night|payment|payments)\b/i.test(text)) {
+      const topic = /\b(upi|advance|payment|payments|money|qr)\b/i.test(text) ? "payment" :
+                    /\b(scam|scams|fraud|frauds|fake|cheat|cheats)\b/i.test(text) ? "scam" : "meetup";
+      const tipsRes = await toolHandlers.getSafetyTips({ topic });
+      return {
+        reply: "🛡️ Here are important campus safety and transaction guidelines:\n• Never send advance payments on UPI before inspecting the item in person.\n• Always meet at well-lit, populated campus hubs (e.g. Library Gate, Main Canteen, Student Center).\n• Test and inspect the item thoroughly before making the final payment.",
+        intent: "advice",
+        safetyTips: tipsRes,
+        suggestions: [
+          "What should I check before buying a cycle?",
+          "What should I inspect for laptops?",
+          "Show trending items",
+        ],
+      };
+    }
+
+    // 2. Inspection / Checklist questions
+    if (/\b(inspect|check|checklist|test|condition|look for)\b/i.test(text)) {
+      let category = "general";
+      if (/\b(laptop|phone|monitor|keyboard|electronic|tab|gadget|charger)\b/i.test(text)) category = "electronics";
+      else if (/\b(cycle|bike|bicycle|scooter)\b/i.test(text)) category = "vehicles";
+      else if (/\b(book|notes|study|textbook|drafter)\b/i.test(text)) category = "study_material";
+      else if (/\b(mattress|kettle|cooler|fan|bed|hostel)\b/i.test(text)) category = "hostel_essentials";
+
+      const checklistRes = await toolHandlers.getInspectionChecklist({ category });
+      return {
+        reply: `✅ Here is an inspection checklist for ${category.replace("_", " ")} items on campus:`,
+        intent: "advice",
+        checklist: checklistRes,
+        suggestions: [
+          "Is it safe to pay on UPI before meeting?",
+          "Estimate price for my cycle",
+          "Show trending deals",
+        ],
+      };
+    }
+
+    // 3. Price / Estimate / Valuation questions
+    if (/\b(price|worth|estimate|fair|how much|cost|value|resale)\b/i.test(text)) {
+      let category = undefined;
+      if (/\b(laptop|phone|monitor|keyboard|electronics)\b/i.test(text)) category = "electronics";
+      else if (/\b(cycle|bike|bicycle)\b/i.test(text)) category = "vehicles";
+      else if (/\b(book|books|notes)\b/i.test(text)) category = "study_material";
+      else if (/\b(cooler|kettle|mattress|fan)\b/i.test(text)) category = "hostel_essentials";
+
+      const keywordMatch = text.replace(/\b(how|much|is|a|used|for|what|fair|price|worth|estimate|cost|value|can|i|sell|my)\b/gi, "").trim();
+      const estimateRes = await toolHandlers.estimateFairPrice({ category, keyword: keywordMatch });
+
+      if (estimateRes && !estimateRes.error) {
+        return {
+          reply: `💰 Based on current campus listings, here is the fair price estimate for "${keywordMatch || category}":`,
+          intent: "price_estimation",
+          estimate: estimateRes,
+          suggestions: [
+            "Help me write a listing for this",
+            "What should I inspect before buying?",
+            "Show similar items",
+          ],
+        };
+      }
+    }
+
+    // 4. Listing / Sell draft questions
+    if (/\b(list|listing|sell|draft|write|post|upload)\b/i.test(text)) {
+      const rawDesc = message.replace(/\b(help|me|write|a|listing|to|sell|draft|create|for|my)\b/gi, "").trim();
+      const draftRes = await toolHandlers.generateListingDraft({ itemDescription: rawDesc || "Campus item" });
+      return {
+        reply: "📝 Here is a pre-formatted listing draft ready for campus posting:",
+        intent: "listing_creation",
+        draft: draftRes.draft,
+        suggestions: [
+          "Estimate a fair price for this",
+          "What photos should I take?",
+          "Show trending items",
+        ],
+      };
+    }
+
+    // 5. Budget Bundle questions
+    if (/\b(budget|bundle|room setup|hostel setup)\b/i.test(text) || (/\b(under|below|for)\b/i.test(text) && /\d{3,6}/.test(text))) {
+      const budgetMatch = text.match(/\d{3,6}/);
+      const budget = budgetMatch ? parseInt(budgetMatch[0], 10) : 5000;
+      const bundleRes = await toolHandlers.getBudgetBundle({ totalBudget: budget });
+      return {
+        reply: `🎒 Here is a curated budget bundle within ₹${budget.toLocaleString("en-IN")}:`,
+        intent: "budget_planning",
+        bundle: bundleRes,
+        suggestions: [
+          "Find electronics under 5000",
+          "Safety tips for meetups",
+          "How to inspect used items",
+        ],
+      };
+    }
+
+    // 6. Policy / Procedure question detection — return graceful fallback if no KB match
+    const isPolicyQuestion = /\b(policy|rule|rules|allowed|prohibited|banned|illegal|can i|is it allowed|what happens|procedure|legal|return|refund|moderation|suspension|ban|account ban|penalty|terms|conditions|privacy|gdpr|dpdp|data|subscription|upgrade|boost|credits|rollover|review policy|dispute|liability|governing law|section 79|intermediary|eligible|eligibility|age limit|minor|18|college required|verification required|who can use|can i sell|what is not allowed)\b/i.test(text);
+
+    if (isPolicyQuestion && !knowledgeMatch) {
+      return {
+        reply: "That's a great question! 🤔 I don't have the exact answer to this specific query in my knowledge base just yet — but don't worry, our team is continuously expanding my knowledge and I'll soon be able to answer it fully!\n\nIn the meantime, here's what you can do:\n📧 Email us directly at **support@campusmart.in** — our team will reply within 24-48 hours.\n🎫 Submit a support ticket at **/contact** and a campus team member will assist you.\n📚 Browse our Terms & Conditions at **/termscondition** or Privacy Policy at **/privacy-policy**.\n\nThanks for your patience — we're always improving! 🙌",
+        intent: "policy",
+        route: "/contact",
+        suggestions: [
+          "What are the platform rules?",
+          "Is advance UPI payment safe?",
+          "How do I report a suspicious seller?",
+          "Contact support",
+        ],
+        aiPowered: false,
+      };
+    }
+
+    // 7. Product Search — only when query indicates intent to find, buy, or browse items
+    const isProductIntent = /\b(find|show|search|need|want|buy|looking for|cheap|under|below|price|laptop|cycle|bike|bicycle|book|books|phone|mobile|monitor|keyboard|kettle|mattress|cooler|calculator|headphones|earphones|clothes|shoes|bag|backpack|sports|fitness|available|in stock|recommend|suggest|product|products|item|items|listing|listings)\b/i.test(text);
+
+    if (isProductIntent) {
+      const cleanedQuery = text.replace(/\b(find|show|search|need|want|buy|looking|for|me|please|best|cheap|affordable|recommend|suggest|are|there|any)\b/gi, "").trim();
+      const searchRes = await toolHandlers.searchProducts({ query: cleanedQuery || text, limit: 4 });
+      const products = searchRes.products?.length ? searchRes.products : (await toolHandlers.getTrendingProducts({ limit: 4 })).products;
+
+      return {
+        reply: searchRes.products?.length
+          ? `Here are active campus listings matching "${cleanedQuery || text}":`
+          : "Here are some popular active listings on campus:",
+        intent: "product_search",
+        products: products || [],
+        suggestions: [
+          "Find electronics under 5000",
+          "Estimate price for my cycle",
+          "Help me sell my books",
+          "Safety tips for meetups",
+        ],
+      };
+    }
+
+    // 8. General conversational / Helpful redirect (Never return random product cards for general queries!)
+    return {
+      reply: "I'm UniDeals AI — your campus marketplace assistant! 🎓\n\nI can help you with:\n• 🔍 Finding campus products, electronics, cycles, and books\n• 💰 Estimating fair selling prices\n• 📝 Writing product listings\n• 🛡️ Campus safety tips and scam avoidance\n• 📖 Platform rules, policies, and procedures\n\nHow can I help you today?",
+      intent: "conversation",
+      suggestions: [
+        "How do I avoid scams?",
+        "What are the platform rules?",
+        "Find a cycle under ₹3000",
+        "How do I sell an item?",
+      ],
+    };
+  } catch (err) {
+    return {
+      reply: "I'm UniDeals AI — I can help you find products, estimate fair prices, write listings, compare deals, plan budgets, check safety tips, navigate the platform, and answer policy questions. What would you like help with?",
+      intent: "conversation",
+      suggestions: [
+        "Find a cycle under ₹3000",
+        "Help me sell my books",
+        "How do I boost my listing?",
+        "Safety tips for campus meetups",
+      ],
+    };
+  }
+};
+
+export const buildAssistantReply = async ({ message, history = [], user = null, attachments = [] }) => {
+  if (!message || typeof message !== "string" || message.trim() === "") {
+    throw new Error("Message is required");
+  }
+
+  // ── FAST PATH: return cached reply instantly ──
+  if (!attachments.length) {
+    const cached = getCachedReply(message);
+    if (cached) return cached;
+  }
+
+  if (attachments.length) {
+    try {
+      const mediaResult = await buildMediaReply({ message, attachments });
+      if (mediaResult) return mediaResult;
+    } catch (error) {
+      return {
+        reply: "I could not process that media right now. Please try a clearer image or a shorter audio recording.",
+        intent: "conversation",
+        products: [],
+        productCards: [],
+        suggestions: ["Try again", "Type the product name", "Search campus listings"],
+        aiPowered: false,
+        error: error.message,
+      };
+    }
+  }
+
+  const categoryRecommendationIntent = /\b(recommend|suggest|show me|find me|find|suggest products|need products|what should i buy|best items|best products|good items|essentials)\b/i.test(message) &&
+    /\b(book|books|study material|electronics|laptop|hostel|hostel essentials|bike|bikes|bicycle|bicycles|cycle|cycles|safety gear|travel|trip|packing|essentials)\b/i.test(message);
+
+  if (categoryRecommendationIntent) {
+    const categoryRec = await buildCategoryRecommendation(message);
+    const result = {
+      reply: categoryRec.productCards.length
+        ? `I found a few relevant recommendations in the ${categoryRec.label.toLowerCase()} category for your search:`
+        : `I could not find a direct match in the ${categoryRec.label.toLowerCase()} category, but here are similar recommendations you can consider:`,
+      intent: "product_recommendation",
+      products: categoryRec.productCards,
+      productCards: categoryRec.productCards,
+      category: categoryRec.category,
+      missingItems: categoryRec.missing ? [categoryRec.query] : [],
+      recommendations: categoryRec.productCards,
+      suggestions: [
+        "Show me electronics under ₹5000",
+        "Recommend hostel items for a hostel room",
+        "Find a bike helmet",
+        "Plan items for a hill trip",
+      ],
+      aiPowered: false,
+    };
+    setCachedReply(message, result);
+    return result;
+  }
+
+  const tripPlanningIntent = /\b(trip|travel|vacation|journey|backpacking|beach|trek|hiking|camping|road trip|business trip|college trip|packing|pack list|what should i carry|what all do i need|hill trip|exam trip|office trip|festival trip)\b/i.test(message) && /\b(need|items|things|carry|pack|essentials|bring|recommend|suggest)\b/i.test(message);
+
+  if (tripPlanningIntent) {
+    const tripPlan = await buildTripPackingPlan(message);
+    const rankedProducts = rankRecommendations(tripPlan.products || [], message, detectTripType(message));
+    const reply = `For a ${tripPlan.label.toLowerCase()}, these are the useful essentials to carry:\n${tripPlan.available.map((entry) => `• ${entry.item} — available on campus`).join("\n") || "• No exact matches found on the site for this trip type yet."}\n${tripPlan.missing.length ? `\nMissing from the current marketplace: ${tripPlan.missing.join(", ")}. I can suggest alternatives or you can tell me the exact item you want to search.` : "\nEverything for this trip type looks broadly available on campus right now."}`;
+
+    const result = {
+      reply,
+      intent: "trip_planning",
+      products: rankedProducts,
+      productCards: rankedProducts,
+      missingItems: tripPlan.missing,
+      recommendations: rankedProducts,
+      suggestions: [
+        "Show me items for a beach trip",
+        "Find a power bank",
+        "Recommend travel essentials under ₹2000",
+        "Show me similar items if not present",
+      ],
+      aiPowered: false,
+    };
+    setCachedReply(message, result);
+    return result;
+  }
+
+  const productCheckIntent = /\b(do you have|is there|are there|show me|find me|available|present|in stock|on the website|on the app|have|need|looking for|recommend something similar|similar to|like)\b/i.test(message) && /\b(item|product|bag|bottle|charger|headphones|power bank|backpack|laptop|phone|watch|shoes|towel|sunscreen|notebook|speaker|camera|umbrella|books|cycle|helmet|mattress|lamp|keyboard|mouse)\b/i.test(message);
+
+  if (productCheckIntent) {
+    const availability = await buildAvailabilityResponse(message);
+    if (!availability) {
+      const generic = await fallbackLocalSearch(message);
+      setCachedReply(message, generic);
+      return generic;
+    }
+
+    if (availability.status === "present") {
+      const rankedProducts = rankRecommendations(availability.products || [], availability.query, detectCategoryFromMessage(availability.query));
+      const result = {
+        reply: `Yes — I found matching products on the website for "${availability.query}":`,
+        intent: "product_search",
+        products: rankedProducts,
+        productCards: rankedProducts,
+        recommendations: rankedProducts,
+        suggestions: [
+          "Show me similar items",
+          "Help me buy within my budget",
+          "What should I check before buying?",
+        ],
+        aiPowered: false,
+      };
+      setCachedReply(message, result);
+      return result;
+    }
+
+    const rankedProducts = rankRecommendations(availability.products || [], availability.query, detectCategoryFromMessage(availability.query));
+    const result = {
+      reply: `I could not find a direct match for "${availability.query}" on the current website, but here are similar alternatives that may fit your need:`,
+      intent: "product_recommendation",
+      products: rankedProducts,
+      productCards: rankedProducts,
+      recommendations: rankedProducts,
+      missingItems: availability.missing ? [availability.query] : [],
+      suggestions: [
+        "Recommend a different budget option",
+        "Find something similar for a trip",
+        "Help me shortlist the best one",
+      ],
+      aiPowered: false,
+    };
+    setCachedReply(message, result);
+    return result;
+  }
+
+  // ── FAST PATH: high or medium confidence KB match → skip Gemini entirely (serves in ~3ms) ──
+  const fastKB = findKnowledgeBaseAnswer(message);
+  if (fastKB && (fastKB.confidence === "high" || fastKB.confidence === "medium" || (fastKB.score && fastKB.score >= 8))) {
+    const fastResult = {
+      reply: formatKnowledgeReply(fastKB),
+      intent: "knowledge_base",
+      suggestions: fastKB.suggestions,
+      sources: [fastKB.source],
+      route: fastKB.route,
+      aiPowered: false,
+    };
+    setCachedReply(message, fastResult);
+    return fastResult;
+  }
+
+  // ── CIRCUIT BREAKER: If Gemini is in rate-limit cooldown, serve local search instantly ──
+  if (!isGeminiAvailable()) {
+    console.log("[Assistant] Gemini API is in rate-limit cooldown. Serving immediate local fallback.");
+    const localFallback = await fallbackLocalSearch(message);
+    setCachedReply(message, localFallback);
+    return localFallback;
+  }
+
+  const formattedHistory = history.map((msg) => ({
+    role: msg.sender === "user" ? "user" : "model",
+    parts: [{ text: msg.text }],
+  }));
+
+  const userTier = user?.subscription || USER_TIER?.BASE_USER || "base_user";
+  const userName = user?.name ? `User's name is ${user.name}. ` : "";
+  const knowledgeMatch = fastKB || findKnowledgeBaseAnswer(message);
+  const knowledgeContext = knowledgeMatch
+    ? `\nKnowledge Base Context:\nTitle: ${knowledgeMatch.title}\nAnswer: ${knowledgeMatch.answer}\nSteps:\n${knowledgeMatch.steps?.map((step, index) => `${index + 1}. ${step}`).join("\n") || "N/A"}\nRelevant route: ${knowledgeMatch.route || "N/A"}\nSource: ${knowledgeMatch.source}\n`
+    : "";
+  const enhancedSystemPrompt = `${SYSTEM_PROMPT}\n${userName}User Tier: ${userTier}.\n${knowledgeContext}`;
+
+  const mediaParts = attachments
+    .filter((attachment) => attachment?.data && attachment?.mimeType)
+    .slice(0, 2)
+    .map((attachment) => ({
+      inlineData: {
+        mimeType: attachment.mimeType,
+        data: attachment.data.replace(/^data:[^;]+;base64,/, ""),
+      },
+    }));
+
+  const contents = [
+    ...formattedHistory,
+    { role: "user", parts: [{ text: message }, ...mediaParts] },
+  ];
+
+  try {
+    let { response } = await callGeminiWithFallback({
+      contents,
+      config: {
+        systemInstruction: enhancedSystemPrompt,
+        tools: [{ functionDeclarations: toolDeclarations }],
+        temperature: 0.3,
+        maxOutputTokens: 1024,
+      },
+    });
+
+    const MAX_TOOL_ROUNDS = 2;
+    let rounds = 0;
+    const toolsUsed = new Set();
+
+    let collectedProducts = null;
+    let collectedEstimate = null;
+    let collectedDraft = null;
+    let collectedComparison = null;
+    let collectedChecklist = null;
+    let collectedBundle = null;
+    let collectedSafetyTips = null;
+
+    while (
+      response.functionCalls &&
+      response.functionCalls.length > 0 &&
+      rounds < MAX_TOOL_ROUNDS
+    ) {
+      rounds++;
+      const functionCallResults = [];
+
+      for (const call of response.functionCalls) {
+        toolsUsed.add(call.name);
+        const handler = toolHandlers[call.name];
+        let result;
+        try {
+          result = handler
+            ? await handler(call.args || {})
+            : { error: "Unknown tool" };
+
+          if (call.name === "searchProducts" || call.name === "getTrendingProducts")
+            collectedProducts = result.products;
+          if (call.name === "estimateFairPrice") collectedEstimate = result;
+          if (call.name === "generateListingDraft") collectedDraft = result.draft;
+          if (call.name === "compareTwoProducts") collectedComparison = result;
+          if (call.name === "getInspectionChecklist") collectedChecklist = result;
+          if (call.name === "getBudgetBundle") collectedBundle = result;
+          if (call.name === "getSafetyTips") collectedSafetyTips = result;
+        } catch (err) {
+          result = { error: err.message };
+        }
+        functionCallResults.push({
+          name: call.name,
+          response: result,
+        });
+      }
+
+      contents.push({
+        role: "model",
+        parts: response.candidates[0].content.parts,
+      });
+      contents.push({
+        role: "user",
+        parts: functionCallResults.map((r) => ({
+          functionResponse: { name: r.name, response: r.response },
+        })),
+      });
+
+      const nextCall = await callGeminiWithFallback({
+        contents,
+        config: {
+          systemInstruction: enhancedSystemPrompt,
+          tools: [{ functionDeclarations: toolDeclarations }],
+          temperature: 0.3,
+          maxOutputTokens: 1024,
+        },
+      });
+      response = nextCall.response;
+    }
+
+    const text = response.text || "";
+    let parsed;
+    try {
+      let cleanText = text;
+      if (text.includes("```json")) {
+        cleanText = text.split("```json")[1].split("```")[0];
+      }
+      parsed = JSON.parse(cleanText);
+    } catch {
+      const cleanReply = text
+        .replace(/```json\s*/g, "").replace(/```/g, "")
+        .replace(/^\s*[{\[].*[}\]]\s*$/s, "")
+        .trim();
+      parsed = {
+        reply: cleanReply || "I understood your question but had trouble formatting my response. Could you rephrase that?",
+        intent: knowledgeMatch ? "knowledge_base" : "conversation",
+        suggestions: knowledgeMatch?.suggestions || [
+          "Show trending items",
+          "How do I sell on UniDeals?",
+          "Safety tips for meetups",
+        ],
+      };
+    }
+
+    const result = {
+      reply: parsed.reply || text,
+      intent: parsed.intent || (knowledgeMatch ? "knowledge_base" : inferIntentFromTools(toolsUsed)),
+      products: parsed.products || collectedProducts,
+      suggestions:
+        parsed.suggestions || knowledgeMatch?.suggestions || [
+          "Show trending items",
+          "Help me sell",
+          "Safety tips",
+        ],
+      estimate: parsed.estimate || collectedEstimate,
+      draft: parsed.draft || collectedDraft,
+      comparison: parsed.comparison || collectedComparison,
+      checklist: parsed.checklist || collectedChecklist,
+      bundle: parsed.bundle || collectedBundle,
+      safetyTips: parsed.safetyTips || collectedSafetyTips,
+      sources: knowledgeMatch ? [knowledgeMatch.source] : parsed.sources,
+      route: knowledgeMatch?.route || parsed.route,
+      aiPowered: true,
+    };
+    setCachedReply(message, result);
+    return result;
+  } catch (error) {
+    console.warn("Gemini fallback triggered:", error.message || error);
+    return await fallbackLocalSearch(message);
+  }
+};
+
+export const buildEnhanceListingReply = async ({
+  itemDescription,
+  condition,
+  originalPrice,
+  category,
+}) => {
+  const prompt = `
+You are an expert copywriter for UniDeals, a campus marketplace.
+Enhance the following item details into a highly compelling, structured product listing for college students.
+Item Description: ${itemDescription}
+Condition: ${condition || "Not specified"}
+Original Price: ${originalPrice ? "₹" + originalPrice : "Not specified"}
+Category: ${category || "Not specified"}
+
+Return ONLY a JSON object with this structure:
+{
+  "title": "Catchy title",
+  "description": "Engaging description with bullet points",
+  "suggestedPrice": "Fair price based on condition/original price",
+  "tags": ["tag1", "tag2"]
+}
+`;
+
+  try {
+    const { response } = await callGeminiWithFallback({
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text || "";
+    let cleanText = text;
+    if (text.includes("```json")) {
+      cleanText = text.split("```json")[1].split("```")[0];
+    }
+    return JSON.parse(cleanText);
+  } catch (error) {
+    return {
+      title: `${itemDescription.slice(0, 40)} - student owned`,
+      description: `Selling ${itemDescription}. In ${condition || "good"} condition. Ready for quick campus pickup.`,
+      tags: ["studentdeal", "campuspikcup"],
+    };
+  }
+};
+
+export const buildNegotiationAdvice = async ({
+  productId,
+  askingPrice,
+  offerPrice,
+  userRole,
+}) => {
+  const prompt = `
+You are a negotiation expert on a campus marketplace.
+Product ID: ${productId}
+Asking Price: ₹${askingPrice}
+Offer Price: ₹${offerPrice}
+User Role: ${userRole} (buyer or seller)
+
+Provide friendly, actionable advice on how to respond to this offer. 
+Keep it under 3 sentences and suggest a fair counter-offer if applicable.
+`;
+
+  try {
+    const { response } = await callGeminiWithFallback({
+      contents: prompt,
+      config: {
+        temperature: 0.5,
+      },
+    });
+
+    return { advice: response.text };
+  } catch (error) {
+    return { advice: "Try to find a middle ground that works for both of you." };
+  }
 };

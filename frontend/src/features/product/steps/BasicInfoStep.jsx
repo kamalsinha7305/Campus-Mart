@@ -1,5 +1,9 @@
+import { useState } from "react";
 import Select from "react-select";
 import { IoArrowForward } from "react-icons/io5";
+import { Sparkles, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
+import axiosInstance from "../../../services/axiosInstance";
 import useProductListing from "../hooks/useProductListing";
 import {
   PRODUCT_CATEGORY_OPTIONS,
@@ -64,6 +68,39 @@ const CategorySingleValue = ({ data }) => {
 const BasicInfoStep = () => {
   const { formData, updateField, nextStep, errors, validateAndProceed } =
     useProductListing();
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  const handleAIEnhance = async () => {
+    const rawInput = (formData.title + " " + formData.description).trim();
+    if (!rawInput) {
+      toast.error("Please enter a rough title or brief description first!");
+      return;
+    }
+
+    setIsEnhancing(true);
+    const toastId = toast.loading("AI is crafting your listing...");
+
+    try {
+      const res = await axiosInstance.post("/api/chat/enhance-listing", {
+        itemDescription: rawInput,
+        condition: formData.condition,
+        category: formData.category,
+      });
+
+      const data = res?.data?.data;
+      if (data && !data.error) {
+        if (data.title) updateField("title", data.title);
+        if (data.description) updateField("description", data.description);
+        toast.success("Listing enhanced by AI!", { id: toastId });
+      } else {
+        toast.error("Could not enhance listing. Please try again.", { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reach AI assistant", { id: toastId });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   // Select Styles
   const selectStyles = {
@@ -255,16 +292,33 @@ const BasicInfoStep = () => {
 
           {/* Description */}
           <div data-field="description">
-            <label className="text-base font-semibold text-[#111827] dark:text-white">
-              Short Description
-              <RequiredAsterisk />
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-base font-semibold text-[#111827] dark:text-white">
+                Short Description
+                <RequiredAsterisk />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleAIEnhance}
+                disabled={isEnhancing}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[#394ff1] dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-[#394ff1] hover:text-white transition-all disabled:opacity-50"
+                title="Automatically generate title & polished description using Gemini AI"
+              >
+                {isEnhancing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                {isEnhancing ? "Enhancing..." : "✨ AI Polish"}
+              </button>
+            </div>
 
             <textarea
               maxLength={1000}
               value={formData.description}
               onChange={(e) => updateField("description", e.target.value)}
-              placeholder="Describe your product..."
+              placeholder="Describe your product (or type a few words and click 'AI Polish')..."
               className={`mt-2 w-full h-[220px] rounded-xl border border-[#E5E7EB] ${
                 errors.description
                   ? "border-red-500"

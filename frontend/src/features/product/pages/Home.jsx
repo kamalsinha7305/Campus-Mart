@@ -17,9 +17,6 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { CATEGORY_ITEMS } from "../constants/categories";
 import { FiArrowRight } from "react-icons/fi";
 
-const bannerRight = "/assets/Group_116.png";
-const bannerShape = "/assets/Group_114.png";
-
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();

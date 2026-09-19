@@ -1,4 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import ChatCard from "../components/ChatCard.jsx";
+import PriceEstimateCard from "../components/PriceEstimateCard.jsx";
+import ComparisonCard from "../components/ComparisonCard.jsx";
+import ListingDraftCard from "../components/ListingDraftCard.jsx";
+import ChecklistCard from "../components/ChecklistCard.jsx";
+import BudgetBundleCard from "../components/BudgetBundleCard.jsx";
+import SafetyTipCard from "../components/SafetyTipCard.jsx";
+import userdp from "/userdp.webp";
+
 import {
   Bot,
   ChevronLeft,
@@ -9,9 +19,7 @@ import {
 } from "lucide-react";
 import { IoSend } from "react-icons/io5";
 import Header from "../../../Components/layout/Header.jsx";
-import ChatCard from "../components/ChatCard.jsx";
 import axiosInstance from "../../../services/axiosInstance.js";
-import userdp from "/userdp.webp";
 
 const supportChat = {
   id: "support",
@@ -23,8 +31,7 @@ const quickPrompts = [
   "Find a cycle under 3000",
   "Recommend electronics",
   "Help me sell my books",
-  "How do I report a scam?",
-  "How does boosting work?",
+  "Estimate price for my calculator",
 ];
 
   const users = [
@@ -43,7 +50,6 @@ const initialSupportMessage = {
   }),
   isInitial: true,
   suggestions: quickPrompts,
-  sources: ["Unideals knowledge base"],
 };
 
 const formatPrice = (price) =>
@@ -51,8 +57,16 @@ const formatPrice = (price) =>
     price || 0,
   );
 
+const renderAssistantText = (text = "") =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+
 const ProductResult = ({ product }) => {
-  const image = product.images?.[0] || "/default-avatar.png";
+  const image = product.images?.[0] || "/image10.png";
   const category = product.categoryLabel || product.category?.replaceAll("_", " ");
 
   return (
@@ -65,7 +79,7 @@ const ProductResult = ({ product }) => {
         alt={product.title}
         className="h-20 w-20 shrink-0 rounded-md object-cover"
         onError={(event) => {
-          event.currentTarget.src = "/default-avatar.png";
+          event.currentTarget.src = "/image10.png";
         }}
       />
       <div className="min-w-0 flex-1">
@@ -158,10 +172,13 @@ const Chat = () => {
       addMessage(supportChat.id, assistantData.reply, "support", {
         intent: assistantData.intent,
         products: assistantData.products || [],
-        estimate: assistantData.estimate,
-        draft: assistantData.draft,
         suggestions: assistantData.suggestions || [],
-        sources: assistantData.sources || [],
+        estimate: assistantData.estimate || null,
+        comparison: assistantData.comparison || null,
+        draft: assistantData.draft || null,
+        checklist: assistantData.checklist || null,
+        bundle: assistantData.bundle || null,
+        safetyTips: assistantData.safetyTips || null,
       });
     } catch (error) {
       addMessage(
@@ -300,7 +317,7 @@ const Chat = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-lg px-4 py-3 text-[14px] leading-relaxed shadow-sm lg:max-w-[72%] ${
+                      className={`max-w-[88%] whitespace-pre-line rounded-lg px-4 py-3 text-[14px] leading-relaxed shadow-sm lg:max-w-[72%] ${
                         msg.sender === "user"
                           ? "rounded-tr-none bg-[#394ff1] text-white"
                           : msg.isError
@@ -314,29 +331,25 @@ const Chat = () => {
                           Assistant
                         </div>
                       )}
-                      <AssistantMessageText text={msg.text} />
+                      {renderAssistantText(msg.text)}
                     </div>
 
-                    {!!msg.sources?.length && (
-                      <div className="mt-2 flex max-w-[760px] flex-wrap gap-1.5">
-                        {msg.sources.map((source) => (
-                          <span
-                            key={source}
-                            className="rounded-full border border-indigo-100 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[#394ff1] shadow-sm dark:border-zinc-800 dark:bg-[#1A1D20]"
-                          >
-                            {source}
-                          </span>
+                    {!!(msg.productCards || msg.products)?.length && (
+                      <div className="mt-3 grid w-full max-w-[760px] gap-2 sm:grid-cols-2">
+                        {(msg.productCards || msg.products).map((product) => (
+                          <ProductResult key={product._id || `${product.title}-${product.category}`} product={product} />
                         ))}
                       </div>
                     )}
 
-                    {!!msg.products?.length && (
-                      <div className="mt-3 grid w-full max-w-[760px] gap-2 sm:grid-cols-2">
-                        {msg.products.map((product) => (
-                          <ProductResult key={product._id} product={product} />
-                        ))}
-                      </div>
-                    )}
+                    <div className="w-full max-w-[760px]">
+                      {msg.estimate && <PriceEstimateCard estimate={msg.estimate} />}
+                      {msg.comparison && <ComparisonCard comparison={msg.comparison} />}
+                      {msg.draft && <ListingDraftCard draft={msg.draft} />}
+                      {msg.checklist && <ChecklistCard checklist={msg.checklist} category={msg.intent === "inspection" ? msg.category : ""} />}
+                      {msg.bundle && <BudgetBundleCard bundle={msg.bundle} />}
+                      {msg.safetyTips && <SafetyTipCard safetyTips={msg.safetyTips} />}
+                    </div>
 
                     {!!msg.suggestions?.length && (
                       <div className="mt-3 flex max-w-[760px] flex-wrap gap-2">
